@@ -10,12 +10,14 @@ Speech is browser-side; the model only ever sees and emits text.
 
 import json
 import re
+import time
 
 from openai import AsyncOpenAI
 
 from ..config import settings
 
 _clients: dict[str, AsyncOpenAI] = {}
+_cooldown: dict[str, float] = {}   # provider name -> skip-until timestamp
 
 
 def _client(p: dict) -> AsyncOpenAI:
@@ -28,26 +30,48 @@ def _client(p: dict) -> AsyncOpenAI:
     return _clients[p["name"]]
 
 
+def _mark_cooldown(name: str, err: str) -> None:
+    """A rate-limited/exhausted provider is skipped for a while so we don't
+    waste a failing round-trip on it every single turn."""
+    low = err.lower()
+    daily = any(k in low for k in ("day", "quota", "free_tier", "free-models"))
+    _cooldown[name] = time.time() + (1800 if daily else 90)
+
+
 async def _complete(messages: list[dict], max_tokens: int) -> str:
-    """Walk the provider chain → each provider's models → until one answers."""
+    """Walk the provider chain → each provider's models → until one answers.
+    Skips providers on cooldown; if every provider is cooling down, tries them
+    anyway rather than failing."""
     last_err = None
-    for p in settings.providers():
-        client = _client(p)
-        for model in p["models"]:
-            try:
-                resp = await client.chat.completions.create(
-                    model=model,
-                    messages=messages,
-                    max_tokens=max_tokens,
-                    temperature=0.7,
-                    extra_body=p.get("extra") or {},
-                )
-                text = (resp.choices[0].message.content or "").strip()
-                if text:
-                    return text
-            except Exception as e:  # quota / 404 / 400 → try the next option
-                last_err = e
+    for ignore_cd in (False, True):
+        now = time.time()
+        attempted = False
+        for p in settings.providers():
+            if not ignore_cd and _cooldown.get(p["name"], 0) > now:
                 continue
+            attempted = True
+            client = _client(p)
+            for model in p["models"]:
+                try:
+                    resp = await client.chat.completions.create(
+                        model=model,
+                        messages=messages,
+                        max_tokens=max_tokens,
+                        temperature=0.7,
+                        extra_body=p.get("extra") or {},
+                    )
+                    text = (resp.choices[0].message.content or "").strip()
+                    if text:
+                        return text
+                except Exception as e:
+                    last_err = e
+                    s = str(e)
+                    if any(k in s.lower() for k in ("429", "rate", "quota", "exceed", "exhaust")):
+                        _mark_cooldown(p["name"], s)  # whole provider limited
+                        break                          # skip its other models
+                    continue                           # other error → next model
+        if attempted:
+            break   # we tried the available providers; don't loop into ignore-pass
     raise RuntimeError(f"all providers/models unavailable: {last_err}")
 
 

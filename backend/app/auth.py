@@ -1,55 +1,34 @@
-"""Google Sign-In + lightweight session tokens + a tiny SQLite user store.
+"""Google Sign-In + stateless session tokens. NO server-side database.
 
-Flow:
-  browser gets a Google ID token (JWT) from the "Sign in with Google" button
-  -> POST /auth/google -> verify_google() checks it against Google's certs
-  -> upsert_user() records the user (first login == signup)
-  -> make_session() issues our own signed token the browser keeps.
-
-Auth is enforced only when GOOGLE_CLIENT_ID is set; empty = dev fallback.
+Friends/preview stage: the server stores nothing. User info lives in the
+browser (localStorage); the daily-session limit is tracked client-side too.
+Session tokens are self-contained (HMAC-signed), so login needs no DB. A real
+database comes at production time.
 """
 
 import base64
 import hashlib
 import hmac
 import json
-import sqlite3
+import os
 import time
-from pathlib import Path
 
 from google.auth.transport import requests as g_requests
 from google.oauth2 import id_token
 
 from .config import settings
 
-_DB = Path(__file__).resolve().parent.parent / "users.db"
-
 auth_enabled = bool(settings.google_client_id)
 
-
-# ---------- user store (SQLite, stdlib) ----------
-def _conn():
-    c = sqlite3.connect(_DB)
-    c.execute(
-        """CREATE TABLE IF NOT EXISTS users(
-            sub TEXT PRIMARY KEY, email TEXT, name TEXT, picture TEXT,
-            created_at INTEGER, last_login INTEGER)"""
-    )
-    return c
-
-
-def upsert_user(claims: dict) -> None:
-    now = int(time.time())
-    with _conn() as c:
-        c.execute(
-            """INSERT INTO users(sub,email,name,picture,created_at,last_login)
-               VALUES(?,?,?,?,?,?)
-               ON CONFLICT(sub) DO UPDATE SET
-                 email=excluded.email, name=excluded.name,
-                 picture=excluded.picture, last_login=excluded.last_login""",
-            (claims["sub"], claims.get("email", ""), claims.get("name", ""),
-             claims.get("picture", ""), now, now),
-        )
+# Never sign tokens with the public default secret — that would let anyone forge
+# a session and bypass Google login. If it's still the default, use a random
+# per-process key (tokens just don't survive a restart, which is fine).
+_SECRET = settings.session_secret
+if _SECRET == "dev-change-me":
+    _SECRET = base64.urlsafe_b64encode(os.urandom(32)).decode()
+    if auth_enabled:
+        print("[auth] WARNING: SESSION_SECRET not set — using a random per-process secret. "
+              "Set SESSION_SECRET in the environment for stable sessions.")
 
 
 # ---------- verify a Google ID token ----------
@@ -68,7 +47,7 @@ def verify_google(credential: str) -> dict:
     }
 
 
-# ---------- our own session token (HMAC-signed, stdlib) ----------
+# ---------- our own session token (HMAC-signed, stdlib, no DB) ----------
 def _b64(b: bytes) -> str:
     return base64.urlsafe_b64encode(b).decode().rstrip("=")
 
@@ -83,14 +62,14 @@ def make_session(user: dict, ttl: int = 7 * 86400) -> str:
         "name": user.get("name", ""), "exp": int(time.time()) + ttl,
     }
     body = _b64(json.dumps(payload, separators=(",", ":")).encode())
-    sig = _b64(hmac.new(settings.session_secret.encode(), body.encode(), hashlib.sha256).digest())
+    sig = _b64(hmac.new(_SECRET.encode(), body.encode(), hashlib.sha256).digest())
     return f"{body}.{sig}"
 
 
 def read_session(token: str) -> dict | None:
     try:
         body, sig = token.split(".")
-        good = _b64(hmac.new(settings.session_secret.encode(), body.encode(), hashlib.sha256).digest())
+        good = _b64(hmac.new(_SECRET.encode(), body.encode(), hashlib.sha256).digest())
         if not hmac.compare_digest(sig, good):
             return None
         payload = json.loads(_ub64(body))

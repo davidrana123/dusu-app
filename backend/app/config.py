@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     session_secret: str = "dev-change-me"
 
+    # --- Usage limits (protect the shared free quota) ---
+    max_sessions_per_day: int = 20      # per user; resets daily
+    conversation_max_turns: int = 40    # free chat gently wraps up
+    interview_max_turns: int = 15       # hard cap (interview self-ends ~8)
+
     host: str = "0.0.0.0"
     port: int = 8000
 

@@ -71,6 +71,10 @@
   .hdr-right { margin-left:auto; display:flex; align-items:center; gap:14px; }
   .hdr-right[hidden] { display:none !important; }   /* hide chip when logged out */
   .userchip { display:flex; align-items:center; gap:10px; }
+  .usage-chip { font-size:12px; color:var(--ink-faint); background:var(--glass);
+    border:1px solid var(--glass-brd); border-radius:12px; padding:6px 11px; white-space:nowrap; }
+  .usage-chip.low { color:#ffc2cb; border-color:rgba(224,138,122,.4); }
+  @media (max-width:560px){ .usage-chip{ display:none; } }
   .voicebar { display:flex; background:var(--glass); border:1px solid var(--glass-brd);
               border-radius:12px; overflow:hidden; }
   .vbtn { font:inherit; font-size:16px; line-height:1; padding:7px 12px; background:none; border:none;
@@ -364,6 +368,7 @@
     <div class="brand">DuSu</div>
     <div class="tag" id="tagline">Speak with confidence</div>
     <div class="hdr-right" id="hdrRight" hidden>
+      <span class="usage-chip" id="usageChip" title="Sessions used today"></span>
       <div class="voicebar" title="DuSu's voice">
         <button class="vbtn on" data-voice="female" title="Female voice">♀</button>
         <button class="vbtn" data-voice="male" title="Male voice" style="display:none">♂</button>
@@ -674,6 +679,7 @@ const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 let ws, recog, running = false, currentMode = "conversation";
 let aiSpeaking = false;   // true while DuSu's voice is playing (echo guard)
 let lastReport = null;
+let srFails = 0;          // consecutive speech-recognition restart failures
 const LISTEN_DELAY = 450; // ms to wait after speech before opening the mic
 
 /* ---- cartoon face + procedural lip-sync (reusable) ---- */
@@ -804,6 +810,10 @@ $("toTop").onclick = () => window.scrollTo({ top:0, behavior:"smooth" });
 
 function startSession(mode){
   if(!SR){ $("warn").textContent = "Voice input needs Chrome or Edge (Web Speech API)."; return; }
+  if(usageGet().n >= MAX_SESSIONS){
+    $("warn").textContent = `You've reached today's limit of ${MAX_SESSIONS} sessions. Come back tomorrow 🙂`;
+    return;
+  }
   currentMode = mode;
   $("feed").innerHTML = "";
   $("sessTitle").textContent = mode === "interview" ? "Interview Prep" : "Free Conversation";
@@ -815,9 +825,17 @@ function startSession(mode){
   addSys("🎧 Tip: use headphones so DuSu's voice isn't picked up by your mic.");
 
   ws = new WebSocket(WS_URL);
-  ws.onopen = () => { running = true; ws.send(JSON.stringify({ type:"start", mode, name:$("name").value, role:$("role").value, token:authToken })); };
+  ws.onopen = () => {
+    running = true; srFails = 0;
+    usageInc(); refreshUsage();   // count the session now that it actually started
+    ws.send(JSON.stringify({ type:"start", mode, name:$("name").value, role:$("role").value, token:authToken }));
+  };
   ws.onmessage = onMessage;
-  ws.onclose = () => { running = false; };
+  ws.onclose = () => {
+    running = false; stopListening();
+    if(window.speechSynthesis) window.speechSynthesis.cancel();
+    FACE.stopTalking(); Assistant.stopTalking();
+  };
   ws.onerror = () => orb("idle", "Connection error", "Is the server running?");
 }
 
@@ -857,6 +875,7 @@ function onMessage(ev){
     case "interview_done": addSys("Interview complete"); break;
     case "report": showReport(m.data); break;
     case "ended": leave(); break;
+    case "limit": running=false; stopListening(); addSys("⏸ " + m.msg); orb("idle","Session limit", m.msg); break;
     case "auth_error": running=false; try{ws.close();}catch(_){}; logout(); break;
     case "error": orb("idle", "Error", m.msg); break;
   }
@@ -916,8 +935,14 @@ function speak(text){
   if(pickedVoice) u.voice = pickedVoice;
   FACE.startTalking(); Assistant.startTalking();
   u.onboundary = () => { FACE.boundary(); Assistant.boundary(); };   // sync mouth to each spoken word
-  const done = () => { aiSpeaking = false; FACE.stopTalking(); Assistant.stopTalking(); if(running) delayedListen(); };
+  let finished = false;
+  const done = () => {
+    if(finished) return; finished = true; clearTimeout(guard);
+    aiSpeaking = false; FACE.stopTalking(); Assistant.stopTalking(); if(running) delayedListen();
+  };
   u.onend = done; u.onerror = done;
+  // Watchdog: if speechSynthesis never fires onend (known Chrome bug), recover.
+  const guard = setTimeout(done, 4000 + text.length * 70);
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(u);
 }
@@ -933,14 +958,24 @@ function startListening(){
     if(aiSpeaking) return;   // echo guard: drop speaker bleed
     const text = e.results[0][0].transcript.trim();
     if(text && !sent){
-      sent = true;
+      sent = true; srFails = 0;
       addMsg(text, "user");
       orb("thinking", "DuSu is thinking", "");
-      ws.send(JSON.stringify({ type:"user_text", text }));
+      if(ws && ws.readyState === 1) ws.send(JSON.stringify({ type:"user_text", text }));
     }
   };
-  recog.onerror = (e) => { if(e.error==="no-speech" && running) safeRestart(); };
-  recog.onend = () => { if(!sent && running) safeRestart(); };
+  recog.onerror = (e) => {
+    if(e.error === "not-allowed" || e.error === "service-not-allowed"){
+      running = false; orb("idle", "Microphone blocked", "allow mic access, then retry"); return;
+    }
+    // no-speech / audio-capture / network / aborted -> onend retries with backoff
+  };
+  recog.onend = () => {
+    if(sent || !running) return;
+    srFails++;
+    if(srFails > 8){ running = false; orb("idle", "Mic trouble", "tap End and try again"); return; }
+    setTimeout(() => { if(running && !sent) safeRestart(); }, 250 * Math.min(srFails, 5));  // backoff
+  };
   try{ recog.start(); }catch(_){}
 }
 function safeRestart(){ try{ recog.start(); }catch(_){} }
@@ -1028,6 +1063,22 @@ function applyUser(u){
   const first = (u.name || "").split(" ")[0];
   if(first && $("name")) $("name").value = first;
   setWelcome();
+  refreshUsage();
+}
+
+// Daily session limit — tracked in localStorage (no server DB for the preview).
+const MAX_SESSIONS = Number("__MAX_SESSIONS__") || 20;
+function usageGet(){
+  const today = new Date().toISOString().slice(0, 10);
+  let u = JSON.parse(localStorage.getItem("dusu_usage") || "null");
+  if(!u || u.d !== today) u = { d: today, n: 0 };
+  return u;
+}
+function usageInc(){ const u = usageGet(); u.n++; localStorage.setItem("dusu_usage", JSON.stringify(u)); return u; }
+function refreshUsage(){
+  const u = usageGet(), left = Math.max(0, MAX_SESSIONS - u.n), el = $("usageChip");
+  el.textContent = `${left}/${MAX_SESSIONS} left today`;
+  el.classList.toggle("low", left <= 3);
 }
 
 function setWelcome(){

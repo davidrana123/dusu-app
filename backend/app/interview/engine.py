@@ -10,6 +10,7 @@ here later; the interface stays the same.
 """
 
 from ..providers import llm
+from ..config import settings
 from .prompts import interviewer_system, conversation_system, SCORER_SYSTEM
 
 END_MARKER = "INTERVIEW_COMPLETE:"
@@ -27,18 +28,27 @@ class Session:
             self.system = conversation_system(self.name)
         self.transcript: list[dict] = []  # {role: "user"|"assistant", content}
         self.done = False
+        self.capped = False   # conversation hit its turn cap
+        self.turns = 0        # user turns so far
 
     def add_user(self, text: str) -> None:
         self.transcript.append({"role": "user", "content": text})
+        self.turns += 1
 
     async def next_ai_turn(self) -> str:
-        """Return DuSu's next spoken line. In interview mode, detects the
-        self-end marker and strips it; conversation mode never ends."""
+        """Return DuSu's next spoken line. Enforces turn caps per mode."""
         raw = await llm.next_question(self.system, self.transcript)
         spoken = raw
-        if self.mode == "interview" and END_MARKER in raw:
-            self.done = True
-            spoken = raw.split(END_MARKER, 1)[1].strip() or "Thanks, that's the end of our interview."
+        if self.mode == "interview":
+            if END_MARKER in raw:
+                self.done = True
+                spoken = raw.split(END_MARKER, 1)[1].strip() or "Thanks, that's the end of our interview."
+            elif self.turns >= settings.interview_max_turns:
+                self.done = True
+                spoken = f"Thanks {self.name} — that's all the questions I have for now. Let me put together your report."
+        elif self.mode == "conversation" and self.turns >= settings.conversation_max_turns:
+            self.capped = True
+            spoken = "This has been such a great long chat — let's pause here for now. Start a fresh conversation whenever you'd like!"
         self.transcript.append({"role": "assistant", "content": spoken})
         return spoken
 

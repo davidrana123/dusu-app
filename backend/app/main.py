@@ -65,7 +65,6 @@ async def auth_google(inp: GoogleIn):
     except Exception as e:
         print(f"[auth] google verify failed: {type(e).__name__}: {e}")
         raise HTTPException(401, "Invalid Google token")
-    auth.upsert_user(claims)
     return {"token": auth.make_session(claims), "user": claims}
 
 
@@ -77,6 +76,7 @@ async def index():
     # Inject config the client needs (Google client id + whether auth is on).
     html = html.replace("__GOOGLE_CLIENT_ID__", settings.google_client_id)
     html = html.replace("__AUTH_ENABLED__", "true" if auth.auth_enabled else "false")
+    html = html.replace("__MAX_SESSIONS__", str(settings.max_sessions_per_day))
     return HTMLResponse(html)
 
 
@@ -97,6 +97,8 @@ async def interview_ws(ws: WebSocket):
                 if auth.auth_enabled and not auth.read_session(data.get("token", "")):
                     await _send(ws, type="auth_error", msg="Please sign in again")
                     break
+                # Daily session cap is enforced client-side (localStorage) for the
+                # no-DB preview stage. Turn caps below are still server-enforced.
                 session = Session(
                     data.get("mode", "interview"),
                     data.get("name", ""),
@@ -120,6 +122,9 @@ async def interview_ws(ws: WebSocket):
                 if session.done:  # interview mode only
                     await _send(ws, type="interview_done")
                     await _send(ws, type="report", data=await session.build_report())
+                elif session.capped:  # conversation hit its turn cap
+                    await _send(ws, type="limit",
+                                msg="You've reached the length limit for this chat — start a fresh conversation anytime.")
 
             elif mtype == "end":
                 if session is None:
