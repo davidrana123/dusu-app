@@ -11,10 +11,10 @@ here later; the interface stays the same.
 
 from ..providers import llm
 from ..config import settings
-from .prompts import interviewer_system, conversation_system, SCORER_SYSTEM
+from .prompts import interviewer_system, conversation_system, SCORER_SYSTEM, TRANSLATE_SYSTEM
 
 END_MARKER = "INTERVIEW_COMPLETE:"
-MODES = ("interview", "conversation")
+MODES = ("interview", "conversation", "learning")
 
 
 class Session:
@@ -24,8 +24,10 @@ class Session:
         self.role = role or "general"
         if self.mode == "interview":
             self.system = interviewer_system(self.name, self.role)
-        else:
+        elif self.mode == "conversation":
             self.system = conversation_system(self.name)
+        else:  # learning: server only translates, no chat persona
+            self.system = ""
         self.transcript: list[dict] = []  # {role: "user"|"assistant", content}
         self.done = False
         self.capped = False   # conversation hit its turn cap
@@ -51,6 +53,10 @@ class Session:
             spoken = "This has been such a great long chat — let's pause here for now. Start a fresh conversation whenever you'd like!"
         self.transcript.append({"role": "assistant", "content": spoken})
         return spoken
+
+    async def translate(self, text: str) -> str:
+        """Learning mode: Hindi/Hinglish -> natural spoken English."""
+        return await llm.translate(TRANSLATE_SYSTEM, text)
 
     async def build_report(self) -> dict:
         """Only interview mode is scored. Conversation returns nothing."""

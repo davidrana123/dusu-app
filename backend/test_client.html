@@ -135,7 +135,7 @@
   }
   .field input:focus { border-color:var(--gold); box-shadow:0 0 0 3px rgba(212,175,55,.18); }
 
-  .modes { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:8px; }
+  .modes { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px; margin-top:8px; }
   @media (max-width:640px){ .modes{ grid-template-columns:1fr; } }
   .mode-card {
     position:relative; text-align:left; cursor:pointer; padding:22px; border-radius:var(--r);
@@ -152,6 +152,7 @@
                    margin-bottom:14px; }
   .mode-card.talk .ic { background:linear-gradient(135deg,#4fd6a0,#2f9e78); }
   .mode-card.interview .ic { background:var(--grad); }
+  .mode-card.learn .ic { background:linear-gradient(135deg,#8b7cf0,#5b48d8); }
   .mode-card h3 { font-family:var(--font-d); font-size:22px; font-weight:600; margin-bottom:5px; }
   .mode-card p { font-size:13px; color:var(--ink-dim); line-height:1.5; }
   .mode-card .go { position:absolute; top:20px; right:20px; color:var(--ink-faint);
@@ -159,6 +160,30 @@
   .mode-card:hover .go { transform:translateX(3px); color:var(--gold); }
   .soon { margin-top:20px; font-size:12px; color:var(--ink-faint); text-align:center; letter-spacing:.02em; }
   .soon b { color:var(--ink-dim); }
+
+  /* LEARNING MODE */
+  .learn-body { display:flex; flex-direction:column; align-items:center; text-align:center; padding-top:14px; }
+  .learn-instr { color:var(--ink-dim); font-size:15px; max-width:440px; line-height:1.6; margin-bottom:30px; }
+  .mic-btn { position:relative; width:118px; height:118px; border-radius:50%; border:none; cursor:pointer;
+    background:var(--grad); color:#241a08; display:grid; place-items:center;
+    box-shadow:var(--gold-glow); transition:transform .15s, filter .2s; }
+  .mic-btn:hover { filter:brightness(1.06); } .mic-btn:active { transform:scale(.96); }
+  .mic-btn:disabled { opacity:.5; cursor:default; filter:grayscale(.3); }
+  .mic-ring { position:absolute; inset:-6px; border-radius:50%; border:2px solid var(--gold); opacity:0; }
+  .mic-btn.listening .mic-ring { opacity:1; animation:micPulse 1.4s ease-out infinite; }
+  .mic-btn.listening { animation:micGlow 1.4s ease-in-out infinite; }
+  @keyframes micPulse { 0%{ transform:scale(.9); opacity:.7; } 100%{ transform:scale(1.35); opacity:0; } }
+  @keyframes micGlow { 0%,100%{ box-shadow:var(--gold-glow); } 50%{ box-shadow:0 0 40px -2px rgba(212,175,55,.7); } }
+  .mic-label { margin-top:16px; font-family:var(--font-d); font-weight:600; font-size:17px; }
+  .learn-state { margin-top:8px; font-size:13px; color:var(--ink-faint); min-height:18px; }
+  .trans-card { width:100%; max-width:480px; margin-top:26px; text-align:left;
+    background:var(--glass); border:1px solid var(--glass-brd); border-radius:var(--r); padding:20px 22px; }
+  .tc-label { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint); }
+  .tc-top { margin-top:14px; }
+  .tc-hindi { font-size:16px; color:var(--ink-dim); margin-top:5px; }
+  .tc-eng { font-family:var(--font-d); font-size:22px; font-weight:600; color:var(--ink); margin-top:5px; line-height:1.4;
+    background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .tc-actions { display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; }
 
   /* SESSION */
   .sess-head { display:flex; align-items:center; gap:12px; margin-bottom:6px; }
@@ -450,6 +475,15 @@
     <input id="name" type="hidden" value="David" />
 
     <div class="modes">
+      <button class="mode-card learn" data-mode="learning">
+        <span class="go">→</span>
+        <div class="ic">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
+        </div>
+        <h3>Learning Mode</h3>
+        <p>Speak in Hindi — DuSu translates it into natural English and helps you practice speaking, slowly.</p>
+      </button>
+
       <button class="mode-card talk" data-mode="conversation">
         <span class="go">→</span>
         <div class="ic">
@@ -551,6 +585,41 @@
       <div class="controls">
         <button class="btn ghost" id="setupBack">Back</button>
         <button class="btn primary" id="startInterview">Start interview</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== LEARNING MODE ===================== -->
+  <section id="learning" class="screen">
+    <div class="sess-head">
+      <button class="back" id="learnBack" title="Leave">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div>
+        <div class="sess-title">Learning Mode</div>
+        <div class="sess-sub">Speak Hindi → hear natural English</div>
+      </div>
+    </div>
+
+    <div class="learn-body">
+      <p class="learn-instr">Speak in Hindi. DuSu will translate it into natural English and help you practice speaking.</p>
+
+      <button class="mic-btn" id="micBtn">
+        <span class="mic-ring"></span>
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+      </button>
+      <div class="mic-label">🎤 Tap to Speak</div>
+      <div class="learn-state" id="learnState"></div>
+
+      <div class="trans-card" id="transCard" hidden>
+        <div class="tc-label">You said</div>
+        <div class="tc-hindi" id="tcHindi"></div>
+        <div class="tc-label tc-top">In English</div>
+        <div class="tc-eng" id="tcEng"></div>
+        <div class="tc-actions">
+          <button class="btn ghost" id="replayBtn">🔊 Replay (slow)</button>
+          <button class="btn primary" id="continueBtn">Continue →</button>
+        </div>
       </div>
     </div>
   </section>
@@ -791,6 +860,7 @@ function addSys(text){ const d=document.createElement("div"); d.className="sysms
 // Interview needs a role first → show setup; conversation starts immediately.
 function chooseMode(mode){
   if(mode === "interview"){ show("setup"); setTimeout(()=> $("role").focus(), 120); }
+  else if(mode === "learning"){ startLearning(); }
   else startSession("conversation");
 }
 document.querySelectorAll(".mode-card").forEach(c=>{
@@ -871,6 +941,11 @@ $("endBtn").onclick = () => {
 function onMessage(ev){
   const m = JSON.parse(ev.data);
   switch(m.type){
+    case "ready": greetLearn(); break;
+    case "translation": handleTranslation(m.hindi, m.text); break;
+    case "translate_error":
+      say("Translation unavailable. Please try again.", ENG_NORM());
+      learnState("Translation failed — tap the mic to try again."); micEnable(true); break;
     case "ai_text": addMsg(m.text, "ai"); speak(m.text); break;
     case "interview_done": addSys("Interview complete"); break;
     case "report": showReport(m.data); break;
@@ -889,7 +964,7 @@ function speakable(t){
 }
 
 /* ---- voice selection (male / female) ---- */
-let voices = [], voiceGender = "female", pickedVoice = null;  // male disabled for now
+let voices = [], voiceGender = "female", pickedVoice = null, hindiVoice = null;
 const FEMALE_RE = /female|zira|samantha|aria|jenny|sonia|libby|natasha|hazel|susan|catherine|linda|google uk english female|google us english/i;
 const MALE_RE   = /\bmale\b|david|mark|george|ryan|guy|william|james|google uk english male/i;
 
@@ -900,7 +975,11 @@ function loadVoices(){
 }
 function pickVoice(){
   const en = voices.filter(v => /^en(-|_|$)/i.test(v.lang));
-  const pool = en.length ? en : voices;
+  // Prefer LOCAL (offline) voices — Edge's online "Natural" voices often play no
+  // audio; a local voice (e.g. Microsoft Zira) is reliable in Chrome and Edge.
+  const local = en.filter(v => v.localService);
+  const pool = local.length ? local : (en.length ? en : voices);
+  hindiVoice = voices.find(v => /^hi(-|_|$)/i.test(v.lang)) || null;
   if(!pool.length){ pickedVoice = null; return; }
   if(voiceGender === "female")
     pickedVoice = pool.find(v => FEMALE_RE.test(v.name)) || pool.find(v => !MALE_RE.test(v.name)) || pool[0];
@@ -1035,6 +1114,103 @@ function showReport(d){
 }
 
 if(!SR){ $("warn").textContent = "Voice input needs Chrome or Edge (Web Speech API)."; }
+
+/* ================= Learning Mode ================= */
+const HINDI = {
+  greet:    "Namaste! Aapke liye kya translate karun? Neeche diye gaye button ko dabakar boliye.",
+  intro:    "English mein aise bolte hain.",
+  repeat:   "Ab mere baad dohraiye.",
+  next:     "Next, aapke liye kya translate karun?",
+  noSpeech: "Mujhe samajh nahi aaya. Kripya dobara boliye."
+};
+let lrec = null, lastEnglish = "";
+const HI       = () => ({ lang:"hi-IN", rate:0.95, voice:hindiVoice });
+const ENG_SLOW = () => ({ lang:"en-IN", rate:0.62, voice:pickedVoice });  // Learning: extra slow, clear
+const ENG_NORM = () => ({ lang:"en-US", rate:1.0,  voice:pickedVoice });
+
+// A single spoken line, awaitable, with a watchdog (no cancel-before-speak).
+function say(text, opts){
+  opts = opts || {};
+  return new Promise(res => {
+    if(!window.speechSynthesis){ res(); return; }
+    const u = new SpeechSynthesisUtterance(speakable(text));
+    u.lang = opts.lang || "en-US"; u.rate = opts.rate || 1; if(opts.voice) u.voice = opts.voice;
+    let fin = false; const done = () => { if(fin) return; fin = true; clearTimeout(g); res(); };
+    u.onend = done; u.onerror = done;
+    const g = setTimeout(done, 3500 + text.length * (u.rate < 1 ? 130 : 90));
+    window.speechSynthesis.speak(u);
+  });
+}
+function pause(ms){ return new Promise(r => setTimeout(r, ms)); }
+function learnState(t){ $("learnState").textContent = t || ""; }
+function micEnable(b){ $("micBtn").disabled = !b; }
+function micActive(b){ $("micBtn").classList.toggle("listening", b); }
+
+function startLearning(){
+  if(!SR){ $("warn").textContent = "Voice needs Chrome or Edge."; return; }
+  if(usageGet().n >= MAX_SESSIONS){
+    $("warn").textContent = `You've reached today's limit of ${MAX_SESSIONS} sessions. Come back tomorrow 🙂`; return;
+  }
+  currentMode = "learning"; lastEnglish = "";
+  $("transCard").hidden = true; $("tcHindi").textContent = ""; $("tcEng").textContent = "";
+  learnState("Connecting…"); micEnable(false); micActive(false);
+  show("learning");
+  ws = new WebSocket(WS_URL);
+  ws.onopen = () => { running = true; usageInc(); refreshUsage();
+    ws.send(JSON.stringify({ type:"start", mode:"learning", token:authToken })); };
+  ws.onmessage = onMessage;
+  ws.onclose = () => { running = false; stopLearn(); };
+  ws.onerror = () => learnState("Connection error. Is the server running?");
+}
+async function greetLearn(){
+  await say(HINDI.greet, HI());
+  learnState("Tap the mic and speak in Hindi.");
+  micEnable(true);
+}
+function startHindiListen(){
+  if(!running) return;
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  micEnable(false); micActive(true); learnState("Listening…");
+  lrec = new SR(); lrec.lang = "hi-IN"; lrec.interimResults = false; lrec.maxAlternatives = 1;
+  let got = false;
+  lrec.onresult = (e) => {
+    const t = e.results[0][0].transcript.trim();
+    if(t && !got){ got = true; $("tcHindi").textContent = t; learnState("Translating…"); micActive(false);
+      if(ws && ws.readyState === 1) ws.send(JSON.stringify({ type:"user_text", text:t })); }
+  };
+  lrec.onerror = () => {};
+  lrec.onend = async () => {
+    micActive(false);
+    if(!got && running){ await say(HINDI.noSpeech, HI()); learnState("Tap the mic and speak in Hindi."); micEnable(true); }
+  };
+  try{ lrec.start(); }catch(_){}
+}
+async function handleTranslation(hindi, english){
+  lastEnglish = english;
+  $("tcHindi").textContent = hindi; $("tcEng").textContent = english;
+  $("transCard").hidden = false; $("replayBtn").disabled = true; learnState("");
+  await say(HINDI.intro, HI());          // "English mein aise bolte hain."
+  await pause(700);
+  await say(english, ENG_SLOW());
+  await say(HINDI.repeat, HI());         // "Ab mere baad dohraiye."
+  await say(english, ENG_SLOW());
+  learnState("Now repeat after DuSu. Tap 🔊 to hear again, or the mic for a new sentence.");
+  $("replayBtn").disabled = false; micEnable(true);
+}
+function stopLearn(){
+  try{ if(lrec){ lrec.onend = null; lrec.stop(); lrec = null; } }catch(_){}
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  micActive(false);
+}
+$("micBtn").onclick = startHindiListen;
+$("replayBtn").onclick = () => { if(lastEnglish){ if(window.speechSynthesis) window.speechSynthesis.cancel(); say(lastEnglish, ENG_SLOW()); } };
+$("continueBtn").onclick = async () => {
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  $("transCard").hidden = true; $("tcHindi").textContent = ""; $("tcEng").textContent = ""; lastEnglish = "";
+  await say(HINDI.next, HI());   // DuSu asks "Next, aapke liye kya translate karun?"
+  startHindiListen();            // then listen for the fresh sentence
+};
+$("learnBack").onclick = () => { running = false; stopLearn(); try{ ws && ws.close(); }catch(_){} show("home"); };
 
 /* ================= Google Sign-In ================= */
 const GOOGLE_CLIENT_ID = "__GOOGLE_CLIENT_ID__";

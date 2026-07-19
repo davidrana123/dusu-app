@@ -99,6 +99,11 @@ class OpenRouterLLM:
                              "content": "Let's begin. Greet me and ask your first question."})
         return await _complete(messages, max_tokens=250)
 
+    async def translate(self, system: str, text: str) -> str:
+        messages = [{"role": "system", "content": system},
+                    {"role": "user", "content": text}]
+        return await _complete(messages, max_tokens=120)
+
     async def score(self, system: str, transcript: list[dict]) -> dict:
         convo = "\n".join(f"{m['role']}: {m['content']}" for m in transcript)
         messages = [

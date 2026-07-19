@@ -104,9 +104,12 @@ async def interview_ws(ws: WebSocket):
                     data.get("name", ""),
                     data.get("role", ""),
                 )
-                await _send(ws, type="status", msg="starting")
-                greeting = await session.next_ai_turn()  # DuSu speaks first
-                await _send(ws, type="ai_text", text=greeting)
+                if session.mode == "learning":
+                    await _send(ws, type="ready")   # client greets in Hindi
+                else:
+                    await _send(ws, type="status", msg="starting")
+                    greeting = await session.next_ai_turn()  # DuSu speaks first
+                    await _send(ws, type="ai_text", text=greeting)
 
             elif mtype == "user_text":
                 if session is None:
@@ -114,6 +117,15 @@ async def interview_ws(ws: WebSocket):
                     continue
                 text = (data.get("text") or "").strip()
                 if not text:
+                    continue
+                if session.mode == "learning":
+                    await _send(ws, type="status", msg="translating")
+                    try:
+                        english = await session.translate(text)
+                    except Exception:
+                        await _send(ws, type="translate_error")
+                        continue
+                    await _send(ws, type="translation", hindi=text, text=english)
                     continue
                 session.add_user(text)
                 await _send(ws, type="status", msg="thinking")
