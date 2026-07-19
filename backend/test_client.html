@@ -620,12 +620,19 @@ function onMessage(ev){
   }
 }
 
+// Strip emoji / pictographs so TTS doesn't read icon names ("waving hand" etc).
+function speakable(t){
+  return (t || "")
+    .replace(/[\u{1F000}-\u{1FAFF}\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}\u{200D}\u{2000}-\u{206F}]/gu, "")
+    .replace(/\s{2,}/g, " ").trim();
+}
+
 function speak(text){
   stopListening();          // mic OFF while DuSu talks — kills the echo loop
   aiSpeaking = true;
   orb("speaking", "DuSu is speaking", "listen…");
   if(!window.speechSynthesis){ aiSpeaking=false; delayedListen(); return; }
-  const u = new SpeechSynthesisUtterance(text);
+  const u = new SpeechSynthesisUtterance(speakable(text));
   u.rate = 1.0; u.pitch = 1.0;
   FACE.startTalking();
   u.onboundary = () => FACE.boundary();   // sync mouth to each spoken word
@@ -759,7 +766,7 @@ function speakWelcome(){
     : `Welcome! I'm DuSu. Pick a mode, and let's practice speaking.`;
   if(!window.speechSynthesis) return;
   HOMEFACE.set("speaking"); HOMEFACE.startTalking();
-  const u = new SpeechSynthesisUtterance(msg);
+  const u = new SpeechSynthesisUtterance(speakable(msg));
   u.rate = 1.0; u.pitch = 1.0;
   u.onboundary = () => HOMEFACE.boundary();
   const done = () => { HOMEFACE.stopTalking(); HOMEFACE.set("idle"); };
