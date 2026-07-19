@@ -1,0 +1,817 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DuSu — Speak with confidence</title>
+<link rel="icon" href="/logo.png" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root {
+    --bg0:#070a14; --bg1:#0b1020; --bg2:#0e1428;
+    --glass: rgba(255,255,255,.04);
+    --glass-brd: rgba(212,175,55,.18);
+    --ink:#f3ecd8; --ink-dim:#c8bd9e; --ink-faint:#8a815f;
+    --gold:#d4af37; --gold-lt:#f5d97a; --gold-dk:#b8860b; --champ:#e8dcc0;
+    --green:#4fd6a0; --amber:#f0a952; --rose:#e08a7a;
+    --grad: linear-gradient(135deg,#f5d97a 0%,#d4af37 48%,#a9791b 100%);
+    --shadow: 0 24px 70px -24px rgba(0,0,0,.85);
+    --gold-glow: 0 8px 30px -6px rgba(212,175,55,.55);
+    --r: 22px;
+    --font-d:"Cormorant Garamond", Georgia, serif;
+    --font-b:"Inter", system-ui, sans-serif;
+  }
+  * { box-sizing:border-box; margin:0; padding:0; }
+  html,body { height:100%; }
+  body {
+    font-family:var(--font-b); color:var(--ink);
+    background:
+      radial-gradient(1100px 700px at 82% -12%, #1a2033 0%, transparent 55%),
+      radial-gradient(900px 600px at -12% 112%, #14161f 0%, transparent 55%),
+      linear-gradient(165deg,var(--bg0),var(--bg1) 60%,var(--bg2));
+    min-height:100%; overflow-x:hidden; -webkit-font-smoothing:antialiased;
+  }
+  .wrap { max-width:820px; margin:0 auto; padding:24px 20px 48px; position:relative; z-index:1; }
+
+  /* ---- ambient effects: aurora + film grain ---- */
+  .fx { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
+  .blob { position:absolute; border-radius:50%; filter:blur(95px); opacity:.5; }
+  .b1 { width:520px; height:520px; top:-150px; left:-110px;
+        background:radial-gradient(circle,#4a3a16,transparent 70%); animation:drift1 27s ease-in-out infinite; }
+  .b2 { width:620px; height:620px; bottom:-200px; right:-150px;
+        background:radial-gradient(circle,#12324a,transparent 70%); animation:drift2 31s ease-in-out infinite; }
+  .b3 { width:440px; height:440px; top:38%; left:52%;
+        background:radial-gradient(circle,#2c2517,transparent 70%); animation:drift3 24s ease-in-out infinite; }
+  @keyframes drift1 { 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(70px,50px); } }
+  @keyframes drift2 { 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(-60px,-40px); } }
+  @keyframes drift3 { 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(-50px,60px); } }
+  .grain { position:absolute; inset:0; opacity:.05; mix-blend-mode:overlay;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"); }
+
+  /* ---- gold scrollbar ---- */
+  *::-webkit-scrollbar { width:10px; height:10px; }
+  *::-webkit-scrollbar-track { background:transparent; }
+  *::-webkit-scrollbar-thumb { background:linear-gradient(var(--gold-dk),var(--gold));
+    border-radius:8px; border:2px solid transparent; background-clip:content-box; }
+
+  @media (prefers-reduced-motion: reduce){
+    .blob { animation:none !important; }
+    .wface, .orb-wrap.idle .orb, .orb-wrap.connecting .orb { animation:none !important; }
+  }
+
+  header.top { display:flex; align-items:center; gap:13px; margin-bottom:30px; }
+  .logo { height:44px; width:auto; border-radius:10px; }
+  .brand { font-family:var(--font-d); font-weight:700; font-size:26px; letter-spacing:.01em;
+           background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .tag { margin-left:auto; font-size:11px; letter-spacing:.22em; text-transform:uppercase;
+         color:var(--ink-faint); }
+  .userchip { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .uav { width:30px; height:30px; border-radius:50%; border:1px solid var(--glass-brd); object-fit:cover; }
+  .uav-init { display:grid; place-items:center; background:var(--grad); color:#241a08;
+              font-family:var(--font-d); font-weight:700; font-size:14px; }
+  .userchip span { font-size:13px; color:var(--ink-dim); }
+  .signout { font:inherit; font-size:12px; color:var(--ink-faint); background:var(--glass);
+             border:1px solid var(--glass-brd); padding:6px 12px; border-radius:10px; cursor:pointer; transition:.2s; }
+  .signout:hover { color:var(--gold); border-color:var(--gold); }
+
+  /* LOGIN */
+  .login-card { max-width:420px; margin:6vh auto 0; text-align:center; padding:38px 30px;
+    background:var(--glass); border:1px solid var(--glass-brd); border-radius:26px; box-shadow:var(--shadow); }
+  .login-card .mark { height:130px; width:auto; display:block; margin:0 auto 6px;
+    filter:drop-shadow(0 10px 40px rgba(212,175,55,.2)); }
+  .login-card h1 { font-family:var(--font-d); font-weight:600; font-size:28px; margin:12px 0 8px; }
+  .login-card h1 .g { background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .login-card p { color:var(--ink-dim); font-size:14px; margin-bottom:24px; }
+  #gbtn { display:flex; justify-content:center; min-height:44px; }
+  #loginNote { margin-top:14px; font-size:12.5px; color:var(--ink-faint); }
+
+  .screen { display:none; animation:fade .45s ease both; }
+  .screen.on { display:block; }
+  @keyframes fade { from{opacity:0; transform:translateY(10px);} to{opacity:1; transform:none;} }
+
+  /* HOME */
+  .welcome { display:flex; align-items:center; gap:14px; justify-content:center; margin:6px 0 20px; }
+  .wface { flex:none; filter:drop-shadow(0 6px 16px rgba(212,175,55,.28)); animation:floaty 4s ease-in-out infinite; }
+  @keyframes floaty { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-5px); } }
+  .wbubble { position:relative; background:var(--glass); border:1px solid var(--glass-brd); border-radius:16px;
+             padding:14px 18px; font-size:15px; color:var(--ink); max-width:420px; line-height:1.5; }
+  .wbubble::before { content:""; position:absolute; left:-8px; top:50%; transform:translateY(-50%) rotate(45deg);
+                     width:14px; height:14px; background:var(--glass); border-left:1px solid var(--glass-brd);
+                     border-bottom:1px solid var(--glass-brd); }
+  @media (max-width:560px){ .welcome{ flex-direction:column; } .wbubble::before{ display:none; } }
+  .hero { text-align:center; margin-bottom:8px; }
+  .hero .mark { height:132px; width:auto; margin:6px auto 4px; display:block; filter:drop-shadow(0 10px 40px rgba(212,175,55,.18)); }
+  .hero h1 { font-family:var(--font-d); font-weight:600; font-size:32px; line-height:1.15;
+             letter-spacing:.005em; margin:14px 0 10px; }
+  .hero h1 .g { background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .hero p { color:var(--ink-dim); font-size:15px; max-width:520px; margin:0 auto 26px; line-height:1.6; }
+
+  .field { margin-bottom:16px; }
+  .field label { display:block; font-size:11px; color:var(--ink-faint); margin:0 0 7px 3px;
+                 text-transform:uppercase; letter-spacing:.14em; font-weight:600; }
+  .field input {
+    width:100%; font:inherit; color:var(--ink); padding:13px 15px; border-radius:14px;
+    background:var(--glass); border:1px solid var(--glass-brd); outline:none;
+    transition:border-color .2s, box-shadow .2s;
+  }
+  .field input:focus { border-color:var(--gold); box-shadow:0 0 0 3px rgba(212,175,55,.18); }
+
+  .modes { display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-top:8px; }
+  @media (max-width:640px){ .modes{ grid-template-columns:1fr; } }
+  .mode-card {
+    position:relative; text-align:left; cursor:pointer; padding:22px; border-radius:var(--r);
+    background:var(--glass); border:1px solid var(--glass-brd); color:var(--ink);
+    transition:transform .18s, border-color .2s, background .2s; overflow:hidden;
+  }
+  .mode-card:hover { transform:translateY(-4px); border-color:rgba(212,175,55,.55);
+                     background:rgba(212,175,55,.06); box-shadow:var(--gold-glow); }
+  .mode-card::before { content:""; position:absolute; inset:0; border-radius:inherit; opacity:0;
+    transition:opacity .3s; pointer-events:none;
+    background:radial-gradient(240px circle at var(--mx,50%) var(--my,50%), rgba(212,175,55,.16), transparent 60%); }
+  .mode-card:hover::before { opacity:1; }
+  .mode-card .ic { width:46px; height:46px; border-radius:14px; display:grid; place-items:center;
+                   margin-bottom:14px; }
+  .mode-card.talk .ic { background:linear-gradient(135deg,#4fd6a0,#2f9e78); }
+  .mode-card.interview .ic { background:var(--grad); }
+  .mode-card h3 { font-family:var(--font-d); font-size:22px; font-weight:600; margin-bottom:5px; }
+  .mode-card p { font-size:13px; color:var(--ink-dim); line-height:1.5; }
+  .mode-card .go { position:absolute; top:20px; right:20px; color:var(--ink-faint);
+                   transition:transform .2s,color .2s; }
+  .mode-card:hover .go { transform:translateX(3px); color:var(--gold); }
+  .soon { margin-top:20px; font-size:12px; color:var(--ink-faint); text-align:center; letter-spacing:.02em; }
+  .soon b { color:var(--ink-dim); }
+
+  /* SESSION */
+  .sess-head { display:flex; align-items:center; gap:12px; margin-bottom:6px; }
+  .back { background:var(--glass); border:1px solid var(--glass-brd); color:var(--ink-dim);
+          width:38px; height:38px; border-radius:12px; cursor:pointer; display:grid; place-items:center;
+          transition:.2s; }
+  .back:hover { color:var(--gold); border-color:var(--gold); }
+  .sess-title { font-family:var(--font-d); font-weight:600; font-size:20px; }
+  .sess-sub { font-size:12px; color:var(--ink-faint); }
+
+  .stage { display:grid; place-items:center; padding:26px 0 6px; }
+  .orb-wrap { position:relative; width:230px; height:230px; display:grid; place-items:center; }
+  .ring { position:absolute; inset:0; border-radius:50%; border:2px solid transparent; opacity:0; }
+  .orb {
+    position:relative; width:150px; height:150px; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #1c2236, #0b0f1c 70%);
+    display:grid; place-items:center; box-shadow: inset 0 0 40px rgba(0,0,0,.55), var(--shadow);
+    transition:box-shadow .4s;
+  }
+  .orb::after { content:""; position:absolute; inset:-2px; border-radius:50%; padding:2px;
+    background:var(--grad); -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0);
+    -webkit-mask-composite:xor; mask-composite:exclude; opacity:.55; transition:opacity .4s; }
+
+  .state-label { margin-top:20px; font-family:var(--font-d); font-weight:600; font-size:19px; }
+  .state-hint { font-size:12.5px; color:var(--ink-faint); margin-top:4px; height:16px; letter-spacing:.02em; }
+
+  /* cartoon face */
+  #face { display:block; filter:drop-shadow(0 6px 16px rgba(0,0,0,.45)); }
+  #faceG { transform-box:fill-box; transform-origin:center; }
+  #eL,#eR { transition:ry .08s ease; }
+  .orb-wrap.listening #faceG { animation:bob 1.7s ease-in-out infinite; }
+  .orb-wrap.thinking  #faceG { animation:tilt 3s ease-in-out infinite; }
+  @keyframes bob  { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-3px); } }
+  @keyframes tilt { 0%,100%{ transform:rotate(-3deg); } 50%{ transform:rotate(3deg); } }
+
+  .eq { display:none; gap:5px; align-items:center; height:52px; }
+  .eq span { width:6px; height:14px; border-radius:4px; background:linear-gradient(180deg,var(--gold-lt),var(--gold-dk));
+             animation:eq 1s ease-in-out infinite; }
+  .eq span:nth-child(2){ animation-delay:.15s; } .eq span:nth-child(3){ animation-delay:.3s; }
+  .eq span:nth-child(4){ animation-delay:.45s; } .eq span:nth-child(5){ animation-delay:.1s; }
+  @keyframes eq { 0%,100%{ height:12px; } 50%{ height:46px; } }
+
+  .mic { display:none; color:var(--green); }
+  .dots { display:none; gap:8px; }
+  .dots span { width:12px; height:12px; border-radius:50%; background:var(--amber); animation:bnc 1s infinite; }
+  .dots span:nth-child(2){ animation-delay:.16s; } .dots span:nth-child(3){ animation-delay:.32s; }
+  @keyframes bnc { 0%,80%,100%{ transform:translateY(0); opacity:.5; } 40%{ transform:translateY(-12px); opacity:1; } }
+  .idleg { display:grid; color:var(--gold); opacity:.92; }
+
+  .orb-wrap.speaking .eq{ display:flex; } .orb-wrap.speaking .orb::after{ opacity:1; }
+  .orb-wrap.speaking .orb{ box-shadow: inset 0 0 40px rgba(0,0,0,.4), 0 0 46px -4px rgba(212,175,55,.5); }
+  .orb-wrap.speaking .r1{ opacity:1; border-color:rgba(212,175,55,.42); animation:pulse 2.4s ease-out infinite; }
+  .orb-wrap.speaking .r2{ opacity:1; border-color:rgba(245,217,122,.28); animation:pulse 2.4s ease-out infinite .8s; }
+
+  .orb-wrap.listening .mic{ display:grid; }
+  .orb-wrap.listening .orb{ box-shadow: inset 0 0 40px rgba(0,0,0,.4), 0 0 44px -4px rgba(79,214,160,.5); }
+  .orb-wrap.listening .r1{ opacity:1; border-color:rgba(79,214,160,.5); animation:pulse 1.8s ease-out infinite; }
+  .orb-wrap.listening .r2{ opacity:1; border-color:rgba(79,214,160,.26); animation:pulse 1.8s ease-out infinite .6s; }
+
+  .orb-wrap.thinking .dots{ display:flex; }
+  .orb-wrap.thinking .orb{ box-shadow: inset 0 0 40px rgba(0,0,0,.4), 0 0 40px -6px rgba(240,169,82,.42); }
+  .orb-wrap.thinking .r1{ opacity:1; border-color:rgba(240,169,82,.34); animation:spin 3s linear infinite; }
+
+  .orb-wrap.idle .idleg{ display:grid; } .orb-wrap.connecting .idleg{ display:grid; }
+  .orb-wrap.connecting .r1{ opacity:1; border-color:rgba(212,175,55,.4); animation:spin 1.2s linear infinite; }
+  .orb-wrap.idle .orb { animation:breathe 4.5s ease-in-out infinite; }
+  @keyframes breathe { 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.03); } }
+
+  @keyframes pulse { 0%{ transform:scale(.86); opacity:.8; } 100%{ transform:scale(1.18); opacity:0; } }
+  @keyframes spin { to{ transform:rotate(360deg); } }
+
+  .feed { margin-top:24px; display:flex; flex-direction:column; gap:12px; max-height:34vh; overflow-y:auto;
+          padding:4px 2px; }
+  .feed::-webkit-scrollbar{ width:6px; } .feed::-webkit-scrollbar-thumb{ background:var(--glass-brd); border-radius:6px; }
+  .msg { display:flex; gap:10px; align-items:flex-end; max-width:86%; animation:fade .35s both; }
+  .msg.user { align-self:flex-end; flex-direction:row-reverse; }
+  .msg .av { width:28px; height:28px; border-radius:9px; flex:none; display:grid; place-items:center;
+             font-size:11px; font-weight:700; font-family:var(--font-d); }
+  .msg.ai .av { background:var(--grad); color:#20180a; }
+  .msg.user .av { background:rgba(255,255,255,.1); color:var(--ink-dim); }
+  .bubble { padding:11px 14px; border-radius:16px; font-size:14px; line-height:1.5; }
+  .msg.ai .bubble { background:var(--glass); border:1px solid var(--glass-brd); border-bottom-left-radius:5px; }
+  .msg.user .bubble { background:linear-gradient(135deg,rgba(212,175,55,.2),rgba(184,134,11,.14));
+                      border:1px solid rgba(212,175,55,.3); border-bottom-right-radius:5px; }
+  .sysmsg { text-align:center; font-size:12px; color:var(--ink-faint); padding:4px; }
+
+  .controls { display:flex; justify-content:center; gap:12px; margin-top:22px; }
+  .btn { font:inherit; font-weight:600; cursor:pointer; border:none; padding:13px 22px; border-radius:14px;
+         transition:transform .15s, filter .2s, background .2s; }
+  .btn:active{ transform:scale(.97); }
+  .btn.primary { position:relative; overflow:hidden; background:var(--grad); color:#241a08; box-shadow:var(--gold-glow); }
+  .btn.primary:hover{ filter:brightness(1.06); }
+  .btn.primary::after { content:""; position:absolute; top:0; left:-60%; width:38%; height:100%;
+    background:linear-gradient(120deg,transparent,rgba(255,255,255,.55),transparent);
+    transform:skewX(-20deg); pointer-events:none; }
+  .btn.primary:hover::after { animation:sheen .8s ease; }
+  @keyframes sheen { to{ left:130%; } }
+  .btn.ghost { background:var(--glass); border:1px solid var(--glass-brd); color:var(--ink-dim); }
+  .btn.danger { background:rgba(224,138,122,.14); border:1px solid rgba(224,138,122,.4); color:#f2c4ba; }
+  .btn.danger:hover{ background:rgba(224,138,122,.22); }
+
+  #warn { color:#f2c4ba; font-size:12.5px; text-align:center; margin-top:14px; }
+
+  /* REPORT */
+  .rep-head { text-align:center; margin-bottom:24px; }
+  .score-ring { position:relative; width:150px; height:150px; margin:6px auto 12px; }
+  .score-ring svg{ transform:rotate(-90deg); }
+  .score-ring .val { position:absolute; inset:0; display:grid; place-items:center; font-family:var(--font-d);
+                     font-weight:700; }
+  .score-ring .val b { font-size:44px; } .score-ring .val small{ font-size:12px; color:var(--ink-faint);
+                       display:block; text-transform:uppercase; letter-spacing:.14em; }
+  .metrics { display:grid; grid-template-columns:1fr 1fr; gap:14px 22px; margin:22px 0; }
+  @media (max-width:560px){ .metrics{ grid-template-columns:1fr; } }
+  .metric .m-top { display:flex; justify-content:space-between; font-size:13px; margin-bottom:6px; }
+  .metric .m-top b{ font-weight:600; } .metric .m-top span{ color:var(--ink-faint); }
+  .bar { height:8px; border-radius:6px; background:rgba(255,255,255,.07); overflow:hidden; }
+  .bar i { display:block; height:100%; border-radius:6px; background:var(--grad); width:0; transition:width 1s ease; }
+  .card { background:var(--glass); border:1px solid var(--glass-brd); border-radius:var(--r); padding:18px 20px;
+          margin-bottom:14px; }
+  .card h4 { font-family:var(--font-d); font-size:18px; font-weight:600; margin-bottom:10px; display:flex;
+             align-items:center; gap:8px; }
+  .card ul { list-style:none; display:flex; flex-direction:column; gap:8px; }
+  .card li { font-size:13.5px; color:var(--ink-dim); padding-left:20px; position:relative; line-height:1.5; }
+  .card li::before { content:""; position:absolute; left:2px; top:8px; width:7px; height:7px; border-radius:50%; }
+  .card.good li::before{ background:var(--green); } .card.fix li::before{ background:var(--amber); }
+  .card.better .q { font-size:12px; color:var(--ink-faint); margin-bottom:8px; }
+  .card.better .imp { font-size:14px; color:var(--ink); line-height:1.55; padding:12px 14px; border-radius:12px;
+                      background:rgba(79,214,160,.09); border:1px solid rgba(79,214,160,.22); }
+  .chips { display:flex; flex-wrap:wrap; gap:7px; }
+  .chip { font-size:12px; padding:5px 11px; border-radius:20px; background:rgba(224,138,122,.13);
+          border:1px solid rgba(224,138,122,.3); color:#f2c4ba; }
+
+  /* ---- footer (home only) ---- */
+  .foot { margin-top:52px; padding-top:30px; border-top:1px solid rgba(212,175,55,.15); }
+  .foot-cols { display:grid; grid-template-columns:1.5fr 1fr 1fr; gap:28px; }
+  @media (max-width:640px){ .foot-cols{ grid-template-columns:1fr; gap:22px; } }
+  .foot-brand .brand { font-size:24px; margin-bottom:4px; }
+  .foot-brand p { color:var(--ink-dim); font-size:13px; margin:2px 0; }
+  .foot-blurb { color:var(--ink-faint) !important; max-width:280px; line-height:1.55; margin-top:8px !important; }
+  .foot-social { display:flex; gap:10px; margin-top:14px; }
+  .foot-social a { width:34px; height:34px; border-radius:10px; display:grid; place-items:center;
+    background:var(--glass); border:1px solid var(--glass-brd); color:var(--ink-dim); transition:.2s; }
+  .foot-social a:hover { color:var(--gold); border-color:var(--gold); transform:translateY(-2px); }
+  .foot-col h5 { font-family:var(--font-d); font-size:13px; font-weight:600; color:var(--ink);
+    text-transform:uppercase; letter-spacing:.14em; margin-bottom:12px; }
+  .foot-col a { display:block; color:var(--ink-faint); font-size:13.5px; text-decoration:none;
+    padding:5px 0; transition:color .2s; cursor:pointer; }
+  .foot-col a:hover { color:var(--gold); }
+  .foot-bottom { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;
+    margin-top:26px; padding-top:18px; border-top:1px solid var(--glass-brd);
+    font-size:12.5px; color:var(--ink-faint); }
+  .foot-bottom button { font:inherit; font-size:12.5px; background:none; border:none; color:var(--ink-faint);
+    cursor:pointer; transition:color .2s; }
+  .foot-bottom button:hover { color:var(--gold); }
+
+  /* sparkle particles on great scores */
+  .spark { position:absolute; width:6px; height:6px; border-radius:50%;
+    background:var(--gold-lt); pointer-events:none; }
+</style>
+</head>
+<body>
+<div class="fx"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span><span class="grain"></span></div>
+<div class="wrap">
+  <!-- shared face gradients (gold, on-brand) -->
+  <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+    <radialGradient id="skin" cx="38%" cy="30%" r="80%">
+      <stop offset="0" stop-color="#fbeec0"/><stop offset="1" stop-color="#d4af37"/>
+    </radialGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f7e08a"/><stop offset="1" stop-color="#9a6f14"/>
+    </linearGradient>
+  </defs></svg>
+
+  <header class="top">
+    <div class="brand">DuSu</div>
+    <div class="tag" id="tagline">Speak with confidence</div>
+    <div class="userchip" id="userChip" hidden>
+      <img id="uAvatar" class="uav" alt="" referrerpolicy="no-referrer" />
+      <span class="uav uav-init" id="uInit" hidden></span>
+      <span id="uName"></span>
+      <button class="signout" id="logoutBtn" title="Sign out">Sign out</button>
+    </div>
+  </header>
+
+  <!-- ===================== LOGIN ===================== -->
+  <section id="login" class="screen on">
+    <div class="login-card">
+      <img class="mark" src="/logo.png" alt="DuSu — Speak with confidence" />
+      <h1>Welcome to <span class="g">DuSu</span></h1>
+      <p>Sign in to start speaking with confidence.</p>
+      <div id="gbtn"></div>
+      <div id="loginNote"></div>
+    </div>
+  </section>
+
+  <!-- ===================== HOME ===================== -->
+  <section id="home" class="screen">
+    <div class="welcome">
+      <svg class="wface" viewBox="-50 -50 100 100" width="90" height="90" aria-hidden="true">
+        <circle cx="0" cy="2" r="40" fill="url(#skin)" stroke="url(#rim)" stroke-width="3"/>
+        <path d="M-21 -17 Q -14 -20.5 -7 -17" stroke="#12203a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+        <path d="M7 -17 Q 14 -20.5 21 -17" stroke="#12203a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+        <g id="hEyes" fill="#12203a">
+          <ellipse id="hEL" cx="-14" cy="-6" rx="5" ry="6"/>
+          <ellipse id="hER" cx="14" cy="-6" rx="5" ry="6"/>
+        </g>
+        <path id="hSmile" d="M-14 12 Q 0 22 14 12" stroke="#12203a" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+        <ellipse id="hTalk" cx="0" cy="15" rx="10" ry="2" fill="#12203a" style="display:none"/>
+      </svg>
+      <div class="wbubble" id="welcomeMsg">Hi! 👋 I'm DuSu — pick a mode and let's practice speaking.</div>
+    </div>
+
+    <div class="hero">
+      <h1>Practice <span class="g">speaking</span>,<br/>the way it really happens.</h1>
+      <p>Talk out loud with DuSu. Have a free-flowing chat to build fluency, or run a realistic interview and get a scored report. Pick a mode to begin.</p>
+    </div>
+
+    <div class="field">
+      <label>Your name</label>
+      <input id="name" placeholder="e.g. David" value="David" />
+    </div>
+    <div class="field" id="roleField">
+      <label>Interview role (for interview mode)</label>
+      <input id="role" placeholder="e.g. Frontend Developer" value="Frontend Developer" />
+    </div>
+
+    <div class="modes">
+      <button class="mode-card talk" data-mode="conversation">
+        <span class="go">→</span>
+        <div class="ic">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#062" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        </div>
+        <h3>Free Conversation</h3>
+        <p>Just talk. No pressure, no ending — DuSu keeps the chat flowing and helps you get comfortable speaking.</p>
+      </button>
+
+      <button class="mode-card interview" data-mode="interview">
+        <span class="go">→</span>
+        <div class="ic">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#241a08" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+        </div>
+        <h3>Interview Prep</h3>
+        <p>Realistic mock interview with adaptive follow-ups. Ends with a detailed scored report on how you did.</p>
+      </button>
+    </div>
+    <div class="soon">More modes coming soon — <b>Group Discussion · IELTS Speaking · Sales Pitch</b></div>
+    <div id="warn"></div>
+
+    <footer class="foot">
+      <div class="foot-cols">
+        <div class="foot-brand">
+          <div class="brand">DuSu</div>
+          <p>Speak with confidence.</p>
+          <p class="foot-blurb">Practice speaking with an AI partner — free conversation and realistic interviews that build real confidence.</p>
+          <div class="foot-social">
+            <a title="LinkedIn"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.1c.5-.9 1.8-1.9 3.6-1.9 3.9 0 4.6 2.5 4.6 5.8V21h-4v-5.5c0-1.3 0-3-1.9-3s-2.2 1.4-2.2 2.9V21H9z"/></svg></a>
+            <a title="Instagram"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
+            <a title="X"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h3l-7 8 8 12h-6l-5-7-5 7H2l8-9L2 2h6l4 6z"/></svg></a>
+            <a title="YouTube"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M23 12s0-3.2-.4-4.7a2.5 2.5 0 0 0-1.8-1.8C19.3 5 12 5 12 5s-7.3 0-8.8.5A2.5 2.5 0 0 0 1.4 7.3C1 8.8 1 12 1 12s0 3.2.4 4.7a2.5 2.5 0 0 0 1.8 1.8C4.7 19 12 19 12 19s7.3 0 8.8-.5a2.5 2.5 0 0 0 1.8-1.8C23 15.2 23 12 23 12zM10 15.5v-7l6 3.5z"/></svg></a>
+          </div>
+        </div>
+        <div class="foot-col">
+          <h5>Product</h5>
+          <a data-mode="conversation">Free Conversation</a>
+          <a data-mode="interview">Interview Prep</a>
+          <a>Modes (coming soon)</a>
+        </div>
+        <div class="foot-col">
+          <h5>Company</h5>
+          <a>About</a><a>Contact</a><a>Privacy</a><a>Terms</a>
+        </div>
+      </div>
+      <div class="foot-bottom">
+        <span>© 2026 DuSu · Made with ♥ in India · Speak with confidence.</span>
+        <button id="toTop">Back to top ↑</button>
+      </div>
+    </footer>
+  </section>
+
+  <!-- ===================== SESSION ===================== -->
+  <section id="session" class="screen">
+    <div class="sess-head">
+      <button class="back" id="backBtn" title="Leave">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div>
+        <div class="sess-title" id="sessTitle">Conversation</div>
+        <div class="sess-sub" id="sessSub">with DuSu</div>
+      </div>
+    </div>
+
+    <div class="stage">
+      <div class="orb-wrap idle" id="orb">
+        <div class="ring r1"></div><div class="ring r2"></div>
+        <div class="orb">
+          <svg id="face" viewBox="-50 -50 100 100" width="152" height="152" aria-hidden="true">
+            <g id="faceG">
+              <circle cx="0" cy="2" r="40" fill="url(#skin)" stroke="url(#rim)" stroke-width="3"/>
+              <path id="bL" d="M-21 -17 Q -14 -20.5 -7 -17" stroke="#12203a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+              <path id="bR" d="M7 -17 Q 14 -20.5 21 -17" stroke="#12203a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+              <g id="eyes" fill="#12203a">
+                <ellipse id="eL" cx="-14" cy="-6" rx="5" ry="6"/>
+                <ellipse id="eR" cx="14" cy="-6" rx="5" ry="6"/>
+              </g>
+              <path id="smile" d="M-14 12 Q 0 22 14 12" stroke="#12203a" stroke-width="3.2" fill="none" stroke-linecap="round"/>
+              <ellipse id="talk" cx="0" cy="15" rx="10" ry="2" fill="#12203a" style="display:none"/>
+            </g>
+          </svg>
+        </div>
+      </div>
+      <div class="state-label" id="stateLabel">Ready</div>
+      <div class="state-hint" id="stateHint"></div>
+    </div>
+
+    <div class="feed" id="feed"></div>
+
+    <div class="controls">
+      <button class="btn danger" id="endBtn">End</button>
+    </div>
+  </section>
+
+  <!-- ===================== REPORT ===================== -->
+  <section id="report" class="screen">
+    <div class="rep-head">
+      <div class="sess-sub" style="margin-bottom:2px; text-transform:uppercase; letter-spacing:.16em;">Interview report</div>
+      <div class="score-ring">
+        <svg width="150" height="150"><circle cx="75" cy="75" r="66" stroke="rgba(255,255,255,.07)" stroke-width="12" fill="none"/><circle id="ringArc" cx="75" cy="75" r="66" stroke="url(#g)" stroke-width="12" fill="none" stroke-linecap="round" stroke-dasharray="415" stroke-dashoffset="415"/><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#f5d97a"/><stop offset="1" stop-color="#b8860b"/></linearGradient></defs></svg>
+        <div class="val"><b id="ovVal">0</b><small>overall</small></div>
+      </div>
+    </div>
+    <div class="metrics" id="metrics"></div>
+    <div id="repFillers"></div>
+    <div class="card good"><h4>✅ Strengths</h4><ul id="repStrengths"></ul></div>
+    <div class="card fix"><h4>🛠 Fixes</h4><ul id="repFixes"></ul></div>
+    <div class="card better"><h4>✨ Stronger answer</h4><div class="q" id="repQ"></div><div class="imp" id="repImp"></div></div>
+    <div class="controls">
+      <button class="btn ghost" id="shareBtn">Share</button>
+      <button class="btn primary" id="againBtn">Back to home</button>
+    </div>
+  </section>
+</div>
+
+<script>
+// ---- Speech is 100% browser-side (Web Speech API). Server only sees text. ----
+const WS_URL = (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws/interview";
+const $ = id => document.getElementById(id);
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+let ws, recog, running = false, currentMode = "conversation";
+let aiSpeaking = false;   // true while DuSu's voice is playing (echo guard)
+let lastReport = null;
+const LISTEN_DELAY = 450; // ms to wait after speech before opening the mic
+
+/* ---- cartoon face + procedural lip-sync (reusable) ---- */
+function makeFace(o){
+  const eyes=$(o.eyes), eL=$(o.eL), eR=$(o.eR), smile=$(o.smile), talk=$(o.talk);
+  let talking=false, phase=0, pulse=0, raf=null;
+  function loop(){
+    if(!talking){ talk.setAttribute("ry","2"); talk.setAttribute("rx","10"); raf=null; return; }
+    phase += 0.42; pulse *= 0.85;
+    const base = 0.5 + 0.5*Math.sin(phase);                 // rhythm
+    const open = Math.min(1, base*(0.45+0.55*Math.random()) + pulse*0.5); // + word pulse + jitter
+    talk.setAttribute("ry", (2 + open*13).toFixed(1));
+    talk.setAttribute("rx", (9 + open*3).toFixed(1));
+    raf = requestAnimationFrame(loop);
+  }
+  function blink(){
+    eL.setAttribute("ry","0.6"); eR.setAttribute("ry","0.6");
+    setTimeout(()=>{ eL.setAttribute("ry","6"); eR.setAttribute("ry","6"); }, 110);
+  }
+  (function scheduleBlink(){ setTimeout(()=>{ blink(); scheduleBlink(); }, 2600 + Math.random()*3200); })();
+  return {
+    set(state){
+      const sp = state === "speaking";
+      smile.style.display = sp ? "none" : "block";
+      talk.style.display  = sp ? "block" : "none";
+      eyes.setAttribute("transform", state === "thinking" ? "translate(3,-4)" : "translate(0,0)");
+    },
+    startTalking(){ talking = true; phase = 0; if(!raf) loop(); },
+    stopTalking(){ talking = false; },
+    boundary(){ pulse = 1; }   // spike mouth on each spoken word
+  };
+}
+const FACE     = makeFace({ eyes:"eyes",  eL:"eL",  eR:"eR",  smile:"smile",  talk:"talk"  });
+const HOMEFACE = makeFace({ eyes:"hEyes", eL:"hEL", eR:"hER", smile:"hSmile", talk:"hTalk" });
+
+function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on")); $(id).classList.add("on"); }
+
+function orb(state, label, hint){
+  $("orb").className = "orb-wrap " + state;
+  if(label!==undefined) $("stateLabel").textContent = label;
+  $("stateHint").textContent = hint || "";
+  FACE.set(state);
+}
+
+function addMsg(text, who){
+  const m = document.createElement("div");
+  m.className = "msg " + who;
+  m.innerHTML = `<div class="av">${who==="ai"?"Du":"🙂"}</div><div class="bubble"></div>`;
+  m.querySelector(".bubble").textContent = text;
+  $("feed").appendChild(m); $("feed").scrollTop = $("feed").scrollHeight;
+}
+function addSys(text){ const d=document.createElement("div"); d.className="sysmsg"; d.textContent=text;
+  $("feed").appendChild(d); $("feed").scrollTop=$("feed").scrollHeight; }
+
+document.querySelectorAll(".mode-card").forEach(c=>{
+  c.onclick = () => startSession(c.dataset.mode);
+  c.addEventListener("mousemove", e => {           // cursor-follow gold spotlight
+    const r = c.getBoundingClientRect();
+    c.style.setProperty("--mx", (e.clientX - r.left) + "px");
+    c.style.setProperty("--my", (e.clientY - r.top) + "px");
+  });
+});
+// footer product links start a mode; back-to-top scrolls
+document.querySelectorAll(".foot-col a[data-mode]").forEach(a => a.onclick = () => startSession(a.dataset.mode));
+$("toTop").onclick = () => window.scrollTo({ top:0, behavior:"smooth" });
+
+function startSession(mode){
+  if(!SR){ $("warn").textContent = "Voice input needs Chrome or Edge (Web Speech API)."; return; }
+  currentMode = mode;
+  $("feed").innerHTML = "";
+  $("sessTitle").textContent = mode === "interview" ? "Interview Prep" : "Free Conversation";
+  $("sessSub").textContent = mode === "interview" ? "with DuSu · " + ($("role").value || "general") : "with DuSu";
+  $("endBtn").textContent = mode === "interview" ? "End & get report" : "End";
+  $("endBtn").className = mode === "interview" ? "btn primary" : "btn danger";
+  show("session");
+  orb("connecting", "Connecting…", "");
+  addSys("🎧 Tip: use headphones so DuSu's voice isn't picked up by your mic.");
+
+  ws = new WebSocket(WS_URL);
+  ws.onopen = () => { running = true; ws.send(JSON.stringify({ type:"start", mode, name:$("name").value, role:$("role").value, token:authToken })); };
+  ws.onmessage = onMessage;
+  ws.onclose = () => { running = false; };
+  ws.onerror = () => orb("idle", "Connection error", "Is the server running?");
+}
+
+function leave(){
+  running = false; stopListening(); FACE.stopTalking();
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  try{ ws && ws.close(); }catch(_){}
+  show("home");
+}
+$("backBtn").onclick = leave;
+$("againBtn").onclick = () => { show("home"); speakWelcome(); };
+
+$("shareBtn").onclick = () => {
+  const d = lastReport || {};
+  const txt = `I just practiced an interview on DuSu 🎙️\n`
+    + `Overall: ${d.overall ?? "-"}/100\n`
+    + `Strengths: ${(d.strengths||[]).join("; ")}\n`
+    + `Working on: ${(d.fixes||[]).join("; ")}\n`
+    + `Speak with confidence — DuSu.`;
+  if(navigator.share){ navigator.share({ title:"DuSu Interview", text:txt }).catch(()=>{}); }
+  else { navigator.clipboard.writeText(txt).then(()=>{
+    $("shareBtn").textContent = "Copied ✓"; setTimeout(()=> $("shareBtn").textContent = "Share", 1600);
+  }); }
+};
+
+$("endBtn").onclick = () => {
+  stopListening(); FACE.stopTalking();
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  ws && ws.send(JSON.stringify({ type:"end" }));
+  orb("thinking", currentMode==="interview" ? "Scoring your interview…" : "Wrapping up…", "");
+};
+
+function onMessage(ev){
+  const m = JSON.parse(ev.data);
+  switch(m.type){
+    case "ai_text": addMsg(m.text, "ai"); speak(m.text); break;
+    case "interview_done": addSys("Interview complete"); break;
+    case "report": showReport(m.data); break;
+    case "ended": leave(); break;
+    case "auth_error": running=false; try{ws.close();}catch(_){}; logout(); break;
+    case "error": orb("idle", "Error", m.msg); break;
+  }
+}
+
+function speak(text){
+  stopListening();          // mic OFF while DuSu talks — kills the echo loop
+  aiSpeaking = true;
+  orb("speaking", "DuSu is speaking", "listen…");
+  if(!window.speechSynthesis){ aiSpeaking=false; delayedListen(); return; }
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 1.0; u.pitch = 1.0;
+  FACE.startTalking();
+  u.onboundary = () => FACE.boundary();   // sync mouth to each spoken word
+  const done = () => { aiSpeaking = false; FACE.stopTalking(); if(running) delayedListen(); };
+  u.onend = done; u.onerror = done;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+}
+function delayedListen(){ setTimeout(() => { if(running && !aiSpeaking) startListening(); }, LISTEN_DELAY); }
+
+function startListening(){
+  if(!SR || !running) return;
+  recog = new SR();
+  recog.lang = "en-US"; recog.interimResults = false; recog.maxAlternatives = 1;
+  let sent = false;
+  recog.onstart = () => orb("listening", "Listening", "speak, then pause");
+  recog.onresult = (e) => {
+    if(aiSpeaking) return;   // echo guard: drop speaker bleed
+    const text = e.results[0][0].transcript.trim();
+    if(text && !sent){
+      sent = true;
+      addMsg(text, "user");
+      orb("thinking", "DuSu is thinking", "");
+      ws.send(JSON.stringify({ type:"user_text", text }));
+    }
+  };
+  recog.onerror = (e) => { if(e.error==="no-speech" && running) safeRestart(); };
+  recog.onend = () => { if(!sent && running) safeRestart(); };
+  try{ recog.start(); }catch(_){}
+}
+function safeRestart(){ try{ recog.start(); }catch(_){} }
+function stopListening(){ if(recog){ try{ recog.onend=null; recog.stop(); }catch(_){} recog=null; } }
+
+const METRIC_LABELS = { grammar:"Grammar", fluency:"Fluency", confidence:"Confidence",
+  communication:"Communication", vocabulary:"Vocabulary", professionalism:"Professionalism" };
+
+function sparkle(host){
+  if(!host) return;
+  for(let i=0;i<22;i++){
+    const s = document.createElement("span"); s.className = "spark";
+    s.style.left = "50%"; s.style.top = "50%";
+    const ang = Math.random()*6.283, dist = 48 + Math.random()*66;
+    const dx = Math.cos(ang)*dist, dy = Math.sin(ang)*dist;
+    host.appendChild(s);
+    s.animate(
+      [{ transform:"translate(-50%,-50%) scale(1)", opacity:1 },
+       { transform:`translate(${dx}px,${dy}px) scale(0)`, opacity:0 }],
+      { duration:900 + Math.random()*450, easing:"ease-out" }
+    ).onfinish = () => s.remove();
+  }
+}
+
+function showReport(d){
+  show("report"); running = false; lastReport = d;
+  if(!d || d.error){ $("ovVal").textContent = "—"; return; }
+  const ov = d.overall || 0;
+  (function countUp(){                                   // animate 0 → score
+    let n = 0; const step = Math.max(1, Math.round(ov/40));
+    const t = setInterval(()=>{ n += step; if(n>=ov){ n=ov; clearInterval(t); } $("ovVal").textContent = n; }, 24);
+  })();
+  const circ = 2*Math.PI*66;
+  setTimeout(()=>{ $("ringArc").style.transition="stroke-dashoffset 1.1s ease";
+    $("ringArc").style.strokeDashoffset = circ*(1-ov/100); }, 80);
+  if(ov >= 80) setTimeout(()=> sparkle(document.querySelector(".score-ring")), 700);
+
+  const mm = $("metrics"); mm.innerHTML = "";
+  const scores = d.scores || {};
+  Object.keys(METRIC_LABELS).forEach(k=>{
+    const v = scores[k] ?? 0;
+    const el = document.createElement("div"); el.className = "metric";
+    el.innerHTML = `<div class="m-top"><b>${METRIC_LABELS[k]}</b><span>${v}</span></div><div class="bar"><i></i></div>`;
+    mm.appendChild(el);
+    setTimeout(()=>{ el.querySelector("i").style.width = v + "%"; }, 120);
+  });
+
+  const fill = d.filler_words || [];
+  $("repFillers").innerHTML = fill.length
+    ? `<div class="card"><h4>👂 Filler words</h4><div class="chips">${fill.map(f=>`<span class="chip">${f}</span>`).join("")}</div></div>` : "";
+
+  $("repStrengths").innerHTML = (d.strengths||[]).map(s=>`<li>${s}</li>`).join("") || "<li>—</li>";
+  $("repFixes").innerHTML = (d.fixes||[]).map(s=>`<li>${s}</li>`).join("") || "<li>—</li>";
+  const ba = d.better_answer || {};
+  $("repQ").textContent = ba.question ? "Q: " + ba.question : "";
+  $("repImp").textContent = ba.improved || "—";
+}
+
+if(!SR){ $("warn").textContent = "Voice input needs Chrome or Edge (Web Speech API)."; }
+
+/* ================= Google Sign-In ================= */
+const GOOGLE_CLIENT_ID = "__GOOGLE_CLIENT_ID__";
+const AUTH_ENABLED = __AUTH_ENABLED__;
+let authToken = localStorage.getItem("dusu_token") || "";
+let authUser = JSON.parse(localStorage.getItem("dusu_user") || "null");
+
+function applyUser(u){
+  authUser = u;
+  $("userChip").hidden = false;
+  $("tagline").style.display = "none";
+  $("uName").textContent = u.name || u.email || "";
+
+  const av = $("uAvatar"), init = $("uInit");
+  init.textContent = ((u.name || u.email || "?").trim()[0] || "?").toUpperCase();
+  const useInit  = () => { av.style.display = "none";  init.style.display = "grid"; };
+  const usePhoto = () => { av.style.display = "block"; init.style.display = "none"; };
+  if(u.picture){
+    av.onerror = useInit;   // Google photo failed → initials
+    av.src = u.picture;
+    usePhoto();
+  } else {
+    useInit();
+  }
+
+  const first = (u.name || "").split(" ")[0];
+  if(first && $("name")) $("name").value = first;
+  setWelcome();
+}
+
+function setWelcome(){
+  const first = authUser ? (authUser.name || "").split(" ")[0] : "";
+  $("welcomeMsg").textContent = first
+    ? `Hi ${first}! 👋 I'm DuSu — pick a mode and let's practice speaking.`
+    : `Hi! 👋 I'm DuSu — pick a mode and let's practice speaking.`;
+}
+
+// DuSu speaks a welcome by name (home). Needs a recent user gesture, so we only
+// call it right after a sign-in click or a "back to home" click — not on reload.
+function speakWelcome(){
+  const first = authUser ? (authUser.name || "").split(" ")[0] : "";
+  const msg = first
+    ? `Welcome, ${first}! I'm DuSu. Pick a mode, and let's practice speaking.`
+    : `Welcome! I'm DuSu. Pick a mode, and let's practice speaking.`;
+  if(!window.speechSynthesis) return;
+  HOMEFACE.set("speaking"); HOMEFACE.startTalking();
+  const u = new SpeechSynthesisUtterance(msg);
+  u.rate = 1.0; u.pitch = 1.0;
+  u.onboundary = () => HOMEFACE.boundary();
+  const done = () => { HOMEFACE.stopTalking(); HOMEFACE.set("idle"); };
+  u.onend = done; u.onerror = done;
+  window.speechSynthesis.cancel();
+  window.speechSynthesis.speak(u);
+}
+
+function logout(){
+  authToken = ""; authUser = null;
+  localStorage.removeItem("dusu_token"); localStorage.removeItem("dusu_user");
+  $("userChip").hidden = true; $("tagline").style.display = "";
+  try{ ws && ws.close(); }catch(_){}
+  if(window.google && google.accounts) google.accounts.id.disableAutoSelect();
+  show("login");
+}
+$("logoutBtn").onclick = logout;
+
+function onGoogle(resp){
+  $("loginNote").textContent = "Signing you in…";
+  fetch("/auth/google", {
+    method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ credential: resp.credential })
+  }).then(r => r.ok ? r.json() : Promise.reject(r))
+    .then(d => {
+      authToken = d.token;
+      localStorage.setItem("dusu_token", d.token);
+      localStorage.setItem("dusu_user", JSON.stringify(d.user));
+      applyUser(d.user);
+      $("loginNote").textContent = "";
+      show("home");
+      speakWelcome();   // DuSu greets by name (gesture: the sign-in click)
+    })
+    .catch(() => { $("loginNote").textContent = "Sign-in failed. Please try again."; });
+}
+
+function initAuth(){
+  if(!AUTH_ENABLED){                 // dev fallback: no Google config → skip login
+    $("userChip").hidden = true;
+    show("home");
+    return;
+  }
+  if(authToken && authUser){ applyUser(authUser); show("home"); }
+  else { show("login"); }
+  (function ready(){
+    if(!(window.google && google.accounts && google.accounts.id)){ return setTimeout(ready, 200); }
+    google.accounts.id.initialize({ client_id: GOOGLE_CLIENT_ID, callback: onGoogle });
+    google.accounts.id.renderButton($("gbtn"),
+      { theme:"filled_black", size:"large", shape:"pill", text:"continue_with", width:280 });
+  })();
+}
+initAuth();
+</script>
+</body>
+</html>
