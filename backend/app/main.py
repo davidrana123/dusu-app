@@ -21,6 +21,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
 from .config import settings
@@ -33,6 +34,11 @@ _BACKEND = Path(__file__).resolve().parent.parent
 _CLIENT_HTML = _BACKEND / "test_client.html"
 _LOGO = _BACKEND / "logo.png"
 
+# Character art (the 8 anime PNG frames) lives here; served at /assets/...
+_ASSETS = _BACKEND / "assets"
+_ASSETS.mkdir(parents=True, exist_ok=True)
+app.mount("/assets", StaticFiles(directory=str(_ASSETS)), name="assets")
+
 
 @app.get("/logo.png")
 async def logo():
@@ -41,7 +47,8 @@ async def logo():
 
 @app.get("/health")
 async def health():
-    return {"ok": True, "has_key": bool(settings.openrouter_api_key)}
+    providers = settings.providers()
+    return {"ok": True, "has_key": bool(providers), "providers": [p["name"] for p in providers]}
 
 
 class GoogleIn(BaseModel):

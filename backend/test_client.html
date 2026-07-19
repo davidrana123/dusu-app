@@ -68,7 +68,15 @@
            background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
   .tag { margin-left:auto; font-size:11px; letter-spacing:.22em; text-transform:uppercase;
          color:var(--ink-faint); }
-  .userchip { margin-left:auto; display:flex; align-items:center; gap:10px; }
+  .hdr-right { margin-left:auto; display:flex; align-items:center; gap:14px; }
+  .userchip { display:flex; align-items:center; gap:10px; }
+  .voicebar { display:flex; background:var(--glass); border:1px solid var(--glass-brd);
+              border-radius:12px; overflow:hidden; }
+  .vbtn { font:inherit; font-size:16px; line-height:1; padding:7px 12px; background:none; border:none;
+          color:var(--ink-faint); cursor:pointer; transition:.2s; }
+  .vbtn:hover { color:var(--ink-dim); }
+  .vbtn.on { background:var(--grad); color:#241a08; }
+  @media (max-width:560px){ .vbtn{ padding:6px 9px; } .userchip span#uName{ display:none; } }
   .uav { width:30px; height:30px; border-radius:50%; border:1px solid var(--glass-brd); object-fit:cover; }
   .uav-init { display:grid; place-items:center; background:var(--grad); color:#241a08;
               font-family:var(--font-d); font-weight:700; font-size:14px; }
@@ -94,7 +102,10 @@
 
   /* HOME */
   .welcome { display:flex; align-items:center; gap:14px; justify-content:center; margin:6px 0 20px; }
-  .wface { flex:none; filter:drop-shadow(0 6px 16px rgba(212,175,55,.28)); animation:floaty 4s ease-in-out infinite; }
+  .wface { flex:none; border-radius:20px; padding:4px;
+    background:radial-gradient(circle at 50% 38%, #3a4a6e, #141a30 74%);
+    box-shadow:0 8px 24px -8px rgba(0,0,0,.5), inset 0 0 0 1px rgba(212,175,55,.25);
+    filter:drop-shadow(0 6px 16px rgba(212,175,55,.2)); animation:floaty 4s ease-in-out infinite; }
   @keyframes floaty { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-5px); } }
   .wbubble { position:relative; background:var(--glass); border:1px solid var(--glass-brd); border-radius:16px;
              padding:14px 18px; font-size:15px; color:var(--ink); max-width:420px; line-height:1.5; }
@@ -158,8 +169,8 @@
   .ring { position:absolute; inset:0; border-radius:50%; border:2px solid transparent; opacity:0; }
   .orb {
     position:relative; width:150px; height:150px; border-radius:50%;
-    background:radial-gradient(circle at 35% 30%, #1c2236, #0b0f1c 70%);
-    display:grid; place-items:center; box-shadow: inset 0 0 40px rgba(0,0,0,.55), var(--shadow);
+    background:radial-gradient(circle at 40% 32%, #3a4a6e, #141a30 72%);
+    display:grid; place-items:center; box-shadow: inset 0 0 40px rgba(0,0,0,.45), var(--shadow);
     transition:box-shadow .4s;
   }
   .orb::after { content:""; position:absolute; inset:-2px; border-radius:50%; padding:2px;
@@ -169,10 +180,35 @@
   .state-label { margin-top:20px; font-family:var(--font-d); font-weight:600; font-size:19px; }
   .state-hint { font-size:12.5px; color:var(--ink-faint); margin-top:4px; height:16px; letter-spacing:.02em; }
 
-  /* cartoon face */
-  #face { display:block; filter:drop-shadow(0 6px 16px rgba(0,0,0,.45)); }
+  /* anime face (SVG fallback) */
+  #face { display:block; filter:drop-shadow(0 6px 18px rgba(0,0,0,.5)); }
   #faceG { transform-box:fill-box; transform-origin:center; }
-  #eL,#eR { transition:ry .08s ease; }
+  .eye { transform-box:fill-box; transform-origin:center; transition:transform .09s ease; }
+
+  /* real character (PNG frames) */
+  .portrait { position:absolute; inset:0; border-radius:50%; overflow:hidden; }
+  .acore { position:absolute; inset:0; animation:aFloat 7s ease-in-out infinite; }
+  /* portrait art framed in the circle — frames are silhouette-aligned.
+     Tune --op (vertical crop) to show more/less shoulders. */
+  .acore { --op:50% 10%; }
+  .acore .alayer { position:absolute; inset:0; width:100%; height:100%;
+    object-fit:cover; object-position:var(--op);
+    user-select:none; pointer-events:none; opacity:0; z-index:1; }
+  .acore .alayer.base { transition:opacity .5s ease; }   /* gentle expression change */
+  .acore .alayer[data-name="blink"] { transition:opacity .1s ease; z-index:3; }  /* soft blink */
+  .portrait.speaking { animation:speakGlow 1.9s ease-in-out infinite; }
+  @keyframes speakGlow { 0%,100%{ box-shadow:0 0 0 0 rgba(212,175,55,0); }
+                         50%{ box-shadow:0 0 34px -4px rgba(212,175,55,.55); } }
+  .acore .alayer[data-name^="talk"] { z-index:2; }
+  .acore .alayer[data-name="blink"] { z-index:3; }
+  @keyframes aFloat { 0%,100%{ transform:translateY(0) rotate(-0.8deg); }
+                      50%{ transform:translateY(-3px) rotate(0.8deg); } }
+  .wface-png { width:104px; height:104px; display:block; border-radius:50%; object-fit:cover;
+    object-position:50% 10%; border:2px solid rgba(212,175,55,.5);
+    background:radial-gradient(circle at 50% 35%, #1c2236, #0b0f1c 72%);
+    box-shadow:var(--gold-glow); animation:floaty 4s ease-in-out infinite; }
+  .wface-png[hidden] { display:none !important; }   /* PNG avatar off — don't show empty circle */
+  @media (prefers-reduced-motion: reduce){ .acore, .wface-png { animation:none !important; } }
   .orb-wrap.listening #faceG { animation:bob 1.7s ease-in-out infinite; }
   .orb-wrap.thinking  #faceG { animation:tilt 3s ease-in-out infinite; }
   @keyframes bob  { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-3px); } }
@@ -306,24 +342,37 @@
 <body>
 <div class="fx"><span class="blob b1"></span><span class="blob b2"></span><span class="blob b3"></span><span class="grain"></span></div>
 <div class="wrap">
-  <!-- shared face gradients (gold, on-brand) -->
+  <!-- shared anime-face gradients -->
   <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
-    <radialGradient id="skin" cx="38%" cy="30%" r="80%">
-      <stop offset="0" stop-color="#fbeec0"/><stop offset="1" stop-color="#d4af37"/>
+    <radialGradient id="skin" cx="42%" cy="32%" r="82%">
+      <stop offset="0" stop-color="#fff5ef"/><stop offset="1" stop-color="#f1d3c3"/>
+    </radialGradient>
+    <linearGradient id="hair" x1="0.15" y1="0" x2="0.42" y2="1">
+      <stop offset="0" stop-color="#ffffff"/><stop offset="0.42" stop-color="#e7ebf3"/><stop offset="1" stop-color="#c0c9db"/>
+    </linearGradient>
+    <radialGradient id="iris" cx="42%" cy="34%" r="70%">
+      <stop offset="0" stop-color="#ebf7ff"/><stop offset="0.5" stop-color="#57a0e2"/><stop offset="1" stop-color="#2d6ab2"/>
     </radialGradient>
     <linearGradient id="rim" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="#f7e08a"/><stop offset="1" stop-color="#9a6f14"/>
     </linearGradient>
+    <clipPath id="orbClip"><circle cx="0" cy="0" r="50"/></clipPath>
   </defs></svg>
 
   <header class="top">
     <div class="brand">DuSu</div>
     <div class="tag" id="tagline">Speak with confidence</div>
-    <div class="userchip" id="userChip" hidden>
-      <img id="uAvatar" class="uav" alt="" referrerpolicy="no-referrer" />
-      <span class="uav uav-init" id="uInit" hidden></span>
-      <span id="uName"></span>
-      <button class="signout" id="logoutBtn" title="Sign out">Sign out</button>
+    <div class="hdr-right" id="hdrRight" hidden>
+      <div class="voicebar" title="DuSu's voice">
+        <button class="vbtn on" data-voice="female" title="Female voice">♀</button>
+        <button class="vbtn" data-voice="male" title="Male voice" style="display:none">♂</button>
+      </div>
+      <div class="userchip" id="userChip">
+        <img id="uAvatar" class="uav" alt="" referrerpolicy="no-referrer" />
+        <span class="uav uav-init" id="uInit" hidden></span>
+        <span id="uName"></span>
+        <button class="signout" id="logoutBtn" title="Sign out">Sign out</button>
+      </div>
     </div>
   </header>
 
@@ -341,17 +390,49 @@
   <!-- ===================== HOME ===================== -->
   <section id="home" class="screen">
     <div class="welcome">
-      <svg class="wface" viewBox="-50 -50 100 100" width="90" height="90" aria-hidden="true">
-        <circle cx="0" cy="2" r="40" fill="url(#skin)" stroke="url(#rim)" stroke-width="3"/>
-        <path d="M-21 -17 Q -14 -20.5 -7 -17" stroke="#12203a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
-        <path d="M7 -17 Q 14 -20.5 21 -17" stroke="#12203a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
-        <g id="hEyes" fill="#12203a">
-          <ellipse id="hEL" cx="-14" cy="-6" rx="5" ry="6"/>
-          <ellipse id="hER" cx="14" cy="-6" rx="5" ry="6"/>
+      <svg class="wface" viewBox="-50 -50 100 100" width="96" height="96" aria-hidden="true">
+        <path d="M-50 51 L-50 42 C-42 30 -22 25 0 25 C22 25 42 30 50 42 L50 51 Z" fill="#e4e8ef"/>
+        <path d="M-13 26 L0 41 L13 26 C9 24 -9 24 -13 26 Z" fill="#3f63b0"/>
+        <path d="M-15 25 L-3 43 L-9 25 Z" fill="#f1f3f7"/>
+        <path d="M15 25 L3 43 L9 25 Z" fill="#f1f3f7"/>
+        <path d="M-6 12 L-6.5 26 L6.5 26 L6 12 Z" fill="url(#skin)"/>
+        <g transform="translate(0,-14) scale(0.86)">
+        <path d="M-31 -6 C-37 -30 -19 -45 0 -45 C19 -45 37 -30 31 -6 C34 8 32 24 29 37 C25 27 24 12 24 0 C24 -19 14 -30 0 -30 C-14 -30 -24 -19 -24 0 C-24 12 -25 27 -29 37 C-32 24 -34 8 -31 -6 Z" fill="url(#hair)"/>
+        <path d="M-29 -6 C-29 -28 -15 -38 0 -38 C15 -38 29 -28 29 -6 C29 16 19 33 0 35 C-19 33 -29 16 -29 -6 Z" fill="url(#skin)"/>
+        <path d="M-31 -6 C-36 -30 -18 -44 0 -44 C18 -44 36 -30 31 -6 C28 -13 25 -12 22 -15 C24 -23 16 -27 10 -22 C13 -31 3 -32 0 -24 C-3 -32 -13 -30 -11 -21 C-16 -26 -23 -21 -22 -14 C-25 -12 -28 -13 -31 -6 Z" fill="url(#hair)"/><path d="M5 -44 C8 -50 12 -51 13 -47 C10 -46 8 -44 7 -41 Z" fill="url(#hair)"/><path d="M-14 -32 Q -5 -40 7 -35" stroke="#ffffff" stroke-width="1.4" fill="none" opacity=".45" stroke-linecap="round"/><path d="M9 -30 Q 16 -34 22 -28" stroke="#ffffff" stroke-width="1.2" fill="none" opacity=".35" stroke-linecap="round"/>
+        <path d="M-29 -4 C-35 8 -35 23 -30 34 L-24 28 C-27 18 -27 4 -25 -6 Z" fill="url(#hair)"/>
+        <path d="M29 -4 C35 8 35 23 30 34 L24 28 C27 18 27 4 25 -6 Z" fill="url(#hair)"/>
+        <ellipse cx="-17" cy="12" rx="6" ry="3.3" fill="#ff8f86" opacity=".4"/>
+        <ellipse cx="17" cy="12" rx="6" ry="3.3" fill="#ff8f86" opacity=".4"/>
+        <path d="M-20 -15 Q -13 -18 -7 -15.5" stroke="#b9a9b0" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+        <path d="M7 -15.5 Q 13 -18 20 -15" stroke="#b9a9b0" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+        <g id="hEyes">
+          <g class="eye" id="hELwrap">
+            <ellipse cx="-13" cy="-3" rx="7.4" ry="9" fill="#fff"/>
+            <circle cx="-12.6" cy="-2.4" r="5.6" fill="url(#iris)"/>
+            <circle cx="-12.6" cy="-2.4" r="2.6" fill="#171b2e"/>
+            <circle cx="-14.6" cy="-4.6" r="2.1" fill="#fff"/>
+            <path d="M-20.6 -8.5 Q -13 -13.5 -5.4 -8.5" stroke="#2a1a12" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+          </g>
+          <g class="eye" id="hERwrap">
+            <ellipse cx="13" cy="-3" rx="7.4" ry="9" fill="#fff"/>
+            <circle cx="12.6" cy="-2.4" r="5.6" fill="url(#iris)"/>
+            <circle cx="12.6" cy="-2.4" r="2.6" fill="#171b2e"/>
+            <circle cx="10.6" cy="-4.6" r="2.1" fill="#fff"/>
+            <path d="M5.4 -8.5 Q 13 -13.5 20.6 -8.5" stroke="#2a1a12" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+          </g>
         </g>
-        <path id="hSmile" d="M-14 12 Q 0 22 14 12" stroke="#12203a" stroke-width="3.2" fill="none" stroke-linecap="round"/>
-        <ellipse id="hTalk" cx="0" cy="15" rx="10" ry="2" fill="#12203a" style="display:none"/>
+        <g transform="translate(-19,-30) rotate(-12)">
+          <path d="M0 0 L-9 -5.5 L-9 5.5 Z" fill="#e23b4e"/>
+          <path d="M0 0 L9 -5.5 L9 5.5 Z" fill="#e23b4e"/>
+          <path d="M0 0 L-9 -5.5 L-9 5.5 Z" fill="#000" opacity=".1"/>
+          <circle cx="0" cy="0" r="2.6" fill="#b91f33"/>
+        </g>
+        <path id="hSmile" d="M-7 17 Q 0 23 7 17" stroke="#c2506a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+        <ellipse id="hTalk" cx="0" cy="19" rx="6" ry="2" fill="#a83b57" style="display:none"/>
+        </g>
       </svg>
+      <img class="wface-png" hidden alt="DuSu" />
       <div class="wbubble" id="welcomeMsg">Hi! 👋 I'm DuSu — pick a mode and let's practice speaking.</div>
     </div>
 
@@ -360,14 +441,7 @@
       <p>Talk out loud with DuSu. Have a free-flowing chat to build fluency, or run a realistic interview and get a scored report. Pick a mode to begin.</p>
     </div>
 
-    <div class="field">
-      <label>Your name</label>
-      <input id="name" placeholder="e.g. David" value="David" />
-    </div>
-    <div class="field" id="roleField">
-      <label>Interview role (for interview mode)</label>
-      <input id="role" placeholder="e.g. Frontend Developer" value="Frontend Developer" />
-    </div>
+    <input id="name" type="hidden" value="David" />
 
     <div class="modes">
       <button class="mode-card talk" data-mode="conversation">
@@ -422,6 +496,59 @@
     </footer>
   </section>
 
+  <!-- ===================== INTERVIEW SETUP ===================== -->
+  <section id="setup" class="screen">
+    <div class="login-card">
+      <svg class="wface" viewBox="-50 -50 100 100" width="86" height="86" aria-hidden="true">
+        <path d="M-50 51 L-50 42 C-42 30 -22 25 0 25 C22 25 42 30 50 42 L50 51 Z" fill="#e4e8ef"/>
+        <path d="M-13 26 L0 41 L13 26 C9 24 -9 24 -13 26 Z" fill="#3f63b0"/>
+        <path d="M-15 25 L-3 43 L-9 25 Z" fill="#f1f3f7"/>
+        <path d="M15 25 L3 43 L9 25 Z" fill="#f1f3f7"/>
+        <path d="M-6 12 L-6.5 26 L6.5 26 L6 12 Z" fill="url(#skin)"/>
+        <g transform="translate(0,-14) scale(0.86)">
+        <path d="M-31 -6 C-37 -30 -19 -45 0 -45 C19 -45 37 -30 31 -6 C34 8 32 24 29 37 C25 27 24 12 24 0 C24 -19 14 -30 0 -30 C-14 -30 -24 -19 -24 0 C-24 12 -25 27 -29 37 C-32 24 -34 8 -31 -6 Z" fill="url(#hair)"/>
+        <path d="M-29 -6 C-29 -28 -15 -38 0 -38 C15 -38 29 -28 29 -6 C29 16 19 33 0 35 C-19 33 -29 16 -29 -6 Z" fill="url(#skin)"/>
+        <path d="M-31 -6 C-36 -30 -18 -44 0 -44 C18 -44 36 -30 31 -6 C28 -13 25 -12 22 -15 C24 -23 16 -27 10 -22 C13 -31 3 -32 0 -24 C-3 -32 -13 -30 -11 -21 C-16 -26 -23 -21 -22 -14 C-25 -12 -28 -13 -31 -6 Z" fill="url(#hair)"/><path d="M5 -44 C8 -50 12 -51 13 -47 C10 -46 8 -44 7 -41 Z" fill="url(#hair)"/><path d="M-14 -32 Q -5 -40 7 -35" stroke="#ffffff" stroke-width="1.4" fill="none" opacity=".45" stroke-linecap="round"/><path d="M9 -30 Q 16 -34 22 -28" stroke="#ffffff" stroke-width="1.2" fill="none" opacity=".35" stroke-linecap="round"/>
+        <path d="M-29 -4 C-35 8 -35 23 -30 34 L-24 28 C-27 18 -27 4 -25 -6 Z" fill="url(#hair)"/>
+        <path d="M29 -4 C35 8 35 23 30 34 L24 28 C27 18 27 4 25 -6 Z" fill="url(#hair)"/>
+        <ellipse cx="-17" cy="12" rx="6" ry="3.3" fill="#ff8f86" opacity=".4"/>
+        <ellipse cx="17" cy="12" rx="6" ry="3.3" fill="#ff8f86" opacity=".4"/>
+        <path d="M-20 -15 Q -13 -18 -7 -15.5" stroke="#b9a9b0" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+        <path d="M7 -15.5 Q 13 -18 20 -15" stroke="#b9a9b0" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+        <g>
+          <ellipse cx="-13" cy="-3" rx="7.4" ry="9" fill="#fff"/>
+          <circle cx="-12.6" cy="-2.4" r="5.6" fill="url(#iris)"/>
+          <circle cx="-12.6" cy="-2.4" r="2.6" fill="#171b2e"/>
+          <circle cx="-14.6" cy="-4.6" r="2.1" fill="#fff"/>
+          <path d="M-20.6 -8.5 Q -13 -13.5 -5.4 -8.5" stroke="#2a1a12" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+          <ellipse cx="13" cy="-3" rx="7.4" ry="9" fill="#fff"/>
+          <circle cx="12.6" cy="-2.4" r="5.6" fill="url(#iris)"/>
+          <circle cx="12.6" cy="-2.4" r="2.6" fill="#171b2e"/>
+          <circle cx="10.6" cy="-4.6" r="2.1" fill="#fff"/>
+          <path d="M5.4 -8.5 Q 13 -13.5 20.6 -8.5" stroke="#2a1a12" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+        </g>
+        <g transform="translate(-19,-30) rotate(-12)">
+          <path d="M0 0 L-9 -5.5 L-9 5.5 Z" fill="#e23b4e"/>
+          <path d="M0 0 L9 -5.5 L9 5.5 Z" fill="#e23b4e"/>
+          <circle cx="0" cy="0" r="2.6" fill="#b91f33"/>
+        </g>
+        <path d="M-7 17 Q 0 23 7 17" stroke="#c2506a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+        </g>
+      </svg>
+      <img class="wface-png" hidden alt="DuSu" />
+      <h1>Interview <span class="g">setup</span></h1>
+      <p>Which role are you interviewing for?</p>
+      <div class="field" style="text-align:left">
+        <label>Interview role</label>
+        <input id="role" placeholder="e.g. Frontend Developer" value="Frontend Developer" />
+      </div>
+      <div class="controls">
+        <button class="btn ghost" id="setupBack">Back</button>
+        <button class="btn primary" id="startInterview">Start interview</button>
+      </div>
+    </div>
+  </section>
+
   <!-- ===================== SESSION ===================== -->
   <section id="session" class="screen">
     <div class="sess-head">
@@ -438,19 +565,71 @@
       <div class="orb-wrap idle" id="orb">
         <div class="ring r1"></div><div class="ring r2"></div>
         <div class="orb">
-          <svg id="face" viewBox="-50 -50 100 100" width="152" height="152" aria-hidden="true">
-            <g id="faceG">
-              <circle cx="0" cy="2" r="40" fill="url(#skin)" stroke="url(#rim)" stroke-width="3"/>
-              <path id="bL" d="M-21 -17 Q -14 -20.5 -7 -17" stroke="#12203a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
-              <path id="bR" d="M7 -17 Q 14 -20.5 21 -17" stroke="#12203a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
-              <g id="eyes" fill="#12203a">
-                <ellipse id="eL" cx="-14" cy="-6" rx="5" ry="6"/>
-                <ellipse id="eR" cx="14" cy="-6" rx="5" ry="6"/>
+          <svg id="face" viewBox="-50 -50 100 100" width="150" height="150" aria-hidden="true">
+            <g id="faceG" clip-path="url(#orbClip)">
+              <!-- shoulders + cardigan + blue top -->
+              <path d="M-50 51 L-50 42 C-42 30 -22 25 0 25 C22 25 42 30 50 42 L50 51 Z" fill="#e4e8ef"/>
+              <path d="M-13 26 L0 41 L13 26 C9 24 -9 24 -13 26 Z" fill="#3f63b0"/>
+              <path d="M-15 25 L-3 43 L-9 25 Z" fill="#f1f3f7"/>
+              <path d="M15 25 L3 43 L9 25 Z" fill="#f1f3f7"/>
+              <path d="M-8 26 Q0 33 8 26" stroke="#d8b24a" stroke-width="0.9" fill="none" opacity=".8"/>
+              <circle cx="0" cy="32" r="1.5" fill="#4aa6dd"/>
+              <!-- neck -->
+              <path d="M-6 12 L-6.5 26 L6.5 26 L6 12 Z" fill="url(#skin)"/>
+              <path d="M-6 20 L-6.5 26 L6.5 26 L6 20 Z" fill="#000" opacity=".07"/>
+              <!-- head (lifted + scaled for bust framing) -->
+              <g transform="translate(0,-14) scale(0.86)">
+              <!-- back hair -->
+              <path d="M-31 -6 C-37 -30 -19 -45 0 -45 C19 -45 37 -30 31 -6 C34 8 32 24 29 37 C25 27 24 12 24 0 C24 -19 14 -30 0 -30 C-14 -30 -24 -19 -24 0 C-24 12 -25 27 -29 37 C-32 24 -34 8 -31 -6 Z" fill="url(#hair)"/>
+              <!-- face -->
+              <path d="M-29 -6 C-29 -28 -15 -38 0 -38 C15 -38 29 -28 29 -6 C29 16 19 33 0 35 C-19 33 -29 16 -29 -6 Z" fill="url(#skin)"/>
+              <!-- bangs -->
+              <path d="M-31 -6 C-36 -30 -18 -44 0 -44 C18 -44 36 -30 31 -6 C28 -13 25 -12 22 -15 C24 -23 16 -27 10 -22 C13 -31 3 -32 0 -24 C-3 -32 -13 -30 -11 -21 C-16 -26 -23 -21 -22 -14 C-25 -12 -28 -13 -31 -6 Z" fill="url(#hair)"/><path d="M5 -44 C8 -50 12 -51 13 -47 C10 -46 8 -44 7 -41 Z" fill="url(#hair)"/><path d="M-14 -32 Q -5 -40 7 -35" stroke="#ffffff" stroke-width="1.4" fill="none" opacity=".45" stroke-linecap="round"/><path d="M9 -30 Q 16 -34 22 -28" stroke="#ffffff" stroke-width="1.2" fill="none" opacity=".35" stroke-linecap="round"/>
+              <!-- side locks -->
+              <path d="M-29 -4 C-35 8 -35 23 -30 34 L-24 28 C-27 18 -27 4 -25 -6 Z" fill="url(#hair)"/>
+              <path d="M29 -4 C35 8 35 23 30 34 L24 28 C27 18 27 4 25 -6 Z" fill="url(#hair)"/>
+              <!-- blush -->
+              <ellipse cx="-17" cy="12" rx="6" ry="3.3" fill="#ff8f86" opacity=".4"/>
+              <ellipse cx="17" cy="12" rx="6" ry="3.3" fill="#ff8f86" opacity=".4"/>
+              <!-- brows -->
+              <path d="M-20 -15 Q -13 -18 -7 -15.5" stroke="#b9a9b0" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+              <path d="M7 -15.5 Q 13 -18 20 -15" stroke="#b9a9b0" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+              <!-- eyes -->
+              <g id="eyes">
+                <g class="eye" id="eLwrap">
+                  <ellipse cx="-13" cy="-3" rx="7.4" ry="9" fill="#fff"/>
+                  <circle cx="-12.6" cy="-2.4" r="5.6" fill="url(#iris)"/>
+                  <circle cx="-12.6" cy="-2.4" r="2.6" fill="#171b2e"/>
+                  <circle cx="-14.6" cy="-4.6" r="2.1" fill="#fff"/>
+                  <circle cx="-10.8" cy="-0.4" r="1.1" fill="#fff" opacity=".85"/>
+                  <path d="M-20.6 -8.5 Q -13 -13.5 -5.4 -8.5" stroke="#2a1a12" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+                </g>
+                <g class="eye" id="eRwrap">
+                  <ellipse cx="13" cy="-3" rx="7.4" ry="9" fill="#fff"/>
+                  <circle cx="12.6" cy="-2.4" r="5.6" fill="url(#iris)"/>
+                  <circle cx="12.6" cy="-2.4" r="2.6" fill="#171b2e"/>
+                  <circle cx="10.6" cy="-4.6" r="2.1" fill="#fff"/>
+                  <circle cx="14.4" cy="-0.4" r="1.1" fill="#fff" opacity=".85"/>
+                  <path d="M5.4 -8.5 Q 13 -13.5 20.6 -8.5" stroke="#2a1a12" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+                </g>
               </g>
-              <path id="smile" d="M-14 12 Q 0 22 14 12" stroke="#12203a" stroke-width="3.2" fill="none" stroke-linecap="round"/>
-              <ellipse id="talk" cx="0" cy="15" rx="10" ry="2" fill="#12203a" style="display:none"/>
+              <!-- nose -->
+              <path d="M0 4 q -1.4 3 0 3.8" stroke="#d99a86" stroke-width="1.1" fill="none" stroke-linecap="round" opacity=".6"/>
+              <!-- red hair ribbon -->
+              <g transform="translate(-19,-30) rotate(-12)">
+                <path d="M0 0 L-9 -5.5 L-9 5.5 Z" fill="#e23b4e"/>
+                <path d="M0 0 L9 -5.5 L9 5.5 Z" fill="#e23b4e"/>
+                <path d="M0 0 L-9 -5.5 L-9 5.5 Z" fill="#000" opacity=".1"/>
+                <circle cx="0" cy="0" r="2.6" fill="#b91f33"/>
+              </g>
+              <!-- mouth -->
+              <path id="smile" d="M-7 17 Q 0 23 7 17" stroke="#c2506a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+              <ellipse id="talk" cx="0" cy="19" rx="6" ry="2" fill="#a83b57" style="display:none"/>
+              </g>
             </g>
           </svg>
+          <!-- real anime character (loads /assets/assistant/*.png; falls back to SVG above) -->
+          <div class="portrait" id="assistant" hidden><div class="acore" id="acore"></div></div>
         </div>
       </div>
       <div class="state-label" id="stateLabel">Ready</div>
@@ -498,20 +677,20 @@ const LISTEN_DELAY = 450; // ms to wait after speech before opening the mic
 
 /* ---- cartoon face + procedural lip-sync (reusable) ---- */
 function makeFace(o){
-  const eyes=$(o.eyes), eL=$(o.eL), eR=$(o.eR), smile=$(o.smile), talk=$(o.talk);
+  const eyes=$(o.eyes), lidL=$(o.lidL), lidR=$(o.lidR), smile=$(o.smile), talk=$(o.talk);
   let talking=false, phase=0, pulse=0, raf=null;
   function loop(){
-    if(!talking){ talk.setAttribute("ry","2"); talk.setAttribute("rx","10"); raf=null; return; }
+    if(!talking){ talk.setAttribute("ry","2"); talk.setAttribute("rx","6"); raf=null; return; }
     phase += 0.42; pulse *= 0.85;
     const base = 0.5 + 0.5*Math.sin(phase);                 // rhythm
     const open = Math.min(1, base*(0.45+0.55*Math.random()) + pulse*0.5); // + word pulse + jitter
-    talk.setAttribute("ry", (2 + open*13).toFixed(1));
-    talk.setAttribute("rx", (9 + open*3).toFixed(1));
+    talk.setAttribute("ry", (2 + open*7).toFixed(1));
+    talk.setAttribute("rx", (5 + open*2.5).toFixed(1));
     raf = requestAnimationFrame(loop);
   }
   function blink(){
-    eL.setAttribute("ry","0.6"); eR.setAttribute("ry","0.6");
-    setTimeout(()=>{ eL.setAttribute("ry","6"); eR.setAttribute("ry","6"); }, 110);
+    lidL.style.transform = "scaleY(0.08)"; lidR.style.transform = "scaleY(0.08)";
+    setTimeout(()=>{ lidL.style.transform = "scaleY(1)"; lidR.style.transform = "scaleY(1)"; }, 115);
   }
   (function scheduleBlink(){ setTimeout(()=>{ blink(); scheduleBlink(); }, 2600 + Math.random()*3200); })();
   return {
@@ -519,15 +698,68 @@ function makeFace(o){
       const sp = state === "speaking";
       smile.style.display = sp ? "none" : "block";
       talk.style.display  = sp ? "block" : "none";
-      eyes.setAttribute("transform", state === "thinking" ? "translate(3,-4)" : "translate(0,0)");
+      eyes.setAttribute("transform", state === "thinking" ? "translate(3,-3)" : "translate(0,0)");
     },
     startTalking(){ talking = true; phase = 0; if(!raf) loop(); },
     stopTalking(){ talking = false; },
     boundary(){ pulse = 1; }   // spike mouth on each spoken word
   };
 }
-const FACE     = makeFace({ eyes:"eyes",  eL:"eL",  eR:"eR",  smile:"smile",  talk:"talk"  });
-const HOMEFACE = makeFace({ eyes:"hEyes", eL:"hEL", eR:"hER", smile:"hSmile", talk:"hTalk" });
+const FACE     = makeFace({ eyes:"eyes",  lidL:"eLwrap",  lidR:"eRwrap",  smile:"smile",  talk:"talk"  });
+const HOMEFACE = makeFace({ eyes:"hEyes", lidL:"hELwrap", lidR:"hERwrap", smile:"hSmile", talk:"hTalk" });
+
+/* ---- avatar: beautiful PNG portrait, smooth (no flickery mouth-swap).
+   Only gentle blink + breathing + a speaking glow move — so it stays smooth
+   AND uses the real anime art (not the round SVG). True lip-sync = Rive later. */
+const Assistant = (function(){
+  const USE_PNG = false;   // false = old animated SVG face (mouth/eyes move)
+  if(!USE_PNG){
+    return { get active(){ return false; }, setState(){}, startTalking(){}, stopTalking(){}, boundary(){}, happy(){} };
+  }
+  const ASSET = "/assets/assistant/";
+  const NAMES = ["idle", "happy", "blink"];
+  const BASE  = ["idle", "happy"];
+  const core = $("acore"), wrap = $("assistant");
+  const L = {};
+  let ready = false, blinkT = null;
+
+  NAMES.forEach(n => {
+    const el = document.createElement("img");
+    el.className = "alayer" + (BASE.includes(n) ? " base" : "");
+    el.dataset.name = n; el.alt = "";
+    core.appendChild(el);
+    const probe = new Image();
+    L[n] = { el, ok:false };
+    probe.onload  = () => { el.src = probe.src; L[n].ok = true; if(n === "idle") enable(); };
+    probe.onerror = () => { L[n].ok = false; };
+    probe.src = ASSET + n + ".png";
+  });
+
+  const fr = n => (L[n] && L[n].ok) ? n : "idle";
+  function enable(){
+    if(ready) return; ready = true; wrap.hidden = false;
+    const svg = $("face"); if(svg) svg.style.display = "none";
+    document.querySelectorAll(".wface").forEach(s => s.style.display = "none");
+    document.querySelectorAll(".wface-png").forEach(i => { i.src = ASSET + "idle.png"; i.hidden = false; });
+    setBase("idle"); blinkLoop();
+  }
+  function setBase(n){ const use = fr(n); BASE.forEach(b => L[b].el.style.opacity = (b === use ? "1" : "0")); }
+  function blinkLoop(){
+    clearTimeout(blinkT);
+    blinkT = setTimeout(() => {
+      if(ready && L.blink.ok){ L.blink.el.style.opacity = "1"; setTimeout(() => L.blink.el.style.opacity = "0", 130); }
+      blinkLoop();
+    }, 3200 + Math.random()*3800);
+  }
+  return {
+    get active(){ return ready; },
+    setState(s){ if(ready) setBase(s === "happy" ? "happy" : "idle"); },  // ring shows state; face calm
+    startTalking(){ if(ready) wrap.classList.add("speaking"); },
+    stopTalking(){ wrap.classList.remove("speaking"); },
+    boundary(){},
+    happy(){ if(ready) setBase("happy"); }
+  };
+})();
 
 function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on")); $(id).classList.add("on"); }
 
@@ -536,6 +768,7 @@ function orb(state, label, hint){
   if(label!==undefined) $("stateLabel").textContent = label;
   $("stateHint").textContent = hint || "";
   FACE.set(state);
+  Assistant.setState(state);
 }
 
 function addMsg(text, who){
@@ -548,16 +781,24 @@ function addMsg(text, who){
 function addSys(text){ const d=document.createElement("div"); d.className="sysmsg"; d.textContent=text;
   $("feed").appendChild(d); $("feed").scrollTop=$("feed").scrollHeight; }
 
+// Interview needs a role first → show setup; conversation starts immediately.
+function chooseMode(mode){
+  if(mode === "interview"){ show("setup"); setTimeout(()=> $("role").focus(), 120); }
+  else startSession("conversation");
+}
 document.querySelectorAll(".mode-card").forEach(c=>{
-  c.onclick = () => startSession(c.dataset.mode);
+  c.onclick = () => chooseMode(c.dataset.mode);
   c.addEventListener("mousemove", e => {           // cursor-follow gold spotlight
     const r = c.getBoundingClientRect();
     c.style.setProperty("--mx", (e.clientX - r.left) + "px");
     c.style.setProperty("--my", (e.clientY - r.top) + "px");
   });
 });
-// footer product links start a mode; back-to-top scrolls
-document.querySelectorAll(".foot-col a[data-mode]").forEach(a => a.onclick = () => startSession(a.dataset.mode));
+$("setupBack").onclick = () => show("home");
+$("startInterview").onclick = () => startSession("interview");
+$("role").addEventListener("keydown", e => { if(e.key === "Enter") startSession("interview"); });
+// footer product links; back-to-top scrolls
+document.querySelectorAll(".foot-col a[data-mode]").forEach(a => a.onclick = () => chooseMode(a.dataset.mode));
 $("toTop").onclick = () => window.scrollTo({ top:0, behavior:"smooth" });
 
 function startSession(mode){
@@ -580,7 +821,7 @@ function startSession(mode){
 }
 
 function leave(){
-  running = false; stopListening(); FACE.stopTalking();
+  running = false; stopListening(); FACE.stopTalking(); Assistant.stopTalking();
   if(window.speechSynthesis) window.speechSynthesis.cancel();
   try{ ws && ws.close(); }catch(_){}
   show("home");
@@ -627,6 +868,43 @@ function speakable(t){
     .replace(/\s{2,}/g, " ").trim();
 }
 
+/* ---- voice selection (male / female) ---- */
+let voices = [], voiceGender = "female", pickedVoice = null;  // male disabled for now
+const FEMALE_RE = /female|zira|samantha|aria|jenny|sonia|libby|natasha|hazel|susan|catherine|linda|google uk english female|google us english/i;
+const MALE_RE   = /\bmale\b|david|mark|george|ryan|guy|william|james|google uk english male/i;
+
+function loadVoices(){
+  if(!window.speechSynthesis) return;
+  voices = speechSynthesis.getVoices() || [];
+  pickVoice();
+}
+function pickVoice(){
+  const en = voices.filter(v => /^en(-|_|$)/i.test(v.lang));
+  const pool = en.length ? en : voices;
+  if(!pool.length){ pickedVoice = null; return; }
+  if(voiceGender === "female")
+    pickedVoice = pool.find(v => FEMALE_RE.test(v.name)) || pool.find(v => !MALE_RE.test(v.name)) || pool[0];
+  else
+    pickedVoice = pool.find(v => MALE_RE.test(v.name)) || pool.find(v => !FEMALE_RE.test(v.name)) || pool[0];
+}
+if(window.speechSynthesis){ loadVoices(); speechSynthesis.onvoiceschanged = loadVoices; }
+
+document.querySelectorAll(".vbtn").forEach(b => {
+  b.classList.toggle("on", b.dataset.voice === voiceGender);
+  b.onclick = () => {
+    voiceGender = b.dataset.voice;
+    localStorage.setItem("dusu_voice", voiceGender);
+    document.querySelectorAll(".vbtn").forEach(x => x.classList.toggle("on", x.dataset.voice === voiceGender));
+    pickVoice();
+    // quick sample so the user hears the change
+    if(window.speechSynthesis){
+      const s = new SpeechSynthesisUtterance(voiceGender === "female" ? "Hi, I'm DuSu." : "Hey, I'm DuSu.");
+      if(pickedVoice) s.voice = pickedVoice;
+      window.speechSynthesis.cancel(); window.speechSynthesis.speak(s);
+    }
+  };
+});
+
 function speak(text){
   stopListening();          // mic OFF while DuSu talks — kills the echo loop
   aiSpeaking = true;
@@ -634,9 +912,10 @@ function speak(text){
   if(!window.speechSynthesis){ aiSpeaking=false; delayedListen(); return; }
   const u = new SpeechSynthesisUtterance(speakable(text));
   u.rate = 1.0; u.pitch = 1.0;
-  FACE.startTalking();
-  u.onboundary = () => FACE.boundary();   // sync mouth to each spoken word
-  const done = () => { aiSpeaking = false; FACE.stopTalking(); if(running) delayedListen(); };
+  if(pickedVoice) u.voice = pickedVoice;
+  FACE.startTalking(); Assistant.startTalking();
+  u.onboundary = () => { FACE.boundary(); Assistant.boundary(); };   // sync mouth to each spoken word
+  const done = () => { aiSpeaking = false; FACE.stopTalking(); Assistant.stopTalking(); if(running) delayedListen(); };
   u.onend = done; u.onerror = done;
   window.speechSynthesis.cancel();
   window.speechSynthesis.speak(u);
@@ -696,7 +975,7 @@ function showReport(d){
   const circ = 2*Math.PI*66;
   setTimeout(()=>{ $("ringArc").style.transition="stroke-dashoffset 1.1s ease";
     $("ringArc").style.strokeDashoffset = circ*(1-ov/100); }, 80);
-  if(ov >= 80) setTimeout(()=> sparkle(document.querySelector(".score-ring")), 700);
+  if(ov >= 80){ Assistant.happy(); setTimeout(()=> sparkle(document.querySelector(".score-ring")), 700); }
 
   const mm = $("metrics"); mm.innerHTML = "";
   const scores = d.scores || {};
@@ -729,7 +1008,7 @@ let authUser = JSON.parse(localStorage.getItem("dusu_user") || "null");
 
 function applyUser(u){
   authUser = u;
-  $("userChip").hidden = false;
+  $("hdrRight").hidden = false;
   $("tagline").style.display = "none";
   $("uName").textContent = u.name || u.email || "";
 
@@ -753,8 +1032,8 @@ function applyUser(u){
 function setWelcome(){
   const first = authUser ? (authUser.name || "").split(" ")[0] : "";
   $("welcomeMsg").textContent = first
-    ? `Hi ${first}! 👋 I'm DuSu — pick a mode and let's practice speaking.`
-    : `Hi! 👋 I'm DuSu — pick a mode and let's practice speaking.`;
+    ? `Welcome back, ${first} 👋 — pick a mode and let's practice speaking in DuSu.`
+    : `Welcome to DuSu 👋 — pick a mode and let's practice speaking.`;
 }
 
 // DuSu speaks a welcome by name (home). Needs a recent user gesture, so we only
@@ -762,12 +1041,13 @@ function setWelcome(){
 function speakWelcome(){
   const first = authUser ? (authUser.name || "").split(" ")[0] : "";
   const msg = first
-    ? `Welcome, ${first}! I'm DuSu. Pick a mode, and let's practice speaking.`
-    : `Welcome! I'm DuSu. Pick a mode, and let's practice speaking.`;
+    ? `Welcome back, ${first}, to DuSu. Pick a mode, and let's practice speaking.`
+    : `Welcome to DuSu. Pick a mode, and let's practice speaking.`;
   if(!window.speechSynthesis) return;
   HOMEFACE.set("speaking"); HOMEFACE.startTalking();
   const u = new SpeechSynthesisUtterance(speakable(msg));
   u.rate = 1.0; u.pitch = 1.0;
+  if(pickedVoice) u.voice = pickedVoice;
   u.onboundary = () => HOMEFACE.boundary();
   const done = () => { HOMEFACE.stopTalking(); HOMEFACE.set("idle"); };
   u.onend = done; u.onerror = done;
@@ -778,7 +1058,7 @@ function speakWelcome(){
 function logout(){
   authToken = ""; authUser = null;
   localStorage.removeItem("dusu_token"); localStorage.removeItem("dusu_user");
-  $("userChip").hidden = true; $("tagline").style.display = "";
+  $("hdrRight").hidden = true; $("tagline").style.display = "";
   try{ ws && ws.close(); }catch(_){}
   if(window.google && google.accounts) google.accounts.id.disableAutoSelect();
   show("login");

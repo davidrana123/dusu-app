@@ -1,57 +1,58 @@
-"""OpenRouter implementation of the LLM provider.
+"""LLM provider chain (all OpenAI-compatible: Gemini, OpenRouter, Groq, …).
 
-OpenRouter is OpenAI-compatible, so we drive it with the OpenAI SDK pointed at
-OpenRouter's base URL. Free models are shared and frequently rate-limited
-(HTTP 429), so every call walks the configured model list until one answers.
+Every provider exposes the OpenAI Chat Completions shape, so one OpenAI client
+per provider (different base_url + key) drives them all. On any failure — quota
+(429/402), model gone (404), bad request — we fall through to the next model,
+then the next provider. Configure the chain in config.Settings.providers().
 
-Speech-to-text and text-to-speech are NOT here — the browser handles them via
-the Web Speech API, so the model only ever sees and emits text.
+Speech is browser-side; the model only ever sees and emits text.
 """
 
 import json
 import re
 
-from openai import AsyncOpenAI, APIStatusError
+from openai import AsyncOpenAI
 
 from ..config import settings
 
-_client = AsyncOpenAI(
-    api_key=settings.openrouter_api_key,
-    base_url=settings.openrouter_base_url,
-    # Optional OpenRouter attribution headers.
-    default_headers={
-        "HTTP-Referer": "http://localhost:8000",
-        "X-Title": "AI Interview Coach",
-    },
-)
+_clients: dict[str, AsyncOpenAI] = {}
+
+
+def _client(p: dict) -> AsyncOpenAI:
+    if p["name"] not in _clients:
+        _clients[p["name"]] = AsyncOpenAI(
+            api_key=p["key"],
+            base_url=p["base_url"],
+            default_headers=p.get("headers") or {},
+        )
+    return _clients[p["name"]]
 
 
 async def _complete(messages: list[dict], max_tokens: int) -> str:
-    """Try each free model in turn; skip past rate-limited / unavailable ones."""
+    """Walk the provider chain → each provider's models → until one answers."""
     last_err = None
-    for model in settings.model_list:
-        try:
-            resp = await _client.chat.completions.create(
-                model=model,
-                messages=messages,
-                max_tokens=max_tokens,
-                temperature=0.7,
-                # Free tier is mostly reasoning models; suppress their
-                # chain-of-thought so it doesn't leak into the spoken answer.
-                extra_body={"reasoning": {"exclude": True, "effort": "low"}},
-            )
-            text = (resp.choices[0].message.content or "").strip()
-            if text:
-                return text
-        except APIStatusError as e:
-            # 429 (rate limit) / 404 (model gone) -> fall through to next model.
-            last_err = e
-            continue
-    raise RuntimeError(f"all models unavailable: {last_err}")
+    for p in settings.providers():
+        client = _client(p)
+        for model in p["models"]:
+            try:
+                resp = await client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    max_tokens=max_tokens,
+                    temperature=0.7,
+                    extra_body=p.get("extra") or {},
+                )
+                text = (resp.choices[0].message.content or "").strip()
+                if text:
+                    return text
+            except Exception as e:  # quota / 404 / 400 → try the next option
+                last_err = e
+                continue
+    raise RuntimeError(f"all providers/models unavailable: {last_err}")
 
 
 def _extract_json(text: str) -> dict:
-    """Free models don't reliably honor JSON mode — pull the first {...} block."""
+    """Models don't always return clean JSON — pull the first {...} block."""
     try:
         return json.loads(text)
     except json.JSONDecodeError:
@@ -67,7 +68,12 @@ def _extract_json(text: str) -> dict:
 class OpenRouterLLM:
     async def next_question(self, system: str, transcript: list[dict]) -> str:
         messages = [{"role": "system", "content": system}, *transcript]
-        return await _complete(messages, max_tokens=180)
+        # Some providers (Gemini) reject a system-only request — DuSu speaks first
+        # with an empty transcript, so seed a user turn to kick it off.
+        if not any(m["role"] == "user" for m in transcript):
+            messages.append({"role": "user",
+                             "content": "Let's begin. Greet me and ask your first question."})
+        return await _complete(messages, max_tokens=250)
 
     async def score(self, system: str, transcript: list[dict]) -> dict:
         convo = "\n".join(f"{m['role']}: {m['content']}" for m in transcript)
@@ -75,5 +81,4 @@ class OpenRouterLLM:
             {"role": "system", "content": system},
             {"role": "user", "content": convo + "\n\nReturn ONLY the JSON object."},
         ]
-        text = await _complete(messages, max_tokens=1200)
-        return _extract_json(text)
+        return _extract_json(await _complete(messages, max_tokens=1200))
