@@ -1,11 +1,14 @@
 package com.dusu.launcher
 
+import android.Manifest
 import android.content.ActivityNotFoundException
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -14,6 +17,7 @@ import android.widget.Button
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 
 /**
  * DuSu launcher — a tiny app whose only job is to open the DuSu web app in the
@@ -40,6 +44,11 @@ class MainActivity : AppCompatActivity() {
         findViewById<Button>(R.id.startBtn).setOnClickListener { openDuSu() }
         findViewById<Button>(R.id.retryBtn).setOnClickListener { refresh() }
 
+        // Daily reminder notification (local, no server).
+        Notifications.createChannel(this)
+        Notifications.scheduleDaily(this)
+        requestNotifPermission()
+
         // Brief splash (~1.6s), then show the right screen based on connectivity.
         Handler(Looper.getMainLooper()).postDelayed({
             splashView.visibility = View.GONE
@@ -51,6 +60,17 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         if (splashView.visibility != View.VISIBLE) refresh()
+    }
+
+    // Android 13+ needs runtime consent to post notifications.
+    private fun requestNotifPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
+                != PackageManager.PERMISSION_GRANTED
+            ) {
+                requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
+            }
+        }
     }
 
     private fun refresh() {

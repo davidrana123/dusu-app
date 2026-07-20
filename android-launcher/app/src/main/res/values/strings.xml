@@ -9,6 +9,23 @@
     <string name="retry">Retry</string>
     <string name="no_browser">No browser found to open DuSu.</string>
 
+    <!-- Daily reminder notification -->
+    <string name="notif_channel_name">Daily practice reminder</string>
+
+    <!-- A pool of DuSu-voice messages; one is picked per day (title || body). -->
+    <string-array name="notif_messages">
+        <item>🔥 Don\'t break your streak!||DuSu is waiting to talk with you today.</item>
+        <item>🤔 How was your day?||Tell DuSu in English — just 5 minutes.</item>
+        <item>👀 Someone\'s catching up!||Open the leaderboard and defend your spot.</item>
+        <item>🚀 One step closer to fluent||Today\'s conversation is waiting.</item>
+        <item>😏 Bet you can\'t speak 2 min||Prove it to DuSu right now.</item>
+        <item>💬 DuSu remembers your dream||Let\'s get one step closer today.</item>
+        <item>🎯 Your daily goal is calling||A quick session keeps the streak alive.</item>
+        <item>😴 English getting rusty?||5 minutes with DuSu fixes that.</item>
+        <item>⭐ Ready to level up?||Finish today\'s lesson and earn your XP.</item>
+        <item>🌟 Great speakers show up daily||Your turn — talk to DuSu now.</item>
+    </string-array>
+
     <!-- Change this to your custom domain later (e.g. https://dusu.ai) -->
     <string name="dusu_url" translatable="false">https://dusu-app-1.onrender.com</string>
 </resources>
