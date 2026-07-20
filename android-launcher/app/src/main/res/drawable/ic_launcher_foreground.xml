@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- gold speech bubble (DuSu = speaking) -->
+    <path
+        android:fillColor="#D4AF37"
+        android:pathData="M44,30 h20 a10,10 0 0 1 10,10 v14 a10,10 0 0 1 -10,10 h-20 a10,10 0 0 1 -10,-10 v-14 a10,10 0 0 1 10,-10 z" />
+    <path
+        android:fillColor="#D4AF37"
+        android:pathData="M42,62 l-6,13 l17,-9 z" />
+    <!-- three navy dots (talking) -->
+    <path android:fillColor="#070A14" android:pathData="M41.5,47 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0 z" />
+    <path android:fillColor="#070A14" android:pathData="M50.5,47 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0 z" />
+    <path android:fillColor="#070A14" android:pathData="M59.5,47 a3.5,3.5 0 1,0 7,0 a3.5,3.5 0 1,0 -7,0 z" />
+</vector>

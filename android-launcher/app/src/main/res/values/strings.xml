@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DuSu</string>
+    <string name="tagline">Speak with Confidence</string>
+    <string name="start_dusu">Start DuSu</string>
+    <string name="opens_in_browser">Opens in your browser</string>
+    <string name="offline_title">No Internet Connection</string>
+    <string name="offline_msg">Please turn on your internet connection to continue using DuSu.</string>
+    <string name="retry">Retry</string>
+    <string name="no_browser">No browser found to open DuSu.</string>
+
+    <!-- Change this to your custom domain later (e.g. https://dusu.ai) -->
+    <string name="dusu_url" translatable="false">https://dusu-app-1.onrender.com</string>
+</resources>
