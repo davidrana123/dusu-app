@@ -254,6 +254,10 @@
   .jb-title { font-family:var(--font-d); font-weight:600; font-size:19px; color:var(--ink); }
   .jb-sub { font-size:13px; color:var(--ink-dim); margin-top:2px; }
   .jb-go { font-family:var(--font-d); font-size:22px; color:var(--gold); }
+  .roadmap-link { display:block; width:100%; text-align:center; background:var(--glass); border:1px solid var(--glass-brd);
+    color:var(--ink-dim); font:inherit; font-size:14px; padding:11px; border-radius:14px; cursor:pointer;
+    margin:-6px 0 20px; transition:.15s; touch-action:manipulation; }
+  .roadmap-link:hover { border-color:var(--gold); color:var(--gold); }
   .free-label { font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-faint);
     margin:0 0 12px 3px; font-weight:600; }
   /* mood check-in */
@@ -612,6 +616,7 @@
 
     <!-- Journey CTA (shown once onboarded) -->
     <button id="journeyBanner" class="journey-banner" hidden></button>
+    <button id="roadmapLink" class="roadmap-link" hidden>📈 View my roadmap & progress →</button>
 
     <div class="free-label" id="freeLabel" hidden>Free practice</div>
     <div class="modes">
@@ -760,6 +765,45 @@
           <button class="btn ghost" id="replayBtn">🔊 Replay (slow)</button>
           <button class="btn primary" id="continueBtn">Continue →</button>
         </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== DAILY TALK (AI companion) ===================== -->
+  <section id="daily" class="screen">
+    <div class="sess-head">
+      <button class="back" id="dailyBack" title="Finish">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div>
+        <div class="sess-title">Daily Talk with DuSu</div>
+        <div class="sess-sub">Talk about your day — learn English from it</div>
+      </div>
+    </div>
+
+    <div class="learn-body">
+      <p class="learn-instr" id="dailyQ">…</p>
+
+      <button class="mic-btn" id="dailyMic" disabled>
+        <span class="mic-ring"></span>
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+      </button>
+      <div class="mic-label">🎤 Answer in Hindi</div>
+      <div class="learn-state" id="dailyState"></div>
+
+      <div class="trans-card" id="dailyCard" hidden>
+        <div class="tc-label">You said</div>
+        <div class="tc-hindi" id="dcHindi"></div>
+        <div class="tc-label tc-top">In English</div>
+        <div class="tc-eng" id="dcEng"></div>
+        <div class="tc-actions">
+          <button class="btn ghost" id="dcReplay">🔊 Replay (slow)</button>
+          <button class="btn primary" id="dcNext">Continue →</button>
+        </div>
+      </div>
+
+      <div class="assess-actions" style="margin-top:22px">
+        <button class="btn danger" id="dailyFinish">Finish talk</button>
       </div>
     </div>
   </section>
@@ -1157,6 +1201,8 @@ function onMessage(ev){
   switch(m.type){
     case "ready": greetLearn(); break;
     case "translation": handleTranslation(m.hindi, m.text); break;
+    case "daily_question": greetDaily(m.question); break;
+    case "daily_turn": handleDailyTurn(m.hindi, m.english, m.praise, m.next_question); break;
     case "translate_error":
       say("Translation unavailable. Please try again.", ENG_NORM());
       learnState("Translation failed — tap the mic to try again."); micEnable(true); break;
@@ -1427,6 +1473,90 @@ $("continueBtn").onclick = async () => {
   startHindiListen();            // then listen for the fresh sentence
 };
 $("learnBack").onclick = () => { running = false; stopLearn(); try{ ws && ws.close(); }catch(_){} show("home"); };
+
+/* ================= Daily Talk (AI companion) ================= */
+let drec = null, dLastEng = "", dLastNext = "";
+function dState(t){ $("dailyState").textContent = t || ""; }
+function dMic(on){ $("dailyMic").disabled = !on; }
+function dMicActive(on){ $("dailyMic").classList.toggle("listening", on); }
+
+function startDaily(){
+  if(!SR){ $("warn").textContent = "Voice needs Chrome or Edge."; show("home"); return; }
+  if(usageGet().n >= MAX_SESSIONS){
+    $("warn").textContent = `You've reached today's limit of ${MAX_SESSIONS} sessions. Come back tomorrow 🙂`; show("home"); return;
+  }
+  currentMode = "daily"; dLastEng = ""; dLastNext = "";
+  $("dailyCard").hidden = true; $("dcHindi").textContent = ""; $("dcEng").textContent = "";
+  $("dailyQ").textContent = "…"; dState("Connecting…"); dMic(false);
+  show("daily");
+  ws = new WebSocket(WS_URL);
+  ws.onopen = () => { running = true; usageInc(); refreshUsage();
+    ws.send(JSON.stringify({ type:"start", mode:"daily", token:authToken, mood:todayMood, hour:new Date().getHours() })); };
+  ws.onmessage = onMessage;
+  ws.onclose = () => { running = false; stopDaily(); };
+  ws.onerror = () => dState("Connection error. Is the server running?");
+}
+async function greetDaily(question){
+  dLastNext = question;
+  $("dailyQ").textContent = question;
+  await say(question, HI());
+  dState("Tap the mic and answer in Hindi."); dMic(true);
+}
+function startDailyListen(){
+  if(!running) return;
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  dMic(false); dMicActive(true); dState("Listening…");
+  drec = new SR(); drec.lang = "hi-IN"; drec.interimResults = false; drec.maxAlternatives = 1;
+  let got = false;
+  drec.onresult = (e) => {
+    const t = e.results[0][0].transcript.trim();
+    if(t && !got){ got = true; $("dcHindi").textContent = t; dState("Thinking…"); dMicActive(false);
+      if(ws && ws.readyState === 1) ws.send(JSON.stringify({ type:"user_text", text:t })); }
+  };
+  drec.onerror = () => {};
+  drec.onend = async () => { dMicActive(false);
+    if(!got && running){ await say(HINDI.noSpeech, HI()); dState("Tap the mic and answer in Hindi."); dMic(true); } };
+  try{ drec.start(); }catch(_){}
+}
+async function handleDailyTurn(hindi, english, praise, nextQ){
+  dLastEng = english || ""; dLastNext = nextQ || "";
+  $("dcHindi").textContent = hindi; $("dcEng").textContent = english || "—";
+  $("dailyCard").hidden = false; $("dcReplay").disabled = !english; dState("");
+  if(english){
+    await say(HINDI.intro, HI());        // "English mein aise bolte hain."
+    await pause(500);
+    await say(english, ENG_SLOW());
+    await say(HINDI.repeat, HI());        // "Ab mere baad dohraiye."
+    await say(english, ENG_SLOW());
+  }
+  dState("Repeat it, then tap Continue for the next question.");
+}
+function stopDaily(){
+  try{ if(drec){ drec.onend = null; drec.stop(); drec = null; } }catch(_){}
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  dMicActive(false);
+}
+async function dailyContinue(){
+  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  $("dailyCard").hidden = true; $("dcHindi").textContent = ""; $("dcEng").textContent = "";
+  if(dLastNext){ $("dailyQ").textContent = dLastNext; await say(dLastNext, HI()); }
+  startDailyListen();
+}
+function finishDaily(){
+  running = false; stopDaily();
+  try{ if(ws && ws.readyState === 1) ws.send(JSON.stringify({ type:"end" })); }catch(_){}
+  try{ ws && ws.close(); }catch(_){}
+  const p = jProg();
+  celebrate(`<div style="font-size:40px">🌟</div><h2 style="font-family:var(--font-d);font-size:22px;margin:6px 0">Nice talk!</h2>
+    <p style="color:var(--gold);font-size:17px">+20 XP · ${(p.streak_days||0)}🔥 streak</p>
+    <p style="color:var(--ink-dim);margin-top:8px">DuSu will remember today. See you tomorrow!</p>`);
+  show("home");
+}
+$("dailyMic").onclick = startDailyListen;
+$("dcReplay").onclick = () => { if(dLastEng){ if(window.speechSynthesis) window.speechSynthesis.cancel(); say(dLastEng, ENG_SLOW()); } };
+$("dcNext").onclick = dailyContinue;
+$("dailyFinish").onclick = finishDaily;
+$("dailyBack").onclick = finishDaily;
 
 /* ================= AI Level Assessment (first-time, once) ================= */
 let aData = null;
@@ -1833,22 +1963,22 @@ function levelObj(level){ return CURRICULUM.find(l => l.level === level); }
 
 // ---- render ----
 function renderHomeJourney(){
-  const b = $("journeyBanner"), fl = $("freeLabel");
+  const b = $("journeyBanner"), fl = $("freeLabel"), rl = $("roadmapLink");
   if(!b) return;
-  if(!userState || !userState.onboarded){ b.hidden = true; if(fl) fl.hidden = true; return; }
-  const j = jJourney(), cur = j.current_level || 1, lv = levelObj(cur);
-  const done = lvlDone(cur), lesson = lv ? lv.lessons.find(x => !(j.completed?.[String(cur)]||[]).includes(x.id)) : null;
+  if(!userState || !userState.onboarded){ b.hidden = true; if(fl) fl.hidden = true; if(rl) rl.hidden = true; return; }
+  const nick = memFacts().nickname || (authUser && (authUser.name||"").split(" ")[0]) || "";
   b.innerHTML = `
-    <div class="jb-ic">${LEVEL_ICONS[cur-1] || "🎯"}</div>
+    <div class="jb-ic">💬</div>
     <div class="jb-main">
       <div class="jb-title">Continue your Journey</div>
-      <div class="jb-sub">Level ${cur} · ${lv ? lv.name_en : ""} — ${lesson ? "Next: " + lesson.en : "Level complete!"}</div>
+      <div class="jb-sub">Talk with DuSu about your day${nick ? ", " + nick : ""} — and learn English from it</div>
     </div>
     <div class="jb-go">→</div>`;
-  b.hidden = false; if(fl) fl.hidden = false;
+  b.hidden = false; if(fl) fl.hidden = false; if(rl) rl.hidden = false;
   renderHomeExtras();
 }
-$("journeyBanner").onclick = openJourney;
+$("journeyBanner").onclick = startDaily;   // Continue your Journey → Daily Talk
+$("roadmapLink").onclick = openJourney;    // roadmap/dashboard/becoming
 
 // ---- emotional home extras: mood check-in, event greeting, weekly letter ----
 const MOODS = [["great","😊"],["good","🙂"],["okay","😐"],["low","😔"],["tired","😫"]];
@@ -2417,7 +2547,7 @@ function onGoogle(resp){
       authToken = d.token;
       localStorage.setItem("dusu_token", d.token);
       localStorage.setItem("dusu_user", JSON.stringify(d.user));
-      userState = { onboarded: d.onboarded, profile: d.profile || null, progress: d.progress || null };
+      userState = { onboarded: d.onboarded, profile: d.profile || null, progress: d.progress || null, memory: d.memory || {} };
       applyUser(d.user);
       $("loginNote").textContent = "";
       if(d.onboarded === false){   // brand-new user (DB on) → first-time level check
@@ -2444,7 +2574,7 @@ function initAuth(){
       .then(r => r.ok ? r.json() : null)
       .then(st => {
         if(st){
-          userState = { onboarded: st.onboarded, profile: st.profile || null, progress: st.progress || null };
+          userState = { onboarded: st.onboarded, profile: st.profile || null, progress: st.progress || null, memory: st.memory || {} };
         }
         if(userState && userState.onboarded === false) startAssessment();
         else show("home");

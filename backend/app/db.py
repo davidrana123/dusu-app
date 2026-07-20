@@ -471,6 +471,54 @@ async def save_checkin(user_id: str, mood: str) -> dict:
         return f
 
 
+async def save_daily_context(user_id: str, ctx: dict) -> None:
+    """Merge today's context into a 48h sliding window (today + yesterday only)."""
+    async with _Session() as s:               # type: ignore[misc]
+        mem = await _get_or_make_memory(s, user_id)
+        f = dict(mem.facts or {})
+        today = _now().date()
+        keep = {today.isoformat(), (today - dt.timedelta(days=1)).isoformat()}
+        dc = [e for e in (f.get("daily_context") or []) if e.get("date") in keep]
+        cur = next((e for e in dc if e.get("date") == today.isoformat()), None)
+        if cur is None:
+            cur = {"date": today.isoformat(), "mood": "", "plans": "", "weather": "", "events": [], "notes": []}
+            dc.append(cur)
+        if ctx.get("mood"):    cur["mood"] = ctx["mood"]
+        if ctx.get("plans"):   cur["plans"] = ctx["plans"]
+        if ctx.get("weather"): cur["weather"] = ctx["weather"]
+        if ctx.get("note"):    cur["notes"] = ((cur.get("notes") or []) + [ctx["note"]])[-8:]
+        for e in (ctx.get("events") or []):
+            if isinstance(e, dict) and e not in (cur.get("events") or []):
+                cur.setdefault("events", []).append(e)
+        f["daily_context"] = dc
+        mem.facts = f
+        flag_modified(mem, "facts")
+        await s.commit()
+
+
+async def record_practice(user_id: str, seconds: int = 0, sentences: int = 0, xp: int = 20) -> dict:
+    """A Daily-Talk / conversation session counts as practice: XP + streak + daily stat."""
+    async with _Session() as s:               # type: ignore[misc]
+        prog = await s.get(Progress, user_id)
+        if prog is None:
+            prog = Progress(user_id=user_id, badges=[], journey={})
+            s.add(prog)
+        prog.xp = (prog.xp or 0) + xp
+        today = dt.date.today()
+        if prog.last_active != today:
+            if prog.last_active == today - dt.timedelta(days=1):
+                prog.streak_days = (prog.streak_days or 0) + 1
+            else:
+                prog.streak_days = 1
+            prog.sessions_today = 0
+            prog.last_active = today
+        prog.sessions_today = (prog.sessions_today or 0) + 1
+        await s.commit()
+        # also fold into memory daily_stats + longest
+        await bump_daily_stat(user_id, sentences=sentences, seconds=seconds)
+        return {"xp": prog.xp, "streak_days": prog.streak_days, "sessions_today": prog.sessions_today}
+
+
 async def bump_daily_stat(user_id: str, sentences: int = 0, seconds: int = 0) -> None:
     async with _Session() as s:               # type: ignore[misc]
         mem = await _get_or_make_memory(s, user_id)

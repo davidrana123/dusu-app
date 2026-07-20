@@ -401,6 +401,22 @@ def _facts_summary(facts: dict, summaries: list[str]) -> str:
     return "\n".join(lines)
 
 
+def _daily_context_str(facts: dict) -> str:
+    """Compact recent-days context (mood/plans/events) for the daily prompt."""
+    out = []
+    for e in (facts.get("daily_context") or []):
+        bits = [e.get("date", "")]
+        if e.get("mood"):    bits.append("mood=" + e["mood"])
+        if e.get("plans"):   bits.append("plans=" + e["plans"])
+        if e.get("weather"): bits.append("weather=" + e["weather"])
+        for ev in (e.get("events") or []):
+            bits.append(f"event={ev.get('type','')} {ev.get('date','')} {ev.get('note','')}".strip())
+        for n in (e.get("notes") or []):
+            bits.append("note=" + n)
+        out.append(" · ".join(b for b in bits if b))
+    return "\n".join(out)
+
+
 @app.websocket("/ws/interview")
 async def interview_ws(ws: WebSocket):
     await ws.accept()
@@ -423,12 +439,15 @@ async def interview_ws(ws: WebSocket):
                 await db.add_conversation(uid, session.mode, mem.get("summary", ""))
                 await db.merge_facts(uid, mem.get("facts", {}) or {}, mem.get("events", []) or [])
             secs = int(time.monotonic() - started_at)
-            await db.bump_daily_stat(uid, sentences=session.turns, seconds=secs)
+            if session.mode == "daily":
+                await db.record_practice(uid, seconds=secs, sentences=session.turns, xp=20)
+            else:
+                await db.bump_daily_stat(uid, sentences=session.turns, seconds=secs)
             badges = []
             if mem.get("no_hindi"):       badges.append("courage_no_hindi")
             if mem.get("asked_question"): badges.append("courage_question")
             if secs >= 300:               badges.append("courage_5min")
-            if session.mode == "conversation": badges.append("courage_first_convo")
+            if session.mode in ("conversation", "daily"): badges.append("courage_first_convo")
             if badges:
                 await db.award_badges(uid, badges)
         except Exception as e:
@@ -446,9 +465,9 @@ async def interview_ws(ws: WebSocket):
                     break
                 uid = claims["sub"] if claims else None
                 # Load emotional memory so DuSu greets/talks like it knows them.
-                facts_summary = ""
+                facts_summary = ""; facts = {}
                 mode = data.get("mode", "interview")
-                if uid and db.db_enabled and mode in ("conversation", "interview"):
+                if uid and db.db_enabled and mode in ("conversation", "interview", "daily"):
                     try:
                         facts = await db.get_memory(uid)
                         summaries = await db.recent_summaries(uid, 3)
@@ -457,14 +476,26 @@ async def interview_ws(ws: WebSocket):
                         print(f"[memory] load failed: {type(e).__name__}: {e}")
                 started_at = time.monotonic()
                 persisted = False
+                # time-of-day from the client's local hour (0-23)
+                hour = data.get("hour")
+                tod = ""
+                if isinstance(hour, (int, float)):
+                    tod = "morning" if hour < 12 else "afternoon" if hour < 17 else "evening"
                 session = Session(
                     mode,
                     data.get("name", ""),
                     data.get("role", ""),
                     facts_summary=facts_summary,
                     mood=data.get("mood", ""),
+                    profession=facts.get("profession", ""),
+                    time_of_day=tod,
+                    level=(facts.get("level") or ""),
+                    daily_context=_daily_context_str(facts),
                 )
-                if session.mode == "learning":
+                if session.mode == "daily":
+                    opening = await session.daily_turn("", first=True)
+                    await _send(ws, type="daily_question", question=opening.get("next_question_hindi", "Aaj aapka din kaisa raha?"))
+                elif session.mode == "learning":
                     await _send(ws, type="ready")   # client greets in Hindi
                 else:
                     await _send(ws, type="status", msg="starting")
@@ -486,6 +517,24 @@ async def interview_ws(ws: WebSocket):
                         await _send(ws, type="translate_error")
                         continue
                     await _send(ws, type="translation", hindi=text, text=english)
+                    continue
+                if session.mode == "daily":
+                    await _send(ws, type="status", msg="thinking")
+                    try:
+                        d = await session.daily_turn(text)
+                    except Exception:
+                        await _send(ws, type="translate_error")
+                        continue
+                    await _send(ws, type="daily_turn", hindi=text,
+                                english=d.get("english", ""), praise=d.get("praise", ""),
+                                next_question=d.get("next_question_hindi", ""))
+                    if uid and db.db_enabled:
+                        try:
+                            ctx = d.get("context", {}) or {}
+                            if d.get("mood"): ctx["mood"] = d["mood"]
+                            await db.save_daily_context(uid, ctx)
+                        except Exception as e:
+                            print(f"[daily] ctx save failed: {type(e).__name__}: {e}")
                     continue
                 session.add_user(text)
                 await _send(ws, type="status", msg="thinking")
