@@ -313,6 +313,32 @@
   .lvl-right { font-size:12px; color:var(--ink-faint); white-space:nowrap; }
   .you-here { position:absolute; top:-9px; left:16px; font-size:9.5px; letter-spacing:.14em; text-transform:uppercase;
     background:var(--grad); color:#241a08; padding:2px 8px; border-radius:8px; font-weight:700; }
+  /* LEADERBOARD */
+  .podium { display:flex; align-items:flex-end; justify-content:center; gap:10px; margin:10px 0 22px; }
+  .pod { flex:1; max-width:120px; text-align:center; background:var(--glass); border:1px solid var(--glass-brd);
+    border-radius:16px 16px 0 0; padding:14px 8px 16px; }
+  .pod.p1 { order:2; padding-top:26px; border-color:var(--gold); box-shadow:var(--gold-glow); }
+  .pod.p2 { order:1; } .pod.p3 { order:3; }
+  .pod .pod-medal { font-size:30px; }
+  .pod .pod-av { width:44px; height:44px; border-radius:50%; margin:6px auto 6px; display:grid; place-items:center;
+    font-family:var(--font-d); font-weight:700; font-size:18px; background:var(--grad); color:#241a08; }
+  .pod .pod-name { font-size:13px; font-weight:600; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .pod .pod-xp { font-size:12px; color:var(--gold); margin-top:2px; }
+  .pod.me { outline:2px solid var(--gold); }
+  .lb-list { display:flex; flex-direction:column; gap:9px; }
+  .lb-row { display:flex; align-items:center; gap:12px; background:var(--glass); border:1px solid var(--glass-brd);
+    border-radius:14px; padding:11px 14px; }
+  .lb-row.me { border-color:var(--gold); box-shadow:var(--gold-glow); }
+  .lb-rank { width:26px; font-family:var(--font-d); font-weight:700; color:var(--ink-faint); text-align:center; }
+  .lb-av { width:36px; height:36px; border-radius:50%; flex:none; display:grid; place-items:center;
+    font-family:var(--font-d); font-weight:700; font-size:15px; background:radial-gradient(circle at 50% 38%, #3a4a6e, #141a30 74%); color:var(--ink); }
+  .lb-main { flex:1; min-width:0; }
+  .lb-name { font-size:15px; font-weight:600; color:var(--ink); }
+  .lb-sub { font-size:12px; color:var(--ink-faint); }
+  .lb-xp { font-family:var(--font-d); font-weight:700; font-size:16px;
+    background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; white-space:nowrap; }
+  .lb-you { margin-top:18px; }
+
   /* LESSON player */
   .lesson-body { text-align:center; padding-top:10px; }
   .lesson-prog { font-size:12px; color:var(--ink-faint); margin-bottom:16px; letter-spacing:.04em; }
@@ -618,6 +644,7 @@
     <!-- Journey CTA (shown once onboarded) -->
     <button id="journeyBanner" class="journey-banner" hidden></button>
     <button id="roadmapLink" class="roadmap-link" hidden>📈 View my roadmap & progress →</button>
+    <button id="leaderboardLink" class="roadmap-link" hidden>🏆 Leaderboard →</button>
 
     <div class="free-label" id="freeLabel" hidden>Free practice</div>
     <div class="modes">
@@ -635,8 +662,8 @@
         <div class="ic">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#062" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
         </div>
-        <h3>Free Conversation</h3>
-        <p>Just talk. No pressure, no ending — DuSu keeps the chat flowing and helps you get comfortable speaking.</p>
+        <h3>Confidence Talk</h3>
+        <p>End-to-end English conversation to build real confidence — speak start to finish, no pressure.</p>
       </button>
 
       <button class="mode-card interview" data-mode="interview">
@@ -656,7 +683,7 @@
         <div class="foot-brand">
           <div class="brand">DuSu</div>
           <p>Speak with confidence.</p>
-          <p class="foot-blurb">Practice speaking with an AI partner — free conversation and realistic interviews that build real confidence.</p>
+          <p class="foot-blurb">Practice speaking with an AI partner — confidence talk and realistic interviews that build real confidence.</p>
           <div class="foot-social">
             <a title="LinkedIn"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.1c.5-.9 1.8-1.9 3.6-1.9 3.9 0 4.6 2.5 4.6 5.8V21h-4v-5.5c0-1.3 0-3-1.9-3s-2.2 1.4-2.2 2.9V21H9z"/></svg></a>
             <a title="Instagram"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
@@ -666,7 +693,7 @@
         </div>
         <div class="foot-col">
           <h5>Product</h5>
-          <a data-mode="conversation">Free Conversation</a>
+          <a data-mode="conversation">Confidence Talk</a>
           <a data-mode="interview">Interview Prep</a>
           <a>Modes (coming soon)</a>
         </div>
@@ -783,6 +810,38 @@
     </div>
 
     <div class="learn-body">
+      <div class="stage" style="padding:6px 0 14px">
+        <div class="orb-wrap idle" id="dorb">
+          <div class="ring r1"></div><div class="ring r2"></div>
+          <div class="orb">
+            <svg class="wface" viewBox="-50 -50 100 100" width="120" height="120" aria-hidden="true" style="animation:none">
+              <path d="M-50 51 L-50 42 C-42 30 -22 25 0 25 C22 25 42 30 50 42 L50 51 Z" fill="#e4e8ef"/>
+              <path d="M-13 26 L0 41 L13 26 C9 24 -9 24 -13 26 Z" fill="#3f63b0"/>
+              <path d="M-15 25 L-3 43 L-9 25 Z" fill="#f1f3f7"/>
+              <path d="M15 25 L3 43 L9 25 Z" fill="#f1f3f7"/>
+              <path d="M-6 12 L-6.5 26 L6.5 26 L6 12 Z" fill="url(#skin)"/>
+              <g transform="translate(0,-14) scale(0.86)">
+              <path d="M-31 -6 C-37 -30 -19 -45 0 -45 C19 -45 37 -30 31 -6 C34 8 32 24 29 37 C25 27 24 12 24 0 C24 -19 14 -30 0 -30 C-14 -30 -24 -19 -24 0 C-24 12 -25 27 -29 37 C-32 24 -34 8 -31 -6 Z" fill="url(#hair)"/>
+              <path d="M-29 -6 C-29 -28 -15 -38 0 -38 C15 -38 29 -28 29 -6 C29 16 19 33 0 35 C-19 33 -29 16 -29 -6 Z" fill="url(#skin)"/>
+              <path d="M-31 -6 C-36 -30 -18 -44 0 -44 C18 -44 36 -30 31 -6 C28 -13 25 -12 22 -15 C24 -23 16 -27 10 -22 C13 -31 3 -32 0 -24 C-3 -32 -13 -30 -11 -21 C-16 -26 -23 -21 -22 -14 C-25 -12 -28 -13 -31 -6 Z" fill="url(#hair)"/>
+              <path d="M-29 -4 C-35 8 -35 23 -30 34 L-24 28 C-27 18 -27 4 -25 -6 Z" fill="url(#hair)"/>
+              <path d="M29 -4 C35 8 35 23 30 34 L24 28 C27 18 27 4 25 -6 Z" fill="url(#hair)"/>
+              <ellipse cx="-17" cy="12" rx="6" ry="3.3" fill="#ff8f86" opacity=".4"/>
+              <ellipse cx="17" cy="12" rx="6" ry="3.3" fill="#ff8f86" opacity=".4"/>
+              <path d="M-20 -15 Q -13 -18 -7 -15.5" stroke="#b9a9b0" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+              <path d="M7 -15.5 Q 13 -18 20 -15" stroke="#b9a9b0" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+              <g>
+                <ellipse cx="-13" cy="-3" rx="7.4" ry="9" fill="#fff"/><circle cx="-12.6" cy="-2.4" r="5.6" fill="url(#iris)"/><circle cx="-12.6" cy="-2.4" r="2.6" fill="#171b2e"/><circle cx="-14.6" cy="-4.6" r="2.1" fill="#fff"/><path d="M-20.6 -8.5 Q -13 -13.5 -5.4 -8.5" stroke="#2a1a12" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+                <ellipse cx="13" cy="-3" rx="7.4" ry="9" fill="#fff"/><circle cx="12.6" cy="-2.4" r="5.6" fill="url(#iris)"/><circle cx="12.6" cy="-2.4" r="2.6" fill="#171b2e"/><circle cx="10.6" cy="-4.6" r="2.1" fill="#fff"/><path d="M5.4 -8.5 Q 13 -13.5 20.6 -8.5" stroke="#2a1a12" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+              </g>
+              <g transform="translate(-19,-30) rotate(-12)"><path d="M0 0 L-9 -5.5 L-9 5.5 Z" fill="#e23b4e"/><path d="M0 0 L9 -5.5 L9 5.5 Z" fill="#e23b4e"/><circle cx="0" cy="0" r="2.6" fill="#b91f33"/></g>
+              <path class="dsmile" d="M-7 17 Q 0 23 7 17" stroke="#c2506a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+              <ellipse class="dtalk" cx="0" cy="19" rx="6" ry="2.4" fill="#a83b57" style="display:none"/>
+              </g>
+            </svg>
+          </div>
+        </div>
+      </div>
       <p class="learn-instr" id="dailyQ">…</p>
 
       <button class="mic-btn" id="dailyMic" disabled>
@@ -841,6 +900,22 @@
     <div class="roadmap" id="roadmap"></div>
   </section>
 
+  <!-- ===================== LEADERBOARD ===================== -->
+  <section id="leaderboard" class="screen">
+    <div class="sess-head">
+      <button class="back" id="lbBack" title="Home">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div>
+        <div class="sess-title">🏆 Leaderboard</div>
+        <div class="sess-sub">Top speakers by XP</div>
+      </div>
+    </div>
+    <div class="podium" id="lbPodium"></div>
+    <div class="lb-list" id="lbList"></div>
+    <div class="lb-you" id="lbYou" hidden></div>
+  </section>
+
   <!-- ===================== LESSON (think / speak) ===================== -->
   <section id="lesson" class="screen">
     <div class="sess-head">
@@ -882,7 +957,7 @@
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
       </button>
       <div>
-        <div class="sess-title" id="sessTitle">Conversation</div>
+        <div class="sess-title" id="sessTitle">Confidence Talk</div>
         <div class="sess-sub" id="sessSub">with DuSu</div>
       </div>
     </div>
@@ -1138,7 +1213,7 @@ function startSession(mode){
   }
   currentMode = mode;
   $("feed").innerHTML = "";
-  $("sessTitle").textContent = mode === "interview" ? "Interview Prep" : "Free Conversation";
+  $("sessTitle").textContent = mode === "interview" ? "Interview Prep" : "Confidence Talk";
   $("sessSub").textContent = mode === "interview" ? "with DuSu · " + ($("role").value || "general") : "with DuSu";
   $("endBtn").textContent = mode === "interview" ? "End & get report" : "End";
   $("endBtn").className = mode === "interview" ? "btn primary" : "btn danger";
@@ -1480,6 +1555,17 @@ let drec = null, dLastEng = "", dLastNext = "";
 function dState(t){ $("dailyState").textContent = t || ""; }
 function dMic(on){ $("dailyMic").disabled = !on; }
 function dMicActive(on){ $("dailyMic").classList.toggle("listening", on); }
+// animated DuSu face: toggle orb state class + open/closed mouth
+function dailyOrb(state){
+  const orb = $("dorb"); if(!orb) return;
+  orb.className = "orb-wrap " + state;
+  const talking = state === "speaking";
+  const sm = orb.querySelector(".dsmile"), tk = orb.querySelector(".dtalk");
+  if(sm) sm.style.display = talking ? "none" : "";
+  if(tk) tk.style.display = talking ? "" : "none";
+}
+// speak with the face animating (used in Daily Talk)
+async function sayFace(text, opts){ dailyOrb("speaking"); await say(text, opts); dailyOrb("idle"); }
 
 function startDaily(){
   if(!SR){ $("warn").textContent = "Voice needs Chrome or Edge."; show("home"); return; }
@@ -1500,18 +1586,18 @@ function startDaily(){
 async function greetDaily(question){
   dLastNext = question;
   $("dailyQ").textContent = question;
-  await say(question, HI());
+  await sayFace(question, HI());
   dState("Tap the mic and answer in Hindi."); dMic(true);
 }
 function startDailyListen(){
   if(!running) return;
   if(window.speechSynthesis) window.speechSynthesis.cancel();
-  dMic(false); dMicActive(true); dState("Listening…");
+  dMic(false); dMicActive(true); dailyOrb("listening"); dState("Listening…");
   drec = new SR(); drec.lang = "hi-IN"; drec.interimResults = false; drec.maxAlternatives = 1;
   let got = false;
   drec.onresult = (e) => {
     const t = e.results[0][0].transcript.trim();
-    if(t && !got){ got = true; $("dcHindi").textContent = t; dState("Thinking…"); dMicActive(false);
+    if(t && !got){ got = true; $("dcHindi").textContent = t; dState("Thinking…"); dMicActive(false); dailyOrb("thinking");
       if(ws && ws.readyState === 1) ws.send(JSON.stringify({ type:"user_text", text:t })); }
   };
   drec.onerror = () => {};
@@ -1524,23 +1610,26 @@ async function handleDailyTurn(hindi, english, praise, nextQ){
   $("dcHindi").textContent = hindi; $("dcEng").textContent = english || "—";
   $("dailyCard").hidden = false; $("dcReplay").disabled = !english; dState("");
   if(english){
+    dailyOrb("speaking");
+    if(praise) await say(praise, HI());
     await say(HINDI.intro, HI());        // "English mein aise bolte hain."
-    await pause(500);
+    await pause(400);
     await say(english, ENG_SLOW());
     await say(HINDI.repeat, HI());        // "Ab mere baad dohraiye."
     await say(english, ENG_SLOW());
+    dailyOrb("idle");
   }
   dState("Repeat it, then tap Continue for the next question.");
 }
 function stopDaily(){
   try{ if(drec){ drec.onend = null; drec.stop(); drec = null; } }catch(_){}
   if(window.speechSynthesis) window.speechSynthesis.cancel();
-  dMicActive(false);
+  dMicActive(false); dailyOrb("idle");
 }
 async function dailyContinue(){
   if(window.speechSynthesis) window.speechSynthesis.cancel();
   $("dailyCard").hidden = true; $("dcHindi").textContent = ""; $("dcEng").textContent = "";
-  if(dLastNext){ $("dailyQ").textContent = dLastNext; await say(dLastNext, HI()); }
+  if(dLastNext){ $("dailyQ").textContent = dLastNext; await sayFace(dLastNext, HI()); }
   startDailyListen();
 }
 function finishDaily(){
@@ -1964,9 +2053,10 @@ function levelObj(level){ return CURRICULUM.find(l => l.level === level); }
 
 // ---- render ----
 function renderHomeJourney(){
-  const b = $("journeyBanner"), fl = $("freeLabel"), rl = $("roadmapLink");
+  const b = $("journeyBanner"), fl = $("freeLabel"), rl = $("roadmapLink"), lb = $("leaderboardLink");
   if(!b) return;
-  if(!userState || !userState.onboarded){ b.hidden = true; if(fl) fl.hidden = true; if(rl) rl.hidden = true; return; }
+  if(!userState || !userState.onboarded){ b.hidden = true; if(fl) fl.hidden = true; if(rl) rl.hidden = true; if(lb) lb.hidden = true; return; }
+  if(lb) lb.hidden = false;
   const nick = memFacts().nickname || (authUser && (authUser.name||"").split(" ")[0]) || "";
   b.innerHTML = `
     <div class="jb-ic">💬</div>
@@ -1980,6 +2070,58 @@ function renderHomeJourney(){
 }
 $("journeyBanner").onclick = startDaily;   // Continue your Journey → Daily Talk
 $("roadmapLink").onclick = openJourney;    // roadmap/dashboard/becoming
+$("leaderboardLink").onclick = openLeaderboard;
+$("lbBack").onclick = () => show("home");
+
+async function openLeaderboard(){
+  show("leaderboard");
+  $("lbPodium").innerHTML = `<div class="spin" style="margin:30px auto"></div>`;
+  $("lbList").innerHTML = ""; $("lbYou").hidden = true;
+  let d = null;
+  try{
+    const r = await fetch("/leaderboard?token=" + encodeURIComponent(authToken), { cache:"no-store" });
+    if(r.ok) d = await r.json();
+  }catch(_){}
+  if(!d || !d.top){ $("lbPodium").innerHTML = `<p class="sub" style="padding:20px">Couldn't load the leaderboard. Try again.</p>`; return; }
+  renderLeaderboard(d);
+}
+
+function av(name){ return (name || "?").trim()[0].toUpperCase(); }
+
+function renderLeaderboard(d){
+  const top = d.top || [], you = d.you;
+  const medals = ["🥇","🥈","🥉"];
+  // podium (top 3)
+  const three = top.slice(0, 3);
+  $("lbPodium").innerHTML = three.map((r, i) => `
+    <div class="pod p${r.rank} ${r.is_me ? "me" : ""}">
+      <div class="pod-medal">${medals[i]}</div>
+      <div class="pod-av">${av(r.alias)}</div>
+      <div class="pod-name">${r.is_me ? "You" : r.alias}</div>
+      <div class="pod-xp">${r.xp} XP</div>
+    </div>`).join("") || `<p class="sub" style="padding:20px">No one on the board yet — be the first! 🎯</p>`;
+  // rows 4..N
+  $("lbList").innerHTML = top.slice(3).map(r => `
+    <div class="lb-row ${r.is_me ? "me" : ""}">
+      <div class="lb-rank">${r.rank}</div>
+      <div class="lb-av">${av(r.alias)}</div>
+      <div class="lb-main"><div class="lb-name">${r.is_me ? "You" : r.alias}</div>
+        <div class="lb-sub">Level ${r.level} · ${r.streak}🔥</div></div>
+      <div class="lb-xp">${r.xp} XP</div>
+    </div>`).join("");
+  // your pinned row if outside top-N
+  const inTop = top.some(r => r.is_me);
+  if(you && !inTop){
+    $("lbYou").hidden = false;
+    $("lbYou").innerHTML = `<div class="lb-row me">
+      <div class="lb-rank">${you.rank}</div>
+      <div class="lb-av">${av(you.name)}</div>
+      <div class="lb-main"><div class="lb-name">${you.name} (you)</div>
+        <div class="lb-sub">Level ${you.level} · ${you.streak}🔥</div></div>
+      <div class="lb-xp">${you.xp} XP</div>
+    </div>`;
+  } else { $("lbYou").hidden = true; }
+}
 
 // ---- emotional home extras: mood check-in, event greeting, weekly letter ----
 const MOODS = [["great","😊"],["good","🙂"],["okay","😐"],["low","😔"],["tired","😫"]];

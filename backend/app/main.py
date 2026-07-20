@@ -138,6 +138,21 @@ async def me(token: str = ""):
         return {"onboarded": False}
 
 
+@app.get("/leaderboard")
+async def leaderboard(token: str = ""):
+    """Top learners by all-time XP (private aliases) + your own rank."""
+    claims = auth.read_session(token)
+    if not claims:
+        raise HTTPException(401, "Not signed in")
+    if not db.db_enabled:
+        return {"top": [], "you": None}
+    try:
+        return await db.leaderboard(claims["sub"])
+    except Exception as e:
+        print(f"[leaderboard] failed: {type(e).__name__}: {e}")
+        return {"top": [], "you": None}
+
+
 @app.post("/assessment")
 async def assessment(inp: AssessIn):
     """Score the level assessment, save the profile, return it."""

@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import datetime as dt
 
-from sqlalchemy import String, Integer, Boolean, DateTime, Date, Text, ForeignKey, select, desc
+from sqlalchemy import String, Integer, Boolean, DateTime, Date, Text, ForeignKey, select, desc, func
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -350,6 +350,60 @@ async def submit_level_test(user_id: str, level: int, score: int) -> dict:
         prof = await s.get(Profile, user_id) or Profile(user_id=user_id)
         return {"progress": _state(user, prof, prog)["progress"],
                 "leveled_up": leveled_up, "new_badges": new_badges, "passed": passed}
+
+
+# ---------------- Leaderboard (all-time XP, private aliases) ----------------
+
+_ALIAS_ADJ = ["Brave", "Swift", "Bright", "Bold", "Clever", "Calm", "Mighty", "Noble",
+              "Kind", "Sharp", "Sunny", "Lucky", "Royal", "Golden", "Cosmic", "Fierce"]
+_ALIAS_ANIMAL = ["Tiger", "Fox", "Eagle", "Lion", "Panda", "Hawk", "Wolf", "Owl",
+                 "Falcon", "Otter", "Dolphin", "Cheetah", "Bear", "Deer", "Sparrow", "Cobra"]
+
+
+def _alias(user_id: str) -> str:
+    """Stable, deterministic playful alias per user (no per-process randomness)."""
+    n = sum(ord(c) for c in (user_id or "x"))
+    return f"{_ALIAS_ADJ[n % len(_ALIAS_ADJ)]}{_ALIAS_ANIMAL[(n // 7) % len(_ALIAS_ANIMAL)]}"
+
+
+async def leaderboard(me_id: str, limit: int = 20) -> dict:
+    """Top-N users by all-time XP (private aliases) + the caller's own rank."""
+    async with _Session() as s:               # type: ignore[misc]
+        rows = (await s.execute(
+            select(User.id, Progress.xp, Progress.streak_days, Progress.journey)
+            .join(Progress, Progress.user_id == User.id)
+            .order_by(desc(Progress.xp)).limit(limit)
+        )).all()
+        top = []
+        for i, r in enumerate(rows):
+            j = r.journey or {}
+            top.append({
+                "rank": i + 1,
+                "alias": _alias(r.id),
+                "xp": r.xp or 0,
+                "streak": r.streak_days or 0,
+                "level": (j.get("current_level") if isinstance(j, dict) else None) or 1,
+                "is_me": r.id == me_id,
+            })
+        # caller's own row + rank (even if outside the top-N)
+        me_prog = await s.get(Progress, me_id)
+        me_user = await s.get(User, me_id)
+        me_mem = await s.get(Memory, me_id)
+        you = None
+        if me_prog is not None:
+            my_xp = me_prog.xp or 0
+            higher = (await s.execute(
+                select(func.count()).select_from(Progress).where(Progress.xp > my_xp)
+            )).scalar() or 0
+            mf = (me_mem.facts if me_mem else {}) or {}
+            you = {
+                "rank": higher + 1,
+                "name": mf.get("nickname") or (me_user.name if me_user else "You"),
+                "xp": my_xp,
+                "streak": me_prog.streak_days or 0,
+                "level": (me_prog.journey or {}).get("current_level", 1) if isinstance(me_prog.journey, dict) else 1,
+            }
+        return {"top": top, "you": you}
 
 
 async def get_state(user_id: str) -> dict | None:
