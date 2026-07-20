@@ -17,6 +17,7 @@ the Web Speech API, so the wire only ever carries text — Claude is the brain.
 """
 
 import json
+import time
 from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
@@ -26,7 +27,7 @@ from pydantic import BaseModel
 
 from .config import settings
 from .interview.engine import Session
-from .interview.prompts import ASSESS_SYSTEM, LESSON_EVAL_SYSTEM, LEVEL_TEST_SYSTEM
+from .interview.prompts import ASSESS_SYSTEM, LESSON_EVAL_SYSTEM, LEVEL_TEST_SYSTEM, LETTER_SYSTEM
 from .providers import llm
 from . import auth
 from . import db
@@ -99,9 +100,18 @@ async def auth_google(inp: GoogleIn):
     return resp
 
 
+class AboutIn(BaseModel):
+    nickname: str = ""
+    native_lang: str = ""
+    profession: str = ""
+    dream: str = ""
+    interests: dict = {}
+
+
 class AssessIn(BaseModel):
     token: str
     lang: str = "en"         # "hi" or "en" — language the learner took the test in
+    about: AboutIn | None = None
     goal: str = ""
     comfort: str = ""
     practice_time: str = ""
@@ -161,9 +171,103 @@ async def assessment(inp: AssessIn):
         try:
             await db.login(claims)   # ensure user+profile+progress rows exist (cached-token logins skip onGoogle)
             await db.save_assessment(claims["sub"], data, lang=inp.lang)
+            # Save the emotional "About you" facts + the Day-1 intro as the baseline.
+            about = (inp.about.model_dump() if inp.about else {})
+            about["native_lang"] = about.get("native_lang") or inp.lang
+            about["intro_text"] = inp.intro or ""
+            await db.save_about(claims["sub"], about)
         except Exception as e:
             print(f"[assess] db save failed: {type(e).__name__}: {e}")
     return {"profile": data, "message": result.get("message", "")}
+
+
+class CheckinIn(BaseModel):
+    token: str
+    mood: str
+
+
+class TokenIn(BaseModel):
+    token: str
+
+
+class FutureMeIn(BaseModel):
+    token: str
+    text: str
+
+
+@app.post("/checkin")
+async def checkin(inp: CheckinIn):
+    claims = auth.read_session(inp.token)
+    if not claims:
+        raise HTTPException(401, "Not signed in")
+    if not db.db_enabled:
+        return {"ok": True}
+    try:
+        facts = await db.save_checkin(claims["sub"], inp.mood)
+        return {"ok": True, "memory": facts}
+    except Exception as e:
+        print(f"[checkin] failed: {type(e).__name__}: {e}")
+        return {"ok": False}
+
+
+@app.post("/futureme")
+async def futureme(inp: FutureMeIn):
+    claims = auth.read_session(inp.token)
+    if not claims:
+        raise HTTPException(401, "Not signed in")
+    if not db.db_enabled or not (inp.text or "").strip():
+        return {"ok": True}
+    try:
+        facts = await db.save_future_me(claims["sub"], inp.text.strip())
+        return {"ok": True, "memory": facts}
+    except Exception as e:
+        print(f"[futureme] failed: {type(e).__name__}: {e}")
+        return {"ok": False}
+
+
+@app.post("/letter")
+async def letter(inp: TokenIn):
+    """Return this week's personal note from DuSu (generates one if stale)."""
+    import datetime as _dt
+    claims = auth.read_session(inp.token)
+    if not claims:
+        raise HTTPException(401, "Not signed in")
+    if not db.db_enabled:
+        return {"letter": None}
+    try:
+        state = await db.get_state(claims["sub"]) or {}
+        facts = state.get("memory", {}) or {}
+        prog = state.get("progress", {}) or {}
+        last = facts.get("last_letter") or {}
+        today = _dt.date.today()
+        # only (re)generate at most once every 7 days, and only with some activity
+        if last.get("date"):
+            try:
+                if (today - _dt.date.fromisoformat(last["date"])).days < 7:
+                    return {"letter": last, "fresh": False}
+            except Exception:
+                pass
+        if int(prog.get("xp", 0)) < 20:
+            return {"letter": last or None, "fresh": False}  # not enough activity yet
+        name = facts.get("nickname") or state.get("user", {}).get("name", "there")
+        summaries = await db.recent_summaries(claims["sub"], 5)
+        prompt = (
+            f"name: {name}\nnative_lang: {facts.get('native_lang','en')}\n"
+            f"dream: {facts.get('dream','')}\ninterests: {facts.get('interests',{})}\n"
+            f"level: {state.get('profile',{}).get('level','')}\n"
+            f"xp: {prog.get('xp',0)}  streak_days: {prog.get('streak_days',0)}\n"
+            f"recent chats: {' | '.join(summaries) if summaries else '(none yet)'}\n"
+            f"recent facts: {'; '.join(facts.get('facts_learned',[])[-5:])}"
+        )
+        text = await llm.generate(LETTER_SYSTEM, prompt, max_tokens=350)
+        text = (text or "").strip()
+        if not text:
+            return {"letter": last or None, "fresh": False}
+        await db.save_letter(claims["sub"], text)
+        return {"letter": {"date": today.isoformat(), "text": text}, "fresh": True}
+    except Exception as e:
+        print(f"[letter] failed: {type(e).__name__}: {e}")
+        return {"letter": None}
 
 
 class LessonEvalIn(BaseModel):
@@ -277,25 +381,88 @@ async def _send(ws: WebSocket, **payload) -> None:
     await ws.send_text(json.dumps(payload))
 
 
+def _facts_summary(facts: dict, summaries: list[str]) -> str:
+    """Compact 'what DuSu remembers' block injected into the session persona."""
+    lines = []
+    if facts.get("nickname"):   lines.append(f"- Call them: {facts['nickname']}")
+    if facts.get("profession"): lines.append(f"- Profession: {facts['profession']}")
+    if facts.get("dream"):      lines.append(f"- Their dream: {facts['dream']}")
+    interests = facts.get("interests") or {}
+    if interests:
+        lines.append("- Interests: " + ", ".join(f"{k}: {v}" for k, v in interests.items()))
+    fl = facts.get("facts_learned") or []
+    if fl:
+        lines.append("- Known facts: " + "; ".join(fl[-5:]))
+    ev = facts.get("events") or []
+    if ev:
+        lines.append("- Upcoming: " + "; ".join(f"{e.get('type','')} {e.get('date','')}".strip() for e in ev[-3:]))
+    if summaries:
+        lines.append("- Recent chats: " + " | ".join(summaries))
+    return "\n".join(lines)
+
+
 @app.websocket("/ws/interview")
 async def interview_ws(ws: WebSocket):
     await ws.accept()
     session: Session | None = None
+    uid: str | None = None
+    started_at = time.monotonic()
+    persisted = False
+
+    async def _persist_session():
+        """One combined LLM pass at session end → memory + courage badges."""
+        nonlocal persisted
+        if persisted or session is None or uid is None or not db.db_enabled:
+            return
+        if session.mode == "learning":
+            return
+        persisted = True
+        try:
+            mem = await session.summarize_and_extract()
+            if mem:
+                await db.add_conversation(uid, session.mode, mem.get("summary", ""))
+                await db.merge_facts(uid, mem.get("facts", {}) or {}, mem.get("events", []) or [])
+            secs = int(time.monotonic() - started_at)
+            await db.bump_daily_stat(uid, sentences=session.turns, seconds=secs)
+            badges = []
+            if mem.get("no_hindi"):       badges.append("courage_no_hindi")
+            if mem.get("asked_question"): badges.append("courage_question")
+            if secs >= 300:               badges.append("courage_5min")
+            if session.mode == "conversation": badges.append("courage_first_convo")
+            if badges:
+                await db.award_badges(uid, badges)
+        except Exception as e:
+            print(f"[memory] persist failed: {type(e).__name__}: {e}")
+
     try:
         while True:
             data = json.loads(await ws.receive_text())
             mtype = data.get("type")
 
             if mtype == "start":
-                if auth.auth_enabled and not auth.read_session(data.get("token", "")):
+                claims = auth.read_session(data.get("token", "")) if auth.auth_enabled else None
+                if auth.auth_enabled and not claims:
                     await _send(ws, type="auth_error", msg="Please sign in again")
                     break
-                # Daily session cap is enforced client-side (localStorage) for the
-                # no-DB preview stage. Turn caps below are still server-enforced.
+                uid = claims["sub"] if claims else None
+                # Load emotional memory so DuSu greets/talks like it knows them.
+                facts_summary = ""
+                mode = data.get("mode", "interview")
+                if uid and db.db_enabled and mode in ("conversation", "interview"):
+                    try:
+                        facts = await db.get_memory(uid)
+                        summaries = await db.recent_summaries(uid, 3)
+                        facts_summary = _facts_summary(facts, summaries)
+                    except Exception as e:
+                        print(f"[memory] load failed: {type(e).__name__}: {e}")
+                started_at = time.monotonic()
+                persisted = False
                 session = Session(
-                    data.get("mode", "interview"),
+                    mode,
                     data.get("name", ""),
                     data.get("role", ""),
+                    facts_summary=facts_summary,
+                    mood=data.get("mood", ""),
                 )
                 if session.mode == "learning":
                     await _send(ws, type="ready")   # client greets in Hindi
@@ -327,6 +494,7 @@ async def interview_ws(ws: WebSocket):
                 if session.done:  # interview mode only
                     await _send(ws, type="interview_done")
                     await _send(ws, type="report", data=await session.build_report())
+                    await _persist_session()
                 elif session.capped:  # conversation hit its turn cap
                     await _send(ws, type="limit",
                                 msg="You've reached the length limit for this chat — start a fresh conversation anytime.")
@@ -340,6 +508,7 @@ async def interview_ws(ws: WebSocket):
                     await _send(ws, type="report", data=await session.build_report())
                 else:
                     await _send(ws, type="ended")
+                await _persist_session()   # remember this conversation
 
             elif mtype == "close":
                 break
@@ -351,3 +520,5 @@ async def interview_ws(ws: WebSocket):
             await _send(ws, type="error", msg=str(e))
         except Exception:
             pass
+    finally:
+        await _persist_session()   # also persist if the socket just dropped

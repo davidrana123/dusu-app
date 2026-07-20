@@ -11,21 +11,22 @@ here later; the interface stays the same.
 
 from ..providers import llm
 from ..config import settings
-from .prompts import interviewer_system, conversation_system, SCORER_SYSTEM, TRANSLATE_SYSTEM
+from .prompts import (interviewer_system, conversation_system, SCORER_SYSTEM,
+                      TRANSLATE_SYSTEM, SESSION_MEMORY_SYSTEM)
 
 END_MARKER = "INTERVIEW_COMPLETE:"
 MODES = ("interview", "conversation", "learning")
 
 
 class Session:
-    def __init__(self, mode: str, name: str, role: str):
+    def __init__(self, mode: str, name: str, role: str, facts_summary: str = "", mood: str = ""):
         self.mode = mode if mode in MODES else "interview"
         self.name = name or "there"
         self.role = role or "general"
         if self.mode == "interview":
-            self.system = interviewer_system(self.name, self.role)
+            self.system = interviewer_system(self.name, self.role, facts_summary, mood)
         elif self.mode == "conversation":
-            self.system = conversation_system(self.name)
+            self.system = conversation_system(self.name, facts_summary, mood)
         else:  # learning: server only translates, no chat persona
             self.system = ""
         self.transcript: list[dict] = []  # {role: "user"|"assistant", content}
@@ -63,3 +64,14 @@ class Session:
         if self.mode != "interview":
             return {}
         return await llm.score(SCORER_SYSTEM, self.transcript)
+
+    async def summarize_and_extract(self) -> dict:
+        """ONE LLM call at session end: summary + learned facts + events + signals.
+        Returns {} for empty/learning sessions (nothing worth remembering)."""
+        if self.mode == "learning" or not any(m["role"] == "user" for m in self.transcript):
+            return {}
+        convo = "\n".join(f"{m['role']}: {m['content']}" for m in self.transcript)
+        try:
+            return await llm.assess(SESSION_MEMORY_SYSTEM, convo)
+        except Exception:
+            return {}

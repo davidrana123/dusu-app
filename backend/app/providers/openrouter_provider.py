@@ -104,6 +104,12 @@ class OpenRouterLLM:
                     {"role": "user", "content": text}]
         return await _complete(messages, max_tokens=120)
 
+    async def generate(self, system: str, prompt: str, max_tokens: int = 500) -> str:
+        """Free-form prose (weekly letters, session summaries). Returns raw text."""
+        messages = [{"role": "system", "content": system},
+                    {"role": "user", "content": prompt}]
+        return await _complete(messages, max_tokens=max_tokens)
+
     async def assess(self, system: str, payload: str) -> dict:
         messages = [
             {"role": "system", "content": system},

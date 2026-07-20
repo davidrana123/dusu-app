@@ -228,6 +228,9 @@
   .opt:hover { border-color:var(--gold); }
   .opt.sel { background:var(--grad); color:#241a08; border-color:transparent; font-weight:600; }
   .assess-said { margin-top:18px; font-size:15px; color:var(--ink-dim); min-height:22px; font-style:italic; }
+  .atext { width:100%; max-width:420px; font:inherit; font-size:16px; color:var(--ink); padding:14px 16px;
+    border-radius:14px; background:var(--glass); border:1px solid var(--glass-brd); outline:none; text-align:center; }
+  .atext:focus { border-color:var(--gold); box-shadow:0 0 0 3px rgba(212,175,55,.18); }
   .assess-actions { display:flex; gap:10px; justify-content:center; margin-top:26px; flex-wrap:wrap; }
   .assess-face { width:96px; height:96px; margin:0 auto 18px; border-radius:24px; display:grid; place-items:center;
     background:radial-gradient(circle at 50% 38%, #3a4a6e, #141a30 74%);
@@ -253,6 +256,19 @@
   .jb-go { font-family:var(--font-d); font-size:22px; color:var(--gold); }
   .free-label { font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-faint);
     margin:0 0 12px 3px; font-weight:600; }
+  /* mood check-in */
+  .mood-row { background:var(--glass); border:1px solid var(--glass-brd); border-radius:18px; padding:16px 18px; margin:6px 0 16px; text-align:center; }
+  .mood-q { font-family:var(--font-d); font-size:18px; margin-bottom:12px; }
+  .mood-opts { display:flex; gap:8px; justify-content:center; flex-wrap:wrap; }
+  .mood-btn { font-size:26px; background:var(--glass); border:1px solid var(--glass-brd); border-radius:14px;
+    width:52px; height:52px; cursor:pointer; transition:.15s; touch-action:manipulation; }
+  .mood-btn:hover { border-color:var(--gold); transform:translateY(-2px); }
+  .event-banner { background:rgba(212,175,55,.12); border:1px solid var(--gold); border-radius:16px;
+    padding:14px 16px; margin:6px 0 16px; font-size:14px; color:var(--ink); display:flex; gap:12px; align-items:center; }
+  .letter-card { background:linear-gradient(135deg, rgba(139,124,240,.14), rgba(212,175,55,.06));
+    border:1px solid var(--glass-brd); border-radius:18px; padding:16px 18px; margin:6px 0 16px; cursor:pointer; }
+  .letter-card h4 { font-family:var(--font-d); font-size:17px; margin-bottom:4px; }
+  .letter-card p { font-size:13.5px; color:var(--ink-dim); line-height:1.5; }
   .jrny-stats { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
   .stat-chip { flex:1; min-width:88px; background:var(--glass); border:1px solid var(--glass-brd); border-radius:14px; padding:12px 8px; text-align:center; }
   .stat-chip b { display:block; font-family:var(--font-d); font-size:23px; line-height:1;
@@ -261,6 +277,18 @@
   .focus-tip { background:rgba(212,175,55,.1); border:1px solid var(--glass-brd); border-radius:14px;
     padding:12px 14px; font-size:13px; color:var(--ink-dim); margin-bottom:18px; line-height:1.5; }
   .dash-head { font-family:var(--font-d); font-size:17px; font-weight:600; margin:6px 0 12px; }
+  .becoming { background:var(--glass); border:1px solid var(--glass-brd); border-radius:18px; padding:18px; margin-bottom:22px; }
+  .becoming .bc-days { font-size:13px; color:var(--ink-faint); margin-bottom:14px; }
+  .bc-compare { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+  @media (max-width:520px){ .bc-compare { grid-template-columns:1fr; } }
+  .bc-box { background:rgba(255,255,255,.03); border:1px solid var(--glass-brd); border-radius:14px; padding:12px 14px; }
+  .bc-box .bc-lbl { font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--ink-faint); margin-bottom:6px; }
+  .bc-box .bc-txt { font-size:14px; color:var(--ink); line-height:1.5; font-style:italic; }
+  .bc-box.today { border-color:var(--gold); }
+  .bc-dream { font-size:14px; color:var(--ink-dim); margin:6px 0 12px; }
+  .bc-dream b { color:var(--gold); }
+  .bc-prog { height:8px; border-radius:6px; background:rgba(255,255,255,.08); overflow:hidden; margin-top:6px; }
+  .bc-prog i { display:block; height:100%; background:var(--grad); width:0; transition:width .6s; }
   .dash-skills { display:grid; grid-template-columns:1fr 1fr; gap:12px 22px; margin-bottom:22px; }
   @media (max-width:560px){ .dash-skills { grid-template-columns:1fr; } }
   .roadmap { display:flex; flex-direction:column; gap:13px; }
@@ -577,6 +605,11 @@
 
     <input id="name" type="hidden" value="David" />
 
+    <!-- Emotional layer: daily mood check-in, event greeting, weekly letter -->
+    <div id="moodRow" class="mood-row" hidden></div>
+    <div id="eventBanner" class="event-banner" hidden></div>
+    <div id="letterCard" class="letter-card" hidden></div>
+
     <!-- Journey CTA (shown once onboarded) -->
     <button id="journeyBanner" class="journey-banner" hidden></button>
 
@@ -757,6 +790,8 @@
     <div class="focus-tip" id="focusTip" hidden></div>
     <div class="dash-head">Your skills</div>
     <div class="dash-skills" id="dashSkills"></div>
+    <div class="dash-head">Who you're becoming</div>
+    <div class="becoming" id="becoming"></div>
     <div class="dash-head" id="roadmapHead">Your roadmap</div>
     <div class="roadmap" id="roadmap"></div>
   </section>
@@ -1070,7 +1105,7 @@ function startSession(mode){
   ws.onopen = () => {
     running = true; srFails = 0;
     usageInc(); refreshUsage();   // count the session now that it actually started
-    ws.send(JSON.stringify({ type:"start", mode, name:$("name").value, role:$("role").value, token:authToken }));
+    ws.send(JSON.stringify({ type:"start", mode, name:$("name").value, role:$("role").value, token:authToken, mood:todayMood }));
   };
   ws.onmessage = onMessage;
   ws.onclose = () => {
@@ -1485,7 +1520,7 @@ function listenOnce(lang){
 
 function startAssessment(){
   if(!SR){ show("home"); return; }   // voice assessment needs Web Speech; skip if unavailable
-  aData = { lang:"en", goal:"", comfort:"", practice_time:"", intro:"", repeat_said:"", think_said:"", open_said:"",
+  aData = { lang:"en", about:{ interests:{} }, goal:"", comfort:"", practice_time:"", intro:"", repeat_said:"", think_said:"", open_said:"",
             repeat_target:"My name is Sarah.", think_hindi:"Kal mujhe market jaana hai." };
   show("assessment");
   aLangPick();
@@ -1515,8 +1550,69 @@ function aWelcome(){
     <h2>${L.welcomeTitle}</h2>
     <p class="sub">${L.welcomeSub}</p>
     <div class="assess-actions"><button class="btn primary" id="aStart">${L.ready}</button></div>`);
-  $("aStart").onclick = () => aGoal();
+  $("aStart").onclick = () => aAboutName();
   say(L.welcomeSay, aVoiceProfile());
+}
+
+// ---- "About you" — makes DuSu feel personal from day one ----
+function AL2(en, hi){ return aData.lang === "hi" ? hi : en; }
+
+function aText(pct, title, field, placeholder, next){
+  aBar(pct);
+  aRender(`<h2>${title}</h2>
+    <input id="aTextIn" class="atext" placeholder="${placeholder || ''}" autocomplete="off" />
+    <div class="assess-actions">
+      <button class="btn ghost" id="aTextSkip">${AL2('Skip','Chhod dein')}</button>
+      <button class="btn primary" id="aTextNext">${AL2('Next →','Aage →')}</button>
+    </div>`);
+  const inp = $("aTextIn"); setTimeout(() => inp.focus(), 60);
+  const go = () => { const v = inp.value.trim(); if(v) aData.about[field] = v; next(); };
+  $("aTextNext").onclick = go;
+  $("aTextSkip").onclick = next;
+  inp.addEventListener("keydown", e => { if(e.key === "Enter") go(); });
+  say(title, aVoiceProfile());
+}
+
+function aAboutName(){
+  aText(8, AL2("What should I call you?","Main aapko kya bulaun?"), "nickname",
+        AL2("Your name or nickname","Aapka naam ya nickname"), aAboutWork);
+}
+function aAboutWork(){
+  const opts = aData.lang === "hi"
+    ? [["Student","Student"],["Working professional","Naukri karta/karti hoon"],["Job seeker","Naukri dhoondh raha hoon"],["Business","Business"],["Other","Anya"]]
+    : [["Student","Student"],["Working professional","Working professional"],["Job seeker","Job seeker"],["Business","Business"],["Other","Other"]];
+  aChoiceAbout(11, AL2("What do you do?","Aap kya karte hain?"), opts, "profession", aDream);
+}
+function aDream(){
+  const opts = aData.lang === "hi"
+    ? [["Get a good job","Achhi naukri paana"],["Crack an interview","Interview crack karna"],["Study abroad","Videsh mein padhai"],["Grow my business","Business badhana"],["Travel confidently","Confidence se safar"],["Just become fluent","Bas fluent banna"]]
+    : [["Get a good job","Get a good job"],["Crack an interview","Crack an interview"],["Study abroad","Study abroad"],["Grow my business","Grow my business"],["Travel confidently","Travel confidently"],["Just become fluent","Just become fluent"]];
+  aChoiceAbout(13, AL2("What's your biggest dream?","Aapka sabse bada sapna kya hai?"), opts, "dream", aInterests);
+}
+// like aChoice but writes into aData.about[field]
+function aChoiceAbout(pct, title, opts, field, next){
+  aBar(pct);
+  aRender(`<h2>${title}</h2>
+    <div class="opt-list">${opts.map(o=>`<button class="opt" data-v="${o[0]}">${o[1]}</button>`).join("")}</div>`);
+  $("assessStep").querySelectorAll(".opt").forEach(b => {
+    b.onclick = () => { aData.about[field] = b.dataset.v; b.classList.add("sel"); setTimeout(next, 160); };
+  });
+  say(title, aVoiceProfile());
+}
+function aInterests(){
+  aBar(15);
+  const opts = [["Cricket","🏏"],["Movies","🎬"],["Music","🎵"],["Food","🍲"],["Travel","✈️"],["Gaming","🎮"],["Reading","📚"],["Tech","💻"],["Sports","⚽"]];
+  aRender(`<h2>${AL2("What do you enjoy?","Aapko kya pasand hai?")}</h2>
+    <p class="sub">${AL2("Pick a few — DuSu will chat with you about these.","Kuch chuniye — DuSu inke baare mein baat karega.")}</p>
+    <div class="opt-list" id="aIntList">${opts.map(o=>`<button class="opt" data-v="${o[0]}">${o[1]} ${o[0]}</button>`).join("")}</div>
+    <div class="assess-actions"><button class="btn primary" id="aIntNext">${AL2("Next →","Aage →")}</button></div>`);
+  const sel = new Set();
+  $("aIntList").querySelectorAll(".opt").forEach(b => {
+    b.onclick = () => { const v = b.dataset.v;
+      if(sel.has(v)){ sel.delete(v); b.classList.remove("sel"); } else { sel.add(v); b.classList.add("sel"); } };
+  });
+  $("aIntNext").onclick = () => { if(sel.size) aData.about.interests = { likes: [...sel].join(", ") }; aGoal(); };
+  say(AL2("What do you enjoy?","Aapko kya pasand hai?"), aVoiceProfile());
 }
 
 function aChoice(pct, title, opts, field, next){
@@ -1612,7 +1708,12 @@ function goHomeAfterAssess(){ stopAssessSpeech(); show("home"); setWelcome(); }
 /* ================= My Journey (roadmap + lessons) ================= */
 const LEVEL_ICONS = ["🧠","🗣️","💬","💪","🎯","💼","🚀"];
 const BADGE_LABELS = { first_lesson:"🎤 First Lesson", first_converse:"💬 First Chat",
-  streak_7:"🔥 7-Day Streak", sentences_100:"⭐ 100 Sentences", level_up:"🚀 Level Up" };
+  streak_7:"🔥 7-Day Streak", sentences_100:"⭐ 100 Sentences", level_up:"🚀 Level Up",
+  courage_no_hindi:"🧠 Spoke without Hindi", courage_question:"❓ Asked a question",
+  courage_5min:"⏱️ 5-Minute Talk", courage_first_convo:"🗣️ First Conversation",
+  courage_confident:"✨ Aced a Challenge" };
+let todayMood = "";
+function memFacts(){ return (userState && userState.memory) || {}; }
 
 const CURRICULUM = [
   { level:1, name_en:"Thinking in English", name_hi:"English mein sochna", type:"think", lessons:[
@@ -1666,6 +1767,11 @@ const CURRICULUM = [
     { id:"l3_3", en:"Directions", hi:"Raasta poochhna", topic:"asking for and giving directions" },
     { id:"l3_4", en:"Phone basics", hi:"Phone par baat", topic:"a simple phone call" },
     { id:"l3_5", en:"Ordering food", hi:"Khana order karna", topic:"ordering food at a restaurant" },
+  ], boss:"Hold a real 3-minute conversation", level_test:[
+    { prompt_hi:"Kisi se namaste karke chhoti baat shuru kijiye.", prompt_en:"Greet someone and start small talk.", target:"Hello! How are you? How is your day going?" },
+    { prompt_hi:"Ek dukaan par kuch khareedne ki baat kijiye.", prompt_en:"Ask about buying something at a shop.", target:"How much is this? Do you have a smaller size?" },
+    { prompt_hi:"Kisi jagah ka raasta poochhiye.", prompt_en:"Ask for directions to a place.", target:"Excuse me, how do I get to the station?" },
+    { prompt_hi:"Restaurant mein khana order kijiye.", prompt_en:"Order food at a restaurant.", target:"I would like one plate of rice and a cup of tea, please." },
   ]},
   { level:4, name_en:"Confidence", name_hi:"Confidence", type:"converse", lessons:[
     { id:"l4_1", en:"Weekend story", hi:"Weekend ki kahani", topic:"telling a story about your weekend" },
@@ -1673,6 +1779,11 @@ const CURRICULUM = [
     { id:"l4_3", en:"A place you love", hi:"Pasandida jagah", topic:"describing a place you love" },
     { id:"l4_4", en:"Your opinion",  hi:"Aapki raay",        topic:"giving your opinion on a simple topic" },
     { id:"l4_5", en:"5-minute free chat", hi:"5 minute baat", topic:"a free friendly chat about anything" },
+  ], boss:"Speak for 2 minutes without stopping", level_test:[
+    { prompt_hi:"Apne weekend ke baare mein bataiye.", prompt_en:"Tell a short story about your last weekend.", target:"Last weekend I ... It was ..." },
+    { prompt_hi:"Apne sabse bade sapne ke baare mein boliye.", prompt_en:"Talk about your biggest goal.", target:"My biggest goal is ... because ..." },
+    { prompt_hi:"Ek jagah ke baare mein bataiye jo aapko pasand hai.", prompt_en:"Describe a place you love.", target:"I love ... It is ... because ..." },
+    { prompt_hi:"Kisi simple topic par apni raay dijiye.", prompt_en:"Give your opinion on a simple topic.", target:"I think ... because ..." },
   ]},
   { level:5, name_en:"Interview", name_hi:"Interview", type:"interview", lessons:[
     { id:"l5_1", en:"Tell me about yourself", hi:"Apne baare mein",  role:"general" },
@@ -1680,6 +1791,11 @@ const CURRICULUM = [
     { id:"l5_3", en:"Why this role",  hi:"Yeh role kyun",  role:"general" },
     { id:"l5_4", en:"Situational question", hi:"Situation wala sawaal", role:"general" },
     { id:"l5_5", en:"Mini mock + report", hi:"Chhota mock + report", role:"general" },
+  ], boss:"Pass a full mock interview", level_test:[
+    { prompt_hi:"", prompt_en:"Tell me about yourself.", target:"A clear 3-4 sentence self-introduction." },
+    { prompt_hi:"", prompt_en:"What is your biggest strength, and one weakness?", target:"One genuine strength + one weakness you're improving." },
+    { prompt_hi:"", prompt_en:"Why do you want this role?", target:"A motivated, specific reason." },
+    { prompt_hi:"", prompt_en:"Tell me about a challenge you handled.", target:"A short situation → action → result answer." },
   ]},
   { level:6, name_en:"Professional English", name_hi:"Professional English", type:"speak", lessons:[
     { id:"l6_1", en:"Meeting introduction", hi:"Meeting mein parichay", prompt_en:"Introduce yourself in a work meeting.", prompt_hi:"Ek work meeting mein apna parichay dijiye.", target:"Hello everyone, I'm ___. I work in ___ and I handle ___." },
@@ -1687,6 +1803,11 @@ const CURRICULUM = [
     { id:"l6_3", en:"Give a status update", hi:"Status update", prompt_en:"Give a short update on a task you are working on.", prompt_hi:"Kisi kaam ka chhota update dijiye.", target:"I have finished ___. I am currently working on ___. It will be done by ___." },
     { id:"l6_4", en:"Disagree politely", hi:"Politely mana karna", prompt_en:"Politely disagree with an idea.", prompt_hi:"Kisi baat se politely asehmati jataiye.", target:"I see your point, but I think ___. Maybe we could ___." },
     { id:"l6_5", en:"Present an idea", hi:"Idea pesh karna", prompt_en:"Present one idea in two sentences.", prompt_hi:"Ek idea do vaakya mein pesh kijiye.", target:"I suggest that we ___. This will help us ___." },
+  ], boss:"Handle an office simulation", level_test:[
+    { prompt_hi:"", prompt_en:"Introduce yourself in a work meeting.", target:"Hello everyone, I'm ... I work in ... and I handle ..." },
+    { prompt_hi:"", prompt_en:"Give a status update on your work.", target:"I have finished ... I'm working on ... It'll be done by ..." },
+    { prompt_hi:"", prompt_en:"Politely disagree with an idea in a meeting.", target:"I see your point, but I think ... Maybe we could ..." },
+    { prompt_hi:"", prompt_en:"Present one idea clearly.", target:"I suggest that we ... This will help us ..." },
   ]},
   { level:7, name_en:"Fluency", name_hi:"Fluency", type:"converse", lessons:[
     { id:"l7_1", en:"Debate a topic", hi:"Kisi topic par bahas", topic:"a friendly debate on a simple topic" },
@@ -1694,6 +1815,11 @@ const CURRICULUM = [
     { id:"l7_3", en:"Detailed storytelling", hi:"Detail mein kahani", topic:"telling a detailed story" },
     { id:"l7_4", en:"Idioms & natural phrases", hi:"Natural phrases", topic:"using natural everyday English phrases" },
     { id:"l7_5", en:"Open fluent conversation", hi:"Khuli baat-cheet", topic:"an open, natural conversation" },
+  ], boss:"Hold an advanced 15-minute conversation", level_test:[
+    { prompt_hi:"", prompt_en:"Explain how something you know works, in detail.", target:"A clear, connected multi-sentence explanation." },
+    { prompt_hi:"", prompt_en:"Give your opinion on a topic and defend it.", target:"A confident opinion with reasons." },
+    { prompt_hi:"", prompt_en:"Tell a detailed story with a beginning, middle and end.", target:"A fluent, well-structured story." },
+    { prompt_hi:"", prompt_en:"Use two natural English idioms in sentences.", target:"Two idioms used correctly and naturally." },
   ]},
 ];
 
@@ -1720,8 +1846,102 @@ function renderHomeJourney(){
     </div>
     <div class="jb-go">→</div>`;
   b.hidden = false; if(fl) fl.hidden = false;
+  renderHomeExtras();
 }
 $("journeyBanner").onclick = openJourney;
+
+// ---- emotional home extras: mood check-in, event greeting, weekly letter ----
+const MOODS = [["great","😊"],["good","🙂"],["okay","😐"],["low","😔"],["tired","😫"]];
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+
+function renderHomeExtras(){
+  const f = memFacts();
+  // sync todayMood from saved check-ins
+  const todays = (f.checkins || []).find(c => c.date === todayStr());
+  if(todays) todayMood = todays.mood;
+
+  // 1) daily mood check-in (once per day)
+  const mr = $("moodRow");
+  if(mr){
+    if(!todays){
+      const nick = f.nickname || (authUser && (authUser.name||"").split(" ")[0]) || "";
+      mr.innerHTML = `<div class="mood-q">Hi ${nick||"there"}! How are you feeling today?</div>
+        <div class="mood-opts">${MOODS.map(m=>`<button class="mood-btn" data-m="${m[0]}" title="${m[0]}">${m[1]}</button>`).join("")}</div>`;
+      mr.hidden = false;
+      mr.querySelectorAll(".mood-btn").forEach(btn => btn.onclick = () => doCheckin(btn.dataset.m));
+    } else { mr.hidden = true; }
+  }
+
+  // 2) event greeting (interview/exam soon, etc.)
+  const eb = $("eventBanner");
+  if(eb){
+    const ev = upcomingEvent(f.events || []);
+    if(ev){
+      eb.innerHTML = `<span style="font-size:22px">📌</span><div>${eventLine(ev)}
+        ${/interview/i.test(ev.type)?'<button class="btn primary" id="evGo" style="margin-top:8px;padding:8px 14px">Practice interview</button>':''}</div>`;
+      eb.hidden = false;
+      const go = $("evGo"); if(go) go.onclick = () => chooseMode("interview");
+    } else eb.hidden = true;
+  }
+
+  // 3) weekly letter (fetch at most once/day; server only regenerates weekly)
+  loadLetter();
+}
+
+function upcomingEvent(events){
+  const today = todayStr();
+  for(const e of events){
+    if(e && e.date && e.date >= today) return e;   // nearest upcoming with a date
+  }
+  return null;
+}
+function eventLine(ev){
+  const t = (ev.type||"event"); const note = ev.note ? ` — ${ev.note}` : "";
+  if(ev.date === todayStr()) return `Your ${t} is <b>today</b>${note}. You've got this — stay calm and believe in yourself! 💛`;
+  return `Your ${t} is coming up${note}. Want to prepare together?`;
+}
+
+async function doCheckin(mood){
+  todayMood = mood;
+  $("moodRow").hidden = true;
+  setWelcome();
+  try{
+    const r = await fetch("/checkin", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ token:authToken, mood }) });
+    if(r.ok){ const d = await r.json(); if(d.memory && userState) userState.memory = d.memory; }
+  }catch(_){}
+  const line = { great:"Love that energy! Let's make today count.", good:"Great — let's keep it going.",
+    okay:"That's okay. A little practice will lift your day.", low:"That's alright. We'll take it gentle today.",
+    tired:"No worries — let's do something short and easy today." }[mood] || "";
+  if(line) say(line, ENG_NORM());
+}
+
+let _letterFetched = false;
+async function loadLetter(){
+  const card = $("letterCard");
+  if(!card) return;
+  const f = memFacts();
+  const existing = f.last_letter;
+  if(existing && existing.text){ showLetterCard(existing); }
+  if(_letterFetched) return;
+  _letterFetched = true;
+  try{
+    const r = await fetch("/letter", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ token:authToken }) });
+    if(r.ok){ const d = await r.json(); if(d.letter && d.letter.text){
+      if(userState){ userState.memory = userState.memory || {}; userState.memory.last_letter = d.letter; }
+      showLetterCard(d.letter);
+    } }
+  }catch(_){}
+}
+function showLetterCard(letter){
+  const card = $("letterCard");
+  const preview = letter.text.length > 90 ? letter.text.slice(0,90) + "…" : letter.text;
+  card.innerHTML = `<h4>💌 A note from DuSu</h4><p>${preview}</p>`;
+  card.hidden = false;
+  card.onclick = () => celebrate(`<h4 style="font-family:var(--font-d);font-size:20px;margin-bottom:10px">💌 A note from DuSu</h4>
+    <p style="color:var(--ink-dim);line-height:1.6;white-space:pre-wrap;text-align:left">${letter.text}</p>`);
+}
 
 function openJourney(){ show("journey"); renderJourney(); }
 $("journeyBack").onclick = () => { show("home"); };
@@ -1747,6 +1967,7 @@ function renderJourney(){
     return `<div class="metric"><div class="m-top"><b>${A_METRIC_LABELS[k]}</b><span>${v}</span></div><div class="bar"><i data-w="${v}"></i></div></div>`;
   }).join("");
   setTimeout(() => $("dashSkills").querySelectorAll(".bar i").forEach(i => i.style.width = (i.dataset.w||0) + "%"), 120);
+  renderBecoming();
   // roadmap
   $("roadmapHead").textContent = "Your roadmap";
   const cur = j.current_level || 1;
@@ -1771,6 +1992,56 @@ function renderJourney(){
   });
 }
 
+// "Who you're becoming" — Day-1 vs today, dream progress, Future Me re-record.
+function renderBecoming(){
+  const el = $("becoming"); if(!el) return;
+  const f = memFacts(), j = jJourney(), prof = jProfile();
+  const fm = f.future_me || {}, base = f.baseline || {};
+  // days since joined
+  let days = 0;
+  const created = userState && userState.user && userState.user.created_at;
+  if(created){ try{ days = Math.max(0, Math.round((Date.now() - new Date(created)) / 86400000)); }catch(_){} }
+  // % complete = passed bosses / 7
+  const passedCount = Object.values(f.test_scores || (j.test_scores||{})).filter(t => t && t.passed).length
+    || Object.values(j.test_scores || {}).filter(t => t && t.passed).length;
+  const pct = Math.round((passedCount / 7) * 100);
+  const day1 = fm.day1_text || base.intro_text || "";
+  const today = fm.latest_text || "";
+  const longest = f.longest_convo_sec ? Math.round(f.longest_convo_sec/60) + " min" : "—";
+
+  el.innerHTML = `
+    <div class="bc-days">You joined DuSu ${days === 0 ? "today" : days + " day" + (days>1?"s":"") + " ago"}.</div>
+    ${prof.dream || f.dream ? `<div class="bc-dream">Your dream: <b>${f.dream || prof.dream}</b></div>
+      <div class="bc-prog"><i data-w="${pct}"></i></div>
+      <div style="font-size:12px;color:var(--ink-faint);margin-top:6px">${pct}% of your journey complete · Longest talk: ${longest}</div>` : ""}
+    ${day1 ? `<div class="bc-compare" style="margin-top:14px">
+      <div class="bc-box"><div class="bc-lbl">You on Day 1</div><div class="bc-txt">“${day1}”</div></div>
+      <div class="bc-box today"><div class="bc-lbl">You today</div><div class="bc-txt">${today ? "“"+today+"”" : "Tap below to record how you speak now"}</div></div>
+    </div>` : ""}
+    <div class="assess-actions" style="justify-content:flex-start">
+      <button class="btn ghost" id="futuremeBtn">🎤 ${today ? "Re-record" : "Record"} "how I speak now"</button>
+    </div>`;
+  setTimeout(() => el.querySelectorAll(".bc-prog i").forEach(i => i.style.width = (i.dataset.w||0)+"%"), 120);
+  const btn = $("futuremeBtn");
+  if(btn) btn.onclick = recordFutureMe;
+}
+
+async function recordFutureMe(){
+  const btn = $("futuremeBtn"); if(!btn || !SR) return;
+  btn.disabled = true; btn.textContent = "🎤 Listening… tell me about yourself";
+  await say("Tell me about yourself, in English.", ENG_NORM());
+  const text = await listenOnce("en-US");
+  if(!text){ btn.disabled = false; btn.textContent = "🎤 Didn't catch that — tap to try again"; return; }
+  btn.textContent = "Saving…";
+  try{
+    const r = await fetch("/futureme", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ token:authToken, text }) });
+    if(r.ok){ const d = await r.json(); if(d.memory && userState) userState.memory = d.memory; }
+  }catch(_){}
+  renderBecoming();
+  say("Listen to how far you've come. Well done!", ENG_NORM());
+}
+
 // lesson list for one level (rendered inside the journey screen)
 function openLevel(level){
   const j = jJourney(), lv = levelObj(level), doneIds = j.completed?.[String(level)] || [];
@@ -1788,10 +2059,11 @@ function openLevel(level){
     const ti = (j.test_scores || {})[String(level)];
     const passed = !!(ti && ti.passed);
     const cls = allDone ? (passed ? "playable done" : "playable current") : "locked";
-    const name = passed ? "Level Test — Passed ✓" : "Level Test";
-    const sub = !allDone ? "Finish all lessons first" : ti ? `Best score: ${ti.best}%${passed ? "" : " — try again"}` : "Checks what you've learned";
+    const name = passed ? "Boss Challenge — Cleared ✓" : "🏆 Boss Challenge";
+    const bossGoal = lv.boss ? lv.boss : "Checks what you've learned";
+    const sub = !allDone ? "Finish all lessons first" : ti ? `Best score: ${ti.best}%${passed ? "" : " — try again"}` : bossGoal;
     rows += `<div class="lvl-row ${cls}" data-test="1">
-      <div class="lvl-ic">${passed ? "✅" : "📝"}</div>
+      <div class="lvl-ic">${passed ? "✅" : "🏆"}</div>
       <div class="lvl-main"><div class="lvl-name">${name}</div><div class="lvl-sub">${sub}</div></div>
       <div class="lvl-right">${allDone && !passed ? "▶" : ""}</div>
     </div>`;
@@ -1878,7 +2150,10 @@ async function playVocabThenContinue(ls, onDone){
 async function startThinkLesson(level, lv, ls){
   show("lesson"); $("lessonMic").style.display = "";
   $("lessonTitle").textContent = ls.en; $("lessonSub").textContent = "Level " + level + " · " + lv.name_en;
-  const phrases = ls.phrases; let idx = 0, lastCorrect = "";
+  // Mood-based: keep it short & gentle when the learner is tired/low.
+  const phrases = (todayMood === "tired" || todayMood === "low") && ls.phrases.length > 1
+    ? ls.phrases.slice(0, 1) : ls.phrases;
+  let idx = 0, lastCorrect = "";
   const mic = $("lessonMic");
   $("lessonCard").hidden = true;
   async function nextPhrase(){
@@ -1948,7 +2223,7 @@ async function finishLesson(level, ls, type){
   const needsTest = allDone && lv.level_test && lv.level_test.length && !(testInfo && testInfo.passed);
 
   if(needsTest){
-    celebrate(`<div style="font-size:40px">✨</div><h2 style="font-family:var(--font-d);font-size:23px;margin:6px 0">All lessons done!</h2><p style="color:var(--gold);font-size:18px">+20 XP</p>${badges?`<div style="margin-top:10px;color:var(--gold)">${badges}</div>`:""}<p style="color:var(--ink-dim);margin-top:10px">Ready for your Level Test?</p>`);
+    celebrate(`<div style="font-size:40px">✨</div><h2 style="font-family:var(--font-d);font-size:23px;margin:6px 0">All lessons done!</h2><p style="color:var(--gold);font-size:18px">+20 XP</p>${badges?`<div style="margin-top:10px;color:var(--gold)">${badges}</div>`:""}<p style="color:var(--ink-dim);margin-top:10px">Ready for your 🏆 Boss Challenge?</p>`);
     setTimeout(() => startLevelTest(level), 1500);
     return;
   }
@@ -1978,7 +2253,7 @@ async function runLevelTestItem(idx){
   if(!st) return;
   if(idx >= st.items.length){ return submitLevelTest(); }
   const it = st.items[idx], mic = $("lessonMic");
-  $("lessonTitle").textContent = "Level Test"; $("lessonSub").textContent = levelObj(st.level).name_en;
+  $("lessonTitle").textContent = "🏆 Boss Challenge"; $("lessonSub").textContent = levelObj(st.level).name_en;
   $("lessonProg").textContent = `Question ${idx+1} of ${st.items.length}`;
   const beginnerHi = jJourney().lang === "hi" && st.level <= 3;
   mic.disabled = true;
@@ -2018,7 +2293,7 @@ function showLevelTestResult(level, result){
   if(result.passed){
     $("lessonPrompt").innerHTML = `
       <div style="font-size:40px">🎉</div>
-      <h2 style="font-family:var(--font-d);font-size:24px;margin:8px 0">Level Test Passed! ${result.score}%</h2>
+      <h2 style="font-family:var(--font-d);font-size:24px;margin:8px 0">Boss Challenge Cleared! ${result.score}%</h2>
       <p style="color:var(--ink-dim);max-width:440px;margin:0 auto 16px">${result.message || ""}</p>
       ${badges ? `<div style="color:var(--gold);margin-bottom:14px">${badges}</div>` : ""}
       <div class="assess-actions"><button class="btn primary" id="ltContinue">Continue Journey →</button></div>`;
@@ -2092,10 +2367,15 @@ function refreshUsage(){
 }
 
 function setWelcome(){
-  const first = authUser ? (authUser.name || "").split(" ")[0] : "";
-  $("welcomeMsg").textContent = first
-    ? `Welcome back, ${first} 👋 — pick a mode and let's practice speaking in DuSu.`
-    : `Welcome to DuSu 👋 — pick a mode and let's practice speaking.`;
+  const f = memFacts();
+  const first = f.nickname || (authUser ? (authUser.name || "").split(" ")[0] : "");
+  const moodLine = { great:"You're feeling great — let's make it a strong session! 💪",
+    good:"Good to see you 🙂 let's keep the momentum.", okay:"Let's ease into it — one small win today.",
+    low:"Take it gentle today — I'm right here with you. 💛", tired:"Feeling tired? Let's keep today short and easy." }[todayMood];
+  if(!first){ $("welcomeMsg").textContent = "Welcome to DuSu 👋 — pick a mode and let's practice speaking."; return; }
+  if(moodLine){ $("welcomeMsg").textContent = `Welcome back, ${first} 👋 ${moodLine}`; return; }
+  const dream = f.dream ? ` One step closer to your dream: ${f.dream}.` : "";
+  $("welcomeMsg").textContent = `Welcome back, ${first} 👋 — pick a mode and let's practice speaking.${dream}`;
 }
 
 // DuSu speaks a welcome by name (home). Needs a recent user gesture, so we only
