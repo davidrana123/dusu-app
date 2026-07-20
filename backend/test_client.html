@@ -34,6 +34,7 @@
   }
   * { box-sizing:border-box; margin:0; padding:0; }
   html,body { height:100%; }
+  html { -webkit-text-size-adjust:100%; }
   body {
     font-family:var(--font-b); color:var(--ink);
     background:
@@ -41,8 +42,26 @@
       radial-gradient(900px 600px at -12% 112%, #14161f 0%, transparent 55%),
       linear-gradient(165deg,var(--bg0),var(--bg1) 60%,var(--bg2));
     min-height:100%; overflow-x:hidden; -webkit-font-smoothing:antialiased;
+    /* installed-app feel: no pull-to-refresh bounce, no blue tap flash */
+    overscroll-behavior-y:none; -webkit-tap-highlight-color:transparent;
   }
-  .wrap { max-width:820px; margin:0 auto; padding:24px 20px 48px; position:relative; z-index:1; }
+  /* don't let taps select UI chrome text like a webpage */
+  header.top, .brand, .tag, button, .mode-card h3, .mic-btn, .vbtn, .signout { user-select:none; -webkit-user-select:none; }
+  button, .mode-card, .mic-btn, .back, a { touch-action:manipulation; }   /* snappy taps, no zoom */
+  .wrap { max-width:820px; margin:0 auto; position:relative; z-index:1;
+    /* keep content clear of the notch / status bar / gesture nav in standalone mode */
+    padding:max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
+            max(48px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); }
+
+  /* ---- small-phone polish ---- */
+  @media (max-width:480px){
+    .wrap { padding-left:max(16px, env(safe-area-inset-left)); padding-right:max(16px, env(safe-area-inset-right)); }
+    header.top { margin-bottom:22px; gap:10px; }
+    .logo { height:38px; } .brand { font-size:22px; } .tag { display:none; }
+    .hero h1 { font-size:27px; } .hero .mark { height:104px; } .hero p { font-size:14px; margin-bottom:22px; }
+    .login-card { padding:30px 22px; } .login-card .mark { height:104px; }
+    .wbubble { font-size:14px; padding:12px 15px; }
+  }
 
   /* ---- ambient effects: aurora + film grain ---- */
   .fx { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
@@ -303,8 +322,9 @@
                       border:1px solid rgba(212,175,55,.3); border-bottom-right-radius:5px; }
   .sysmsg { text-align:center; font-size:12px; color:var(--ink-faint); padding:4px; }
 
-  .controls { display:flex; justify-content:center; gap:12px; margin-top:22px; }
+  .controls { display:flex; justify-content:center; gap:12px; margin-top:22px; flex-wrap:wrap; }
   .btn { font:inherit; font-weight:600; cursor:pointer; border:none; padding:13px 22px; border-radius:14px;
+         touch-action:manipulation;   /* no 300ms tap delay / double-tap zoom on buttons */
          transition:transform .15s, filter .2s, background .2s; }
   .btn:active{ transform:scale(.97); }
   .btn.primary { position:relative; overflow:hidden; background:var(--grad); color:#241a08; box-shadow:var(--gold-glow); }
