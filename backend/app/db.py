@@ -108,7 +108,7 @@ class Profile(Base):
 class Progress(Base):
     __tablename__ = "progress"
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), primary_key=True)
-    xp: Mapped[int] = mapped_column(Integer, default=0)
+    xp: Mapped[int] = mapped_column(Integer, default=0, index=True)   # leaderboard sort/rank
     coins: Mapped[int] = mapped_column(Integer, default=0)
     streak_days: Mapped[int] = mapped_column(Integer, default=0)
     last_active: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
@@ -140,8 +140,11 @@ class Conversation(Base):
 async def init_db() -> None:
     if not db_enabled:
         return
+    from sqlalchemy import text as _text
     async with _engine.begin() as conn:      # type: ignore[union-attr]
         await conn.run_sync(Base.metadata.create_all)
+        # create_all won't add an index to an already-existing table → do it explicitly
+        await conn.execute(_text("CREATE INDEX IF NOT EXISTS ix_progress_xp ON progress (xp DESC)"))
 
 
 def _state(user: User, prof: Profile, prog: Progress, mem: "Memory | None" = None) -> dict:
@@ -425,7 +428,12 @@ _MAX_FACTS = 40
 
 
 async def _get_or_make_memory(s, user_id: str) -> "Memory":
-    mem = await s.get(Memory, user_id)
+    # row-lock so concurrent writers (WS finally + /checkin, two tabs) don't
+    # clobber each other's full-doc JSONB write (lost-update race).
+    try:
+        mem = await s.get(Memory, user_id, with_for_update=True)
+    except Exception:
+        mem = await s.get(Memory, user_id)
     if mem is None:
         mem = Memory(user_id=user_id, facts={})
         s.add(mem)

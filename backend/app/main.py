@@ -20,7 +20,7 @@ import json
 import time
 from pathlib import Path
 
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Header
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -123,10 +123,17 @@ class AssessIn(BaseModel):
     open_said: str = ""      # task 4 transcript
 
 
+def _bearer(header: str | None, token: str) -> str:
+    """Prefer the Authorization: Bearer header; fall back to a ?token query."""
+    if header and header.lower().startswith("bearer "):
+        return header.split(" ", 1)[1].strip()
+    return token
+
+
 @app.get("/me")
-async def me(token: str = ""):
+async def me(token: str = "", authorization: str | None = Header(None)):
     """Return the signed-in user's saved state (for reload / routing)."""
-    claims = auth.read_session(token)
+    claims = auth.read_session(_bearer(authorization, token))
     if not claims:
         raise HTTPException(401, "Not signed in")
     if not db.db_enabled:
@@ -139,9 +146,9 @@ async def me(token: str = ""):
 
 
 @app.get("/leaderboard")
-async def leaderboard(token: str = ""):
+async def leaderboard(token: str = "", authorization: str | None = Header(None)):
     """Top learners by all-time XP (private aliases) + your own rank."""
-    claims = auth.read_session(token)
+    claims = auth.read_session(_bearer(authorization, token))
     if not claims:
         raise HTTPException(401, "Not signed in")
     if not db.db_enabled:
@@ -182,10 +189,12 @@ async def assessment(inp: AssessIn):
         "scores": result.get("scores", {}),
         "weak_areas": result.get("weak_areas", []),
     }
+    progress = None
     if db.db_enabled:
         try:
             await db.login(claims)   # ensure user+profile+progress rows exist (cached-token logins skip onGoogle)
-            await db.save_assessment(claims["sub"], data, lang=inp.lang)
+            state = await db.save_assessment(claims["sub"], data, lang=inp.lang)
+            progress = state.get("progress")   # seeded journey (start/current level) → return it so the roadmap is right now
             # Save the emotional "About you" facts + the Day-1 intro as the baseline.
             about = (inp.about.model_dump() if inp.about else {})
             about["native_lang"] = about.get("native_lang") or inp.lang
@@ -193,7 +202,7 @@ async def assessment(inp: AssessIn):
             await db.save_about(claims["sub"], about)
         except Exception as e:
             print(f"[assess] db save failed: {type(e).__name__}: {e}")
-    return {"profile": data, "message": result.get("message", "")}
+    return {"profile": data, "message": result.get("message", ""), "progress": progress}
 
 
 class CheckinIn(BaseModel):
@@ -365,8 +374,14 @@ async def level_test_submit(inp: LevelTestIn):
         print(f"[level-test] eval failed: {type(e).__name__}: {e}")
         raise HTTPException(502, "Could not score the test, please try again")
 
-    score = int(result.get("score", 0))
-    out = {"score": score, "passed": result.get("passed", score >= 70),
+    try:
+        score = int(float(result.get("score") or 0))   # LLMs sometimes return null/"70%"/"eighty"
+    except (TypeError, ValueError):
+        import re as _re
+        m = _re.search(r"\d+", str(result.get("score") or ""))
+        score = int(m.group()) if m else 0
+    score = max(0, min(100, score))
+    out = {"score": score, "passed": bool(result.get("passed", score >= 70)),
            "items": result.get("items", []), "message": result.get("message", "")}
     if db.db_enabled:
         try:
@@ -448,6 +463,9 @@ async def interview_ws(ws: WebSocket):
         if session.mode == "learning":
             return
         persisted = True
+        # No real turns = nothing to remember/reward (prevents 0-turn XP/streak farming).
+        if session.turns <= 0:
+            return
         try:
             mem = await session.summarize_and_extract()
             if mem:

@@ -1069,6 +1069,8 @@
 // ---- Speech is 100% browser-side (Web Speech API). Server only sees text. ----
 const WS_URL = (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws/interview";
 const $ = id => document.getElementById(id);
+// escape user/LLM text before putting it into innerHTML (defensive; self-data only)
+function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
 
 let ws, recog, running = false, currentMode = "conversation";
@@ -1207,7 +1209,7 @@ $("toTop").onclick = () => window.scrollTo({ top:0, behavior:"smooth" });
 
 function startSession(mode){
   if(!SR){ $("warn").textContent = "Voice input needs Chrome or Edge (Web Speech API)."; return; }
-  if(usageGet().n >= MAX_SESSIONS){
+  if(overLimit()){
     $("warn").textContent = `You've reached today's limit of ${MAX_SESSIONS} sessions. Come back tomorrow 🙂`;
     return;
   }
@@ -1250,7 +1252,7 @@ function leave(){
   show("home");
 }
 $("backBtn").onclick = leave;
-$("againBtn").onclick = () => { show("home"); speakWelcome(); };
+$("againBtn").onclick = () => { try{ ws && ws.close(); }catch(_){} show("home"); speakWelcome(); };
 
 $("shareBtn").onclick = () => {
   const d = lastReport || {};
@@ -1486,7 +1488,7 @@ function micActive(b){ $("micBtn").classList.toggle("listening", b); }
 
 function startLearning(){
   if(!SR){ $("warn").textContent = "Voice needs Chrome or Edge."; return; }
-  if(usageGet().n >= MAX_SESSIONS){
+  if(overLimit()){
     $("warn").textContent = `You've reached today's limit of ${MAX_SESSIONS} sessions. Come back tomorrow 🙂`; return;
   }
   currentMode = "learning"; lastEnglish = "";
@@ -1569,7 +1571,7 @@ async function sayFace(text, opts){ dailyOrb("speaking"); await say(text, opts);
 
 function startDaily(){
   if(!SR){ $("warn").textContent = "Voice needs Chrome or Edge."; show("home"); return; }
-  if(usageGet().n >= MAX_SESSIONS){
+  if(overLimit()){
     $("warn").textContent = `You've reached today's limit of ${MAX_SESSIONS} sessions. Come back tomorrow 🙂`; show("home"); return;
   }
   currentMode = "daily"; dLastEng = ""; dLastNext = "";
@@ -1903,7 +1905,7 @@ async function aEvaluate(){
 function aReveal(d){
   const L = aL(); aBar(100);
   const p = d.profile || {}, s = p.scores || {};
-  if(userState){ userState.onboarded = true; userState.profile = p; }
+  if(userState){ userState.onboarded = true; userState.profile = p; if(d.progress) userState.progress = d.progress; }
   const bars = Object.keys(A_METRIC_LABELS).map(k => {
     const v = s[k] ?? 0;
     return `<div class="metric"><div class="m-top"><b>${A_METRIC_LABELS[k]}</b><span>${v}</span></div><div class="bar"><i data-w="${v}"></i></div></div>`;
@@ -1916,7 +1918,7 @@ function aReveal(d){
     <div class="assess-face">✨</div>
     <div class="level-badge">${p.level || "A1"}</div>
     <div class="level-cap">${L.levelCap}</div>
-    <p class="reveal-msg">${msg}</p>
+    <p class="reveal-msg">${esc(msg)}</p>
     <div class="metrics">${bars}</div>
     <div class="assess-actions"><button class="btn primary" id="aDone">${L.done}</button></div>`);
   setTimeout(() => { $("assessStep").querySelectorAll(".bar i").forEach(i => { i.style.width = (i.dataset.w || 0) + "%"; }); }, 150);
@@ -2079,7 +2081,7 @@ async function openLeaderboard(){
   $("lbList").innerHTML = ""; $("lbYou").hidden = true;
   let d = null;
   try{
-    const r = await fetch("/leaderboard?token=" + encodeURIComponent(authToken), { cache:"no-store" });
+    const r = await fetch("/leaderboard", { cache:"no-store", headers:{ Authorization:"Bearer " + authToken } });
     if(r.ok) d = await r.json();
   }catch(_){}
   if(!d || !d.top){ $("lbPodium").innerHTML = `<p class="sub" style="padding:20px">Couldn't load the leaderboard. Try again.</p>`; return; }
@@ -2116,7 +2118,7 @@ function renderLeaderboard(d){
     $("lbYou").innerHTML = `<div class="lb-row me">
       <div class="lb-rank">${you.rank}</div>
       <div class="lb-av">${av(you.name)}</div>
-      <div class="lb-main"><div class="lb-name">${you.name} (you)</div>
+      <div class="lb-main"><div class="lb-name">${esc(you.name)} (you)</div>
         <div class="lb-sub">Level ${you.level} · ${you.streak}🔥</div></div>
       <div class="lb-xp">${you.xp} XP</div>
     </div>`;
@@ -2138,7 +2140,7 @@ function renderHomeExtras(){
   if(mr){
     if(!todays){
       const nick = f.nickname || (authUser && (authUser.name||"").split(" ")[0]) || "";
-      mr.innerHTML = `<div class="mood-q">Hi ${nick||"there"}! How are you feeling today?</div>
+      mr.innerHTML = `<div class="mood-q">Hi ${esc(nick)||"there"}! How are you feeling today?</div>
         <div class="mood-opts">${MOODS.map(m=>`<button class="mood-btn" data-m="${m[0]}" title="${m[0]}">${m[1]}</button>`).join("")}</div>`;
       mr.hidden = false;
       mr.querySelectorAll(".mood-btn").forEach(btn => btn.onclick = () => doCheckin(btn.dataset.m));
@@ -2169,7 +2171,7 @@ function upcomingEvent(events){
   return null;
 }
 function eventLine(ev){
-  const t = (ev.type||"event"); const note = ev.note ? ` — ${ev.note}` : "";
+  const t = esc(ev.type||"event"); const note = ev.note ? ` — ${esc(ev.note)}` : "";
   if(ev.date === todayStr()) return `Your ${t} is <b>today</b>${note}. You've got this — stay calm and believe in yourself! 💛`;
   return `Your ${t} is coming up${note}. Want to prepare together?`;
 }
@@ -2210,10 +2212,10 @@ async function loadLetter(){
 function showLetterCard(letter){
   const card = $("letterCard");
   const preview = letter.text.length > 90 ? letter.text.slice(0,90) + "…" : letter.text;
-  card.innerHTML = `<h4>💌 A note from DuSu</h4><p>${preview}</p>`;
+  card.innerHTML = `<h4>💌 A note from DuSu</h4><p>${esc(preview)}</p>`;
   card.hidden = false;
   card.onclick = () => celebrate(`<h4 style="font-family:var(--font-d);font-size:20px;margin-bottom:10px">💌 A note from DuSu</h4>
-    <p style="color:var(--ink-dim);line-height:1.6;white-space:pre-wrap;text-align:left">${letter.text}</p>`);
+    <p style="color:var(--ink-dim);line-height:1.6;white-space:pre-wrap;text-align:left">${esc(letter.text)}</p>`);
 }
 
 function openJourney(){ show("journey"); renderJourney(); }
@@ -2284,12 +2286,12 @@ function renderBecoming(){
 
   el.innerHTML = `
     <div class="bc-days">You joined DuSu ${days === 0 ? "today" : days + " day" + (days>1?"s":"") + " ago"}.</div>
-    ${prof.dream || f.dream ? `<div class="bc-dream">Your dream: <b>${f.dream || prof.dream}</b></div>
+    ${prof.dream || f.dream ? `<div class="bc-dream">Your dream: <b>${esc(f.dream || prof.dream)}</b></div>
       <div class="bc-prog"><i data-w="${pct}"></i></div>
       <div style="font-size:12px;color:var(--ink-faint);margin-top:6px">${pct}% of your journey complete · Longest talk: ${longest}</div>` : ""}
     ${day1 ? `<div class="bc-compare" style="margin-top:14px">
-      <div class="bc-box"><div class="bc-lbl">You on Day 1</div><div class="bc-txt">“${day1}”</div></div>
-      <div class="bc-box today"><div class="bc-lbl">You today</div><div class="bc-txt">${today ? "“"+today+"”" : "Tap below to record how you speak now"}</div></div>
+      <div class="bc-box"><div class="bc-lbl">You on Day 1</div><div class="bc-txt">“${esc(day1)}”</div></div>
+      <div class="bc-box today"><div class="bc-lbl">You today</div><div class="bc-txt">${today ? "“"+esc(today)+"”" : "Tap below to record how you speak now"}</div></div>
     </div>` : ""}
     <div class="assess-actions" style="justify-content:flex-start">
       <button class="btn ghost" id="futuremeBtn">🎤 ${today ? "Re-record" : "Record"} "how I speak now"</button>
@@ -2626,15 +2628,21 @@ function applyUser(u){
 
 // Daily session limit — tracked in localStorage (no server DB for the preview).
 const MAX_SESSIONS = Number("__MAX_SESSIONS__") || 20;
+// Owner account(s) get unlimited sessions (no daily cap).
+const OWNER_EMAILS = ["david123rana@gmail.com"];
+function isUnlimited(){ return !!(authUser && OWNER_EMAILS.includes((authUser.email||"").toLowerCase())); }
+function overLimit(){ return !isUnlimited() && usageGet().n >= MAX_SESSIONS; }
 function usageGet(){
   const today = new Date().toISOString().slice(0, 10);
   let u = JSON.parse(localStorage.getItem("dusu_usage") || "null");
   if(!u || u.d !== today) u = { d: today, n: 0 };
   return u;
 }
-function usageInc(){ const u = usageGet(); u.n++; localStorage.setItem("dusu_usage", JSON.stringify(u)); return u; }
+function usageInc(){ if(isUnlimited()) return usageGet(); const u = usageGet(); u.n++; localStorage.setItem("dusu_usage", JSON.stringify(u)); return u; }
 function refreshUsage(){
-  const u = usageGet(), left = Math.max(0, MAX_SESSIONS - u.n), el = $("usageChip");
+  const el = $("usageChip");
+  if(isUnlimited()){ el.textContent = "Unlimited ∞"; el.classList.remove("low"); return; }
+  const u = usageGet(), left = Math.max(0, MAX_SESSIONS - u.n);
   el.textContent = `${left}/${MAX_SESSIONS} left today`;
   el.classList.toggle("low", left <= 3);
 }
@@ -2713,7 +2721,7 @@ function initAuth(){
     applyUser(authUser);
     // Resolve saved state BEFORE choosing a screen — avoids a home→assessment
     // flash and (more importantly) never trusts a stale/cached onboarded flag.
-    fetch("/me?token=" + encodeURIComponent(authToken), { cache:"no-store" })
+    fetch("/me", { cache:"no-store", headers:{ Authorization:"Bearer " + authToken } })
       .then(r => r.ok ? r.json() : null)
       .then(st => {
         if(st){
