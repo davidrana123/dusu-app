@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     google_client_id: str = ""
     session_secret: str = "dev-change-me"
 
+    # --- Database (Neon Postgres). Empty = no DB (app runs stateless as before). ---
+    database_url: str = ""
+
     # --- Usage limits (protect the shared free quota) ---
     max_sessions_per_day: int = 20      # per user; resets daily
     conversation_max_turns: int = 40    # free chat gently wraps up

@@ -27,8 +27,14 @@ from pydantic import BaseModel
 from .config import settings
 from .interview.engine import Session
 from . import auth
+from . import db
 
 app = FastAPI(title="DuSu")
+
+
+@app.on_event("startup")
+async def _startup():
+    await db.init_db()   # create tables if a database is configured (no-op otherwise)
 
 _BACKEND = Path(__file__).resolve().parent.parent
 _CLIENT_HTML = _BACKEND / "test_client.html"
@@ -79,7 +85,16 @@ async def auth_google(inp: GoogleIn):
     except Exception as e:
         print(f"[auth] google verify failed: {type(e).__name__}: {e}")
         raise HTTPException(401, "Invalid Google token")
-    return {"token": auth.make_session(claims), "user": claims}
+    resp = {"token": auth.make_session(claims), "user": claims}
+    if db.db_enabled:
+        try:
+            state = await db.login(claims)   # upsert user, load profile+progress
+            resp["onboarded"] = state["onboarded"]
+            resp["profile"] = state["profile"]
+            resp["progress"] = state["progress"]
+        except Exception as e:
+            print(f"[db] login persist failed: {type(e).__name__}: {e}")
+    return resp
 
 
 @app.get("/")
