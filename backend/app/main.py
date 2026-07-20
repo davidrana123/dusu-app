@@ -33,6 +33,8 @@ app = FastAPI(title="DuSu")
 _BACKEND = Path(__file__).resolve().parent.parent
 _CLIENT_HTML = _BACKEND / "test_client.html"
 _LOGO = _BACKEND / "logo.png"
+_MANIFEST = _BACKEND / "manifest.webmanifest"
+_SW = _BACKEND / "sw.js"
 
 # Character art (the 8 anime PNG frames) lives here; served at /assets/...
 _ASSETS = _BACKEND / "assets"
@@ -43,6 +45,18 @@ app.mount("/assets", StaticFiles(directory=str(_ASSETS)), name="assets")
 @app.get("/logo.png")
 async def logo():
     return FileResponse(_LOGO)
+
+
+@app.get("/manifest.webmanifest")
+async def manifest():
+    return FileResponse(_MANIFEST, media_type="application/manifest+json")
+
+
+@app.get("/sw.js")
+async def service_worker():
+    # Served from root so its scope covers the whole app.
+    return FileResponse(_SW, media_type="application/javascript",
+                        headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"})
 
 
 @app.get("/health")
