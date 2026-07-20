@@ -212,6 +212,81 @@
     background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
   .tc-actions { display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; }
 
+  /* ASSESSMENT */
+  .assess-head { display:flex; align-items:center; gap:14px; margin-bottom:30px; }
+  .assess-brand { font-family:var(--font-d); font-size:19px; font-weight:600; color:var(--ink-dim); white-space:nowrap; }
+  .assess-prog { flex:1; height:7px; border-radius:6px; background:var(--glass); border:1px solid var(--glass-brd); overflow:hidden; }
+  .assess-prog i { display:block; height:100%; width:0; background:var(--grad); transition:width .45s ease; }
+  .assess-body { max-width:560px; margin:0 auto; text-align:center; }
+  .assess-step h2 { font-family:var(--font-d); font-weight:600; font-size:27px; line-height:1.2; margin-bottom:12px; }
+  .assess-step .sub { color:var(--ink-dim); font-size:15px; line-height:1.6; margin:0 auto 26px; max-width:460px; }
+  .assess-step .say-line { font-family:var(--font-d); font-size:22px; color:transparent; line-height:1.4; margin:6px auto 22px;
+    background:var(--grad); -webkit-background-clip:text; background-clip:text; }
+  .opt-list { display:grid; gap:10px; margin:0 auto; max-width:430px; text-align:left; }
+  .opt { font:inherit; font-size:15px; color:var(--ink); background:var(--glass); border:1px solid var(--glass-brd);
+    border-radius:14px; padding:14px 16px; cursor:pointer; transition:.15s; touch-action:manipulation; }
+  .opt:hover { border-color:var(--gold); }
+  .opt.sel { background:var(--grad); color:#241a08; border-color:transparent; font-weight:600; }
+  .assess-said { margin-top:18px; font-size:15px; color:var(--ink-dim); min-height:22px; font-style:italic; }
+  .assess-actions { display:flex; gap:10px; justify-content:center; margin-top:26px; flex-wrap:wrap; }
+  .assess-face { width:96px; height:96px; margin:0 auto 18px; border-radius:24px; display:grid; place-items:center;
+    background:radial-gradient(circle at 50% 38%, #3a4a6e, #141a30 74%);
+    box-shadow:0 8px 24px -8px rgba(0,0,0,.5), inset 0 0 0 1px rgba(212,175,55,.25); font-size:44px;
+    animation:floaty 4s ease-in-out infinite; }
+  .level-badge { font-family:var(--font-d); font-size:46px; font-weight:700; line-height:1; margin:2px 0 4px;
+    background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .level-cap { font-size:13px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.16em; margin-bottom:20px; }
+  .reveal-msg { color:var(--ink); font-size:15.5px; line-height:1.6; max-width:460px; margin:0 auto 26px; }
+  .spin { width:44px; height:44px; margin:20px auto; border:3px solid var(--glass-brd);
+    border-top-color:var(--gold); border-radius:50%; animation:spin 0.9s linear infinite; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* JOURNEY (roadmap + dashboard) */
+  .journey-banner { display:flex; align-items:center; gap:16px; width:100%; text-align:left; cursor:pointer;
+    background:linear-gradient(135deg, rgba(212,175,55,.16), rgba(212,175,55,.05)); border:1px solid var(--gold);
+    border-radius:20px; padding:18px 20px; margin:6px 0 22px; box-shadow:var(--gold-glow); transition:transform .15s; touch-action:manipulation; }
+  .journey-banner:active { transform:scale(.99); }
+  .jb-ic { width:52px; height:52px; border-radius:16px; display:grid; place-items:center; font-size:26px; flex:none; background:var(--grad); }
+  .jb-main { flex:1; min-width:0; }
+  .jb-title { font-family:var(--font-d); font-weight:600; font-size:19px; color:var(--ink); }
+  .jb-sub { font-size:13px; color:var(--ink-dim); margin-top:2px; }
+  .jb-go { font-family:var(--font-d); font-size:22px; color:var(--gold); }
+  .free-label { font-size:12px; letter-spacing:.16em; text-transform:uppercase; color:var(--ink-faint);
+    margin:0 0 12px 3px; font-weight:600; }
+  .jrny-stats { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+  .stat-chip { flex:1; min-width:88px; background:var(--glass); border:1px solid var(--glass-brd); border-radius:14px; padding:12px 8px; text-align:center; }
+  .stat-chip b { display:block; font-family:var(--font-d); font-size:23px; line-height:1;
+    background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .stat-chip span { font-size:10.5px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.08em; }
+  .focus-tip { background:rgba(212,175,55,.1); border:1px solid var(--glass-brd); border-radius:14px;
+    padding:12px 14px; font-size:13px; color:var(--ink-dim); margin-bottom:18px; line-height:1.5; }
+  .dash-head { font-family:var(--font-d); font-size:17px; font-weight:600; margin:6px 0 12px; }
+  .dash-skills { display:grid; grid-template-columns:1fr 1fr; gap:12px 22px; margin-bottom:22px; }
+  @media (max-width:560px){ .dash-skills { grid-template-columns:1fr; } }
+  .roadmap { display:flex; flex-direction:column; gap:13px; }
+  .lvl-row { display:flex; gap:14px; align-items:center; background:var(--glass); border:1px solid var(--glass-brd);
+    border-radius:18px; padding:16px 18px; cursor:pointer; transition:.15s; position:relative; touch-action:manipulation; }
+  .lvl-row.playable:hover { border-color:var(--gold); }
+  .lvl-row.locked { opacity:.45; cursor:default; }
+  .lvl-row.current { border-color:var(--gold); box-shadow:var(--gold-glow); }
+  .lvl-ic { width:48px; height:48px; border-radius:14px; display:grid; place-items:center; font-size:24px; flex:none;
+    background:radial-gradient(circle at 50% 38%, #3a4a6e, #141a30 74%); }
+  .lvl-row.current .lvl-ic, .lvl-row.done .lvl-ic { background:var(--grad); }
+  .lvl-main { flex:1; min-width:0; }
+  .lvl-name { font-family:var(--font-d); font-weight:600; font-size:17px; }
+  .lvl-sub { font-size:12px; color:var(--ink-faint); margin-top:2px; }
+  .lvl-bar { height:6px; border-radius:6px; background:rgba(255,255,255,.08); overflow:hidden; margin-top:9px; }
+  .lvl-bar i { display:block; height:100%; width:0; background:var(--grad); transition:width .5s ease; }
+  .lvl-right { font-size:12px; color:var(--ink-faint); white-space:nowrap; }
+  .you-here { position:absolute; top:-9px; left:16px; font-size:9.5px; letter-spacing:.14em; text-transform:uppercase;
+    background:var(--grad); color:#241a08; padding:2px 8px; border-radius:8px; font-weight:700; }
+  /* LESSON player */
+  .lesson-body { text-align:center; padding-top:10px; }
+  .lesson-prog { font-size:12px; color:var(--ink-faint); margin-bottom:16px; letter-spacing:.04em; }
+  .lesson-prompt { font-family:var(--font-d); font-size:23px; line-height:1.35; max-width:520px; margin:0 auto 20px; color:var(--ink); }
+  .lesson-prompt .hi { display:block; font-family:var(--font-b); font-size:14px; color:var(--ink-dim); margin-top:10px; font-style:italic; }
+  .lc-fb { font-size:14px; color:var(--ink-dim); margin-top:12px; line-height:1.55; }
+
   /* SESSION */
   .sess-head { display:flex; align-items:center; gap:12px; margin-bottom:6px; }
   .back { background:var(--glass); border:1px solid var(--glass-brd); color:var(--ink-dim);
@@ -502,6 +577,10 @@
 
     <input id="name" type="hidden" value="David" />
 
+    <!-- Journey CTA (shown once onboarded) -->
+    <button id="journeyBanner" class="journey-banner" hidden></button>
+
+    <div class="free-label" id="freeLabel" hidden>Free practice</div>
     <div class="modes">
       <button class="mode-card learn" data-mode="learning">
         <span class="go">→</span>
@@ -647,6 +726,70 @@
         <div class="tc-actions">
           <button class="btn ghost" id="replayBtn">🔊 Replay (slow)</button>
           <button class="btn primary" id="continueBtn">Continue →</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== ASSESSMENT (first-time level check) ===================== -->
+  <section id="assessment" class="screen">
+    <div class="assess-head">
+      <div class="assess-brand">Level Check</div>
+      <div class="assess-prog"><i id="assessBar"></i></div>
+    </div>
+    <div class="assess-body">
+      <div id="assessStep" class="assess-step"></div>
+    </div>
+  </section>
+
+  <!-- ===================== MY JOURNEY (roadmap + dashboard) ===================== -->
+  <section id="journey" class="screen">
+    <div class="sess-head">
+      <button class="back" id="journeyBack" title="Home">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div>
+        <div class="sess-title">My Journey</div>
+        <div class="sess-sub" id="journeyGoal"></div>
+      </div>
+    </div>
+    <div class="jrny-stats" id="jrnyStats"></div>
+    <div class="focus-tip" id="focusTip" hidden></div>
+    <div class="dash-head">Your skills</div>
+    <div class="dash-skills" id="dashSkills"></div>
+    <div class="dash-head" id="roadmapHead">Your roadmap</div>
+    <div class="roadmap" id="roadmap"></div>
+  </section>
+
+  <!-- ===================== LESSON (think / speak) ===================== -->
+  <section id="lesson" class="screen">
+    <div class="sess-head">
+      <button class="back" id="lessonBack" title="Leave">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </button>
+      <div>
+        <div class="sess-title" id="lessonTitle">Lesson</div>
+        <div class="sess-sub" id="lessonSub"></div>
+      </div>
+    </div>
+    <div class="lesson-body">
+      <div class="lesson-prog" id="lessonProg"></div>
+      <div class="lesson-prompt" id="lessonPrompt"></div>
+      <button class="mic-btn" id="lessonMic" disabled><span class="mic-ring"></span>
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+      </button>
+      <div class="mic-label">🎤 Tap to Speak</div>
+      <div class="learn-state" id="lessonState"></div>
+
+      <div class="trans-card" id="lessonCard" hidden>
+        <div class="tc-label">You said</div>
+        <div class="tc-hindi" id="lcSaid"></div>
+        <div class="tc-label tc-top">Better English</div>
+        <div class="tc-eng" id="lcCorrect"></div>
+        <div class="lc-fb" id="lcFeedback"></div>
+        <div class="tc-actions">
+          <button class="btn ghost" id="lcReplay">🔊 Replay</button>
+          <button class="btn primary" id="lcNext">Next →</button>
         </div>
       </div>
     </div>
@@ -865,7 +1008,8 @@ const Assistant = (function(){
   };
 })();
 
-function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on")); $(id).classList.add("on"); }
+function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on")); $(id).classList.add("on");
+  if(id === "home"){ try{ renderHomeJourney(); }catch(_){} } }
 
 function orb(state, label, hint){
   $("orb").className = "orb-wrap " + state;
@@ -941,6 +1085,13 @@ function leave(){
   running = false; stopListening(); FACE.stopTalking(); Assistant.stopTalking();
   if(window.speechSynthesis) window.speechSynthesis.cancel();
   try{ ws && ws.close(); }catch(_){}
+  // If this was a roadmap "converse" lesson, mark it complete and return to Journey.
+  if(currentLesson && currentLesson.type === "converse"){
+    const cl = currentLesson; currentLesson = null;
+    finishLesson(cl.level, { id: cl.id }, "converse");
+    return;
+  }
+  currentLesson = null;
   show("home");
 }
 $("backBtn").onclick = leave;
@@ -976,7 +1127,9 @@ function onMessage(ev){
       learnState("Translation failed — tap the mic to try again."); micEnable(true); break;
     case "ai_text": addMsg(m.text, "ai"); speak(m.text); break;
     case "interview_done": addSys("Interview complete"); break;
-    case "report": showReport(m.data); break;
+    case "report": showReport(m.data);
+      if(currentLesson && currentLesson.type === "interview"){ const cl = currentLesson; currentLesson = null; completeLesson(cl.level, cl.id, "interview"); }
+      break;
     case "ended": leave(); break;
     case "limit": running=false; stopListening(); addSys("⏸ " + m.msg); orb("idle","Session limit", m.msg); break;
     case "auth_error": running=false; try{ws.close();}catch(_){}; logout(); break;
@@ -1240,11 +1393,664 @@ $("continueBtn").onclick = async () => {
 };
 $("learnBack").onclick = () => { running = false; stopLearn(); try{ ws && ws.close(); }catch(_){} show("home"); };
 
+/* ================= AI Level Assessment (first-time, once) ================= */
+let aData = null;
+const A_METRIC_LABELS = { confidence:"Confidence", pronunciation:"Pronunciation", listening:"Listening",
+                          vocabulary:"Vocabulary", grammar:"Grammar", thinking:"Thinking in English" };
+
+// Voice-task meta (language-independent). Text/spoken lines come from A_L[lang].voice.
+const A_VTASKS = [
+  { pct:52, field:"intro",       kind:"open" },
+  { pct:66, field:"repeat_said", kind:"repeat" },
+  { pct:80, field:"think_said",  kind:"think",  show:"“Kal mujhe market jaana hai.”" },
+  { pct:92, field:"open_said",   kind:"open" },
+];
+
+// All learner-facing copy in both languages. Options are [value(store), label(show)].
+const A_L = {
+  en: {
+    ready:"I'm ready →", skip:"Skip", next:"Next →", listening:"Listening…",
+    notCaught:"Didn't catch that — tap the mic to try again.",
+    welcomeTitle:"Hi! I'm DuSu.",
+    welcomeSub:"Before we start learning together, I'd like to understand your current English level. It only takes about two minutes.",
+    welcomeSay:"Hi! I'm DuSu. Before we start learning together, let me understand your current English level. It will only take about two minutes. Ready?",
+    qGoal:"Why do you want to learn English?",
+    qComfort:"How comfortable are you speaking English?",
+    qPractice:"How often can you practice?",
+    evalTitle:"Analyzing your English…", evalSub:"DuSu is building your personalized profile.",
+    evalSay:"Great! Give me one moment while I look at your answers.",
+    levelCap:"Your starting level", done:"Start my journey →",
+    errTitle:"Hmm, something went wrong", errSub:"Let's try that once more.", retry:"Retry", skipAll:"Skip for now",
+    goal:[["Job Interview","Job Interview"],["Office Communication","Office Communication"],["College","College"],
+          ["Daily Conversation","Daily Conversation"],["Travel","Travel"],["Business","Business"],
+          ["Study Abroad","Study Abroad"],["Other","Other"]],
+    comfort:[["I cannot speak at all","I cannot speak at all"],["I understand but cannot speak","I understand but cannot speak"],
+             ["I can speak simple sentences","I can speak simple sentences"],["I can speak but lack confidence","I can speak but lack confidence"],
+             ["I speak well and want to be fluent","I speak well and want to be fluent"]],
+    practice:[["5 minutes/day","5 minutes/day"],["10 minutes/day","10 minutes/day"],["20 minutes/day","20 minutes/day"],["30+ minutes/day","30+ minutes/day"]],
+    voice:[
+      { title:"Tell me about yourself", hint:"Speak in English. Tap the mic and talk for a few seconds.", say:"Please tell me your name, and something about yourself." },
+      { title:"Repeat after me",        hint:"Tap the mic and say the sentence you just heard.",           intro:"Repeat after me." },
+      { title:"Say it in English",      hint:"Say this sentence in English. Tap the mic.",                 instr:"Say this sentence in English." },
+      { title:"One last question",      hint:"Answer in English. Tap the mic and speak freely.",           say:"Tell me about your favorite food." },
+    ],
+  },
+  hi: {
+    ready:"Main taiyaar hoon →", skip:"Chhod dein", next:"Aage →", listening:"Sun raha hoon…",
+    notCaught:"Sunayi nahi diya — mic dabakar dobara boliye.",
+    welcomeTitle:"Namaste! Main DuSu hoon.",
+    welcomeSub:"Shuru karne se pehle, main aapka abhi ka English level samajhna chahta hoon. Sirf do minute lagenge.",
+    welcomeSay:"Namaste! Main DuSu hoon. Shuru karne se pehle, main aapka abhi ka English level samajhna chahta hoon. Sirf do minute lagenge. Taiyaar hain?",
+    qGoal:"Aap English kyun seekhna chahte hain?",
+    qComfort:"English bolne mein aap kitne comfortable hain?",
+    qPractice:"Aap rozana kitni der practice kar sakte hain?",
+    evalTitle:"Aapki English dekh raha hoon…", evalSub:"DuSu aapki personal profile bana raha hai.",
+    evalSay:"Bahut badhiya! Ek pal dijiye, main aapke jawab dekhta hoon.",
+    levelCap:"Aapka shuruaati level", done:"Meri journey shuru karein →",
+    errTitle:"Kuch gadbad ho gayi", errSub:"Ek baar phir se koshish karte hain.", retry:"Dobara", skipAll:"Abhi chhod dein",
+    goal:[["Job Interview","Naukri ka interview"],["Office Communication","Office ki baat-cheet"],["College","College"],
+          ["Daily Conversation","Rozmarra ki baat-cheet"],["Travel","Safar / ghumna"],["Business","Business"],
+          ["Study Abroad","Videsh mein padhai"],["Other","Anya"]],
+    comfort:[["I cannot speak at all","Main bilkul nahi bol sakta"],["I understand but cannot speak","Samajh leta hoon par bol nahi pata"],
+             ["I can speak simple sentences","Simple vaakya bol leta hoon"],["I can speak but lack confidence","Bol leta hoon par confidence kam hai"],
+             ["I speak well and want to be fluent","Achha bolta hoon, fluent banna hai"]],
+    practice:[["5 minutes/day","5 minute rozana"],["10 minutes/day","10 minute rozana"],["20 minutes/day","20 minute rozana"],["30+ minutes/day","30+ minute rozana"]],
+    voice:[
+      { title:"Apne baare mein bataiye", hint:"English mein boliye. Mic dabakar kuch second boliye.", say:"Kripya English mein apna naam aur apne baare mein kuch bataiye." },
+      { title:"Mere baad dohraiye",      hint:"Mic dabakar wahi vaakya boliye jo aapne suna.",         intro:"Mere baad dohraiye." },
+      { title:"Ise English mein boliye", hint:"Is vaakya ko English mein boliye. Mic dabaiye.",        instr:"Is Hindi vaakya ko English mein boliye." },
+      { title:"Aakhri sawaal",           hint:"English mein jawab dijiye. Mic dabakar boliye.",         say:"Apne pasandida khaane ke baare mein English mein bataiye." },
+    ],
+  },
+};
+
+function aBar(pct){ $("assessBar").style.width = pct + "%"; }
+function aRender(html){ $("assessStep").innerHTML = html; }
+function stopAssessSpeech(){ if(window.speechSynthesis) window.speechSynthesis.cancel(); }
+function aL(){ return A_L[aData.lang] || A_L.en; }
+function aVoiceProfile(){ return aData.lang === "hi" ? HI() : ENG_NORM(); }  // voice for instruction lines
+
+function listenOnce(lang){
+  return new Promise(resolve => {
+    if(!SR){ resolve(""); return; }
+    stopAssessSpeech();
+    const rec = new SR(); rec.lang = lang; rec.interimResults = false; rec.maxAlternatives = 1;
+    let got = "";
+    rec.onresult = e => { got = e.results[0][0].transcript.trim(); };
+    rec.onerror = () => {};
+    rec.onend = () => resolve(got);
+    try{ rec.start(); }catch(_){ resolve(""); }
+  });
+}
+
+function startAssessment(){
+  if(!SR){ show("home"); return; }   // voice assessment needs Web Speech; skip if unavailable
+  aData = { lang:"en", goal:"", comfort:"", practice_time:"", intro:"", repeat_said:"", think_said:"", open_said:"",
+            repeat_target:"My name is Sarah.", think_hindi:"Kal mujhe market jaana hai." };
+  show("assessment");
+  aLangPick();
+}
+
+// Step 0 — asked in Hindi (for learners who may not know English yet).
+function aLangPick(){
+  aBar(2);
+  aRender(`
+    <div class="assess-face">🌐</div>
+    <h2>Test kis bhasha mein karein?</h2>
+    <p class="sub">Choose your test language · Apni bhasha chuniye</p>
+    <div class="opt-list">
+      <button class="opt" data-l="hi">🇮🇳 हिंदी में (Hindi)</button>
+      <button class="opt" data-l="en">🇬🇧 English</button>
+    </div>`);
+  $("assessStep").querySelectorAll(".opt").forEach(b => {
+    b.onclick = () => { aData.lang = b.dataset.l; b.classList.add("sel"); setTimeout(aWelcome, 160); };
+  });
+  say("Aap yah test Hindi mein karna chahte hain ya English mein? Neeche apni bhasha chuniye.", HI());
+}
+
+function aWelcome(){
+  const L = aL(); aBar(6);
+  aRender(`
+    <div class="assess-face">🎓</div>
+    <h2>${L.welcomeTitle}</h2>
+    <p class="sub">${L.welcomeSub}</p>
+    <div class="assess-actions"><button class="btn primary" id="aStart">${L.ready}</button></div>`);
+  $("aStart").onclick = () => aGoal();
+  say(L.welcomeSay, aVoiceProfile());
+}
+
+function aChoice(pct, title, opts, field, next){
+  aBar(pct);
+  aRender(`<h2>${title}</h2>
+    <div class="opt-list">${opts.map(o=>`<button class="opt" data-v="${o[0]}">${o[1]}</button>`).join("")}</div>`);
+  $("assessStep").querySelectorAll(".opt").forEach(b => {
+    b.onclick = () => { aData[field] = b.dataset.v; b.classList.add("sel"); setTimeout(next, 160); };
+  });
+  say(title, aVoiceProfile());
+}
+function aGoal(){     const L = aL(); aChoice(16, L.qGoal,     L.goal,     "goal",          aComfort); }
+function aComfort(){  const L = aL(); aChoice(28, L.qComfort,  L.comfort,  "comfort",       aPractice); }
+function aPractice(){ const L = aL(); aChoice(40, L.qPractice, L.practice, "practice_time", () => aVoice(0)); }
+
+async function aVoice(n){
+  const L = aL(), t = A_VTASKS[n], v = L.voice[n];
+  aBar(t.pct);
+  aRender(`
+    <h2>${v.title}</h2>
+    ${t.show ? `<div class="say-line">${t.show}</div>` : ""}
+    <p class="sub">${v.hint}</p>
+    <button class="mic-btn" id="aMic" disabled><span class="mic-ring"></span>
+      <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+    </button>
+    <div class="assess-said" id="aSaid"></div>
+    <div class="assess-actions">
+      <button class="btn ghost" id="aSkip">${L.skip}</button>
+      <button class="btn primary" id="aNext" style="display:none">${L.next}</button>
+    </div>`);
+  const mic = $("aMic"), said = $("aSaid"), next = $("aNext");
+  const goNext = () => { stopAssessSpeech(); (n + 1 < A_VTASKS.length) ? aVoice(n + 1) : aEvaluate(); };
+  $("aSkip").onclick = goNext;
+  next.onclick = goNext;
+  mic.onclick = async () => {
+    mic.classList.add("listening"); said.textContent = L.listening;
+    const txt = await listenOnce("en-US");   // learner always answers in English
+    mic.classList.remove("listening");
+    if(txt){ aData[t.field] = txt; said.textContent = "“" + txt + "”"; next.style.display = ""; }
+    else { said.textContent = L.notCaught; }
+  };
+  // speak the instruction in the chosen language; English targets always spoken in English
+  if(t.kind === "repeat"){ await say(v.intro, aVoiceProfile()); await pause(300); await say(aData.repeat_target, ENG_SLOW()); }
+  else if(t.kind === "think"){ await say(v.instr, aVoiceProfile()); await pause(200); await say(aData.think_hindi, HI()); }
+  else { await say(v.say, aVoiceProfile()); }
+  mic.disabled = false;
+}
+
+async function aEvaluate(){
+  const L = aL(); aBar(97);
+  aRender(`<div class="assess-face">🧠</div><h2>${L.evalTitle}</h2>
+    <div class="spin"></div><p class="sub">${L.evalSub}</p>`);
+  say(L.evalSay, aVoiceProfile());
+  try{
+    const r = await fetch("/assessment", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ token: authToken, ...aData }) });
+    if(!r.ok) throw new Error("assess failed");
+    aReveal(await r.json());
+  }catch(_){
+    aRender(`<h2>${L.errTitle}</h2><p class="sub">${L.errSub}</p>
+      <div class="assess-actions"><button class="btn primary" id="aRetry">${L.retry}</button>
+      <button class="btn ghost" id="aSkipAll">${L.skipAll}</button></div>`);
+    $("aRetry").onclick = aEvaluate;
+    $("aSkipAll").onclick = goHomeAfterAssess;
+  }
+}
+
+function aReveal(d){
+  const L = aL(); aBar(100);
+  const p = d.profile || {}, s = p.scores || {};
+  if(userState){ userState.onboarded = true; userState.profile = p; }
+  const bars = Object.keys(A_METRIC_LABELS).map(k => {
+    const v = s[k] ?? 0;
+    return `<div class="metric"><div class="m-top"><b>${A_METRIC_LABELS[k]}</b><span>${v}</span></div><div class="bar"><i data-w="${v}"></i></div></div>`;
+  }).join("");
+  const fallback = aData.lang === "hi"
+    ? "Ab main aapka level samajh gaya hoon. Chinta mat kijiye — main aapko step by step confident English speaker banaunga."
+    : "I understand your level now. Don't worry — I'll help you become a confident English speaker, step by step.";
+  const msg = d.message || fallback;
+  aRender(`
+    <div class="assess-face">✨</div>
+    <div class="level-badge">${p.level || "A1"}</div>
+    <div class="level-cap">${L.levelCap}</div>
+    <p class="reveal-msg">${msg}</p>
+    <div class="metrics">${bars}</div>
+    <div class="assess-actions"><button class="btn primary" id="aDone">${L.done}</button></div>`);
+  setTimeout(() => { $("assessStep").querySelectorAll(".bar i").forEach(i => { i.style.width = (i.dataset.w || 0) + "%"; }); }, 150);
+  $("aDone").onclick = goHomeAfterAssess;
+  say(msg, aVoiceProfile());
+}
+function goHomeAfterAssess(){ stopAssessSpeech(); show("home"); setWelcome(); }
+
+/* ================= My Journey (roadmap + lessons) ================= */
+const LEVEL_ICONS = ["🧠","🗣️","💬","💪","🎯","💼","🚀"];
+const BADGE_LABELS = { first_lesson:"🎤 First Lesson", first_converse:"💬 First Chat",
+  streak_7:"🔥 7-Day Streak", sentences_100:"⭐ 100 Sentences", level_up:"🚀 Level Up" };
+
+const CURRICULUM = [
+  { level:1, name_en:"Thinking in English", name_hi:"English mein sochna", type:"think", lessons:[
+    { id:"l1_1", en:"Name & city",          hi:"Naam aur shaher",
+      vocab:[{en:"name",hi:"naam"},{en:"city",hi:"shehar"},{en:"I am from Delhi",hi:"main Delhi se hoon"},{en:"my name is Rahul",hi:"mera naam Rahul hai"}],
+      phrases:["Mera naam Rahul hai.","Main Delhi se hoon."] },
+    { id:"l1_2", en:"I am / I have / I want", hi:"Main / mere paas / mujhe",
+      vocab:[{en:"I am",hi:"main hoon"},{en:"I have",hi:"mere paas hai"},{en:"I want",hi:"mujhe chahiye"},{en:"student",hi:"student"}],
+      phrases:["Main ek student hoon.","Mere paas ek phone hai.","Mujhe paani chahiye."] },
+    { id:"l1_3", en:"My family",            hi:"Mera parivaar",
+      vocab:[{en:"brother",hi:"bhai"},{en:"sister",hi:"behen"},{en:"family",hi:"parivaar"},{en:"I have two brothers",hi:"mere do bhai hain"}],
+      phrases:["Mere do bhai hain.","Meri ek behen hai."] },
+    { id:"l1_4", en:"Daily things",         hi:"Rozana ki baatein",
+      vocab:[{en:"morning",hi:"subah"},{en:"tea",hi:"chai"},{en:"I drink tea",hi:"main chai peeta hoon"},{en:"I go to office",hi:"main office jaata hoon"}],
+      phrases:["Main subah chai peeta hoon.","Main office jaata hoon."] },
+    { id:"l1_5", en:"Feelings",             hi:"Bhaavnaayein",
+      vocab:[{en:"happy",hi:"khush"},{en:"hungry",hi:"bhookha"},{en:"I am happy",hi:"main khush hoon"},{en:"a little",hi:"thoda"}],
+      phrases:["Main khush hoon.","Mujhe thodi bhookh lagi hai."] },
+  ], level_test:[
+    { prompt_hi:"Apna naam aur shahar ek naye tarike se bataiye.", prompt_en:"Say your name and city.", target:"My name is ___ and I am from ___." },
+    { prompt_hi:"Bataiye aapke paas kya hai aur aapko kya chahiye.", prompt_en:"Say something you have and something you want.", target:"I have a ___. I want a ___." },
+    { prompt_hi:"Apne parivaar ke baare mein ek vaakya boliye.", prompt_en:"Say one sentence about your family.", target:"I have a brother/sister." },
+    { prompt_hi:"Aap subah kya karte hain, bataiye.", prompt_en:"Say what you do in the morning.", target:"In the morning I ___." },
+    { prompt_hi:"Aaj aap kaisa mehsoos kar rahe hain?", prompt_en:"Say how you feel today.", target:"I am ___ today." },
+  ]},
+  { level:2, name_en:"Simple Speaking", name_hi:"Simple bolna", type:"speak", lessons:[
+    { id:"l2_1", en:"Introduce yourself", hi:"Apna parichay",
+      vocab:[{en:"my name is",hi:"mera naam hai"},{en:"I am a student",hi:"main ek student hoon"},{en:"I live in Mumbai",hi:"main Mumbai mein rehta hoon"}],
+      prompt_en:"Introduce yourself in 2-3 sentences.", prompt_hi:"2-3 vaakya mein apna parichay dijiye.", target:"My name is ___. I am from ___. I am a ___." },
+    { id:"l2_2", en:"Describe your day",  hi:"Apna din bataiye",
+      vocab:[{en:"in the morning",hi:"subah"},{en:"then",hi:"phir"},{en:"in the evening",hi:"shaam ko"}],
+      prompt_en:"Tell me what you do in a normal day.", prompt_hi:"Aap ek aam din mein kya karte hain?", target:"In the morning I ___. Then I ___. In the evening I ___." },
+    { id:"l2_3", en:"Your job or study",  hi:"Kaam ya padhai",
+      vocab:[{en:"I work as a teacher",hi:"main teacher ke roop mein kaam karta hoon"},{en:"I study",hi:"main padhta hoon"}],
+      prompt_en:"Tell me about your job or your study.", prompt_hi:"Apne kaam ya padhai ke baare mein bataiye.", target:"I work as a ___ / I study ___." },
+    { id:"l2_4", en:"Likes & dislikes",   hi:"Pasand aur napasand",
+      vocab:[{en:"I like",hi:"mujhe pasand hai"},{en:"I don't like",hi:"mujhe pasand nahi hai"}],
+      prompt_en:"Tell me two things you like and one you dislike.", prompt_hi:"Do cheezein jo pasand hain aur ek jo napasand.", target:"I like ___ and ___. I don't like ___." },
+    { id:"l2_5", en:"Ask simple questions", hi:"Simple sawaal",
+      vocab:[{en:"where is",hi:"kahan hai"},{en:"how much is",hi:"kitne ka hai"},{en:"what is your",hi:"aapka kya hai"}],
+      prompt_en:"Ask me three simple questions.", prompt_hi:"Mujhse teen simple sawaal poochhiye.", target:"Where is ___? How much is ___? What is your ___?" },
+  ], level_test:[
+    { prompt_hi:"Apna naya parichay dijiye — naam, shahar, kaam.", prompt_en:"Introduce yourself again — name, city, job.", target:"My name is ___, I am from ___, I work as a ___." },
+    { prompt_hi:"Apne kal ke din ke baare mein bataiye.", prompt_en:"Describe your day yesterday.", target:"Yesterday, in the morning I ___." },
+    { prompt_hi:"Ek cheez bataiye jo aapko pasand hai aur ek jo napasand hai.", prompt_en:"Say one thing you like and one you dislike.", target:"I like ___. I don't like ___." },
+    { prompt_hi:"Mujhse ek sawaal poochhiye.", prompt_en:"Ask me a question.", target:"Where is ___? / What is your ___?" },
+  ]},
+  { level:3, name_en:"Daily Conversation", name_hi:"Rozmarra baat-cheet", type:"converse", lessons:[
+    { id:"l3_1", en:"Greetings & small talk", hi:"Namaste aur baat", topic:"greetings and small talk" },
+    { id:"l3_2", en:"Shopping",   hi:"Kharidari",     topic:"shopping at a store" },
+    { id:"l3_3", en:"Directions", hi:"Raasta poochhna", topic:"asking for and giving directions" },
+    { id:"l3_4", en:"Phone basics", hi:"Phone par baat", topic:"a simple phone call" },
+    { id:"l3_5", en:"Ordering food", hi:"Khana order karna", topic:"ordering food at a restaurant" },
+  ]},
+  { level:4, name_en:"Confidence", name_hi:"Confidence", type:"converse", lessons:[
+    { id:"l4_1", en:"Weekend story", hi:"Weekend ki kahani", topic:"telling a story about your weekend" },
+    { id:"l4_2", en:"Your goals",    hi:"Aapke lakshya",     topic:"your dreams and goals" },
+    { id:"l4_3", en:"A place you love", hi:"Pasandida jagah", topic:"describing a place you love" },
+    { id:"l4_4", en:"Your opinion",  hi:"Aapki raay",        topic:"giving your opinion on a simple topic" },
+    { id:"l4_5", en:"5-minute free chat", hi:"5 minute baat", topic:"a free friendly chat about anything" },
+  ]},
+  { level:5, name_en:"Interview", name_hi:"Interview", type:"interview", lessons:[
+    { id:"l5_1", en:"Tell me about yourself", hi:"Apne baare mein",  role:"general" },
+    { id:"l5_2", en:"Strengths & weaknesses", hi:"Taakat aur kamzori", role:"general" },
+    { id:"l5_3", en:"Why this role",  hi:"Yeh role kyun",  role:"general" },
+    { id:"l5_4", en:"Situational question", hi:"Situation wala sawaal", role:"general" },
+    { id:"l5_5", en:"Mini mock + report", hi:"Chhota mock + report", role:"general" },
+  ]},
+  { level:6, name_en:"Professional English", name_hi:"Professional English", type:"speak", lessons:[
+    { id:"l6_1", en:"Meeting introduction", hi:"Meeting mein parichay", prompt_en:"Introduce yourself in a work meeting.", prompt_hi:"Ek work meeting mein apna parichay dijiye.", target:"Hello everyone, I'm ___. I work in ___ and I handle ___." },
+    { id:"l6_2", en:"Spoken email phrases", hi:"Email waale vaakya", prompt_en:"Say how you'd start and end a polite work email.", prompt_hi:"Ek polite email kaise shuru aur khatam karenge, bol kar bataiye.", target:"I hope you are doing well. ... Please let me know. Best regards, ___." },
+    { id:"l6_3", en:"Give a status update", hi:"Status update", prompt_en:"Give a short update on a task you are working on.", prompt_hi:"Kisi kaam ka chhota update dijiye.", target:"I have finished ___. I am currently working on ___. It will be done by ___." },
+    { id:"l6_4", en:"Disagree politely", hi:"Politely mana karna", prompt_en:"Politely disagree with an idea.", prompt_hi:"Kisi baat se politely asehmati jataiye.", target:"I see your point, but I think ___. Maybe we could ___." },
+    { id:"l6_5", en:"Present an idea", hi:"Idea pesh karna", prompt_en:"Present one idea in two sentences.", prompt_hi:"Ek idea do vaakya mein pesh kijiye.", target:"I suggest that we ___. This will help us ___." },
+  ]},
+  { level:7, name_en:"Fluency", name_hi:"Fluency", type:"converse", lessons:[
+    { id:"l7_1", en:"Debate a topic", hi:"Kisi topic par bahas", topic:"a friendly debate on a simple topic" },
+    { id:"l7_2", en:"Explain something", hi:"Kuch samjhana",     topic:"explaining how something works" },
+    { id:"l7_3", en:"Detailed storytelling", hi:"Detail mein kahani", topic:"telling a detailed story" },
+    { id:"l7_4", en:"Idioms & natural phrases", hi:"Natural phrases", topic:"using natural everyday English phrases" },
+    { id:"l7_5", en:"Open fluent conversation", hi:"Khuli baat-cheet", topic:"an open, natural conversation" },
+  ]},
+];
+
+let currentLesson = null;   // {level, id, type} while a roadmap lesson is running
+
+function jJourney(){ return (userState && userState.progress && userState.progress.journey) || {start_level:1,current_level:1,completed:{},lang:"en",sentences_spoken:0}; }
+function jProg(){ return (userState && userState.progress) || {xp:0,streak_days:0,sessions_today:0,daily_goal:3,badges:[]}; }
+function jProfile(){ return (userState && userState.profile) || {level:"A1",scores:{},weak_areas:[],goal:""}; }
+function lvlDone(level){ const c = jJourney().completed || {}; return (c[String(level)] || []).length; }
+function levelObj(level){ return CURRICULUM.find(l => l.level === level); }
+
+// ---- render ----
+function renderHomeJourney(){
+  const b = $("journeyBanner"), fl = $("freeLabel");
+  if(!b) return;
+  if(!userState || !userState.onboarded){ b.hidden = true; if(fl) fl.hidden = true; return; }
+  const j = jJourney(), cur = j.current_level || 1, lv = levelObj(cur);
+  const done = lvlDone(cur), lesson = lv ? lv.lessons.find(x => !(j.completed?.[String(cur)]||[]).includes(x.id)) : null;
+  b.innerHTML = `
+    <div class="jb-ic">${LEVEL_ICONS[cur-1] || "🎯"}</div>
+    <div class="jb-main">
+      <div class="jb-title">Continue your Journey</div>
+      <div class="jb-sub">Level ${cur} · ${lv ? lv.name_en : ""} — ${lesson ? "Next: " + lesson.en : "Level complete!"}</div>
+    </div>
+    <div class="jb-go">→</div>`;
+  b.hidden = false; if(fl) fl.hidden = false;
+}
+$("journeyBanner").onclick = openJourney;
+
+function openJourney(){ show("journey"); renderJourney(); }
+$("journeyBack").onclick = () => { show("home"); };
+
+function renderJourney(){
+  const j = jJourney(), p = jProg(), prof = jProfile();
+  $("journeyGoal").textContent = prof.goal ? "Goal: " + prof.goal : "";
+  // stats
+  $("jrnyStats").innerHTML = `
+    <div class="stat-chip"><b>${j.current_level||1}</b><span>Level</span></div>
+    <div class="stat-chip"><b>${p.xp||0}</b><span>XP</span></div>
+    <div class="stat-chip"><b>${p.streak_days||0}🔥</b><span>Streak</span></div>
+    <div class="stat-chip"><b>${p.sessions_today||0}/${p.daily_goal||3}</b><span>Today</span></div>`;
+  // focus tip (light adaptive) from weakest skill
+  const weak = (prof.weak_areas || [])[0];
+  const ft = $("focusTip");
+  if(weak){ ft.hidden = false; ft.innerHTML = `💡 <b>DuSu suggests:</b> your ${A_METRIC_LABELS[weak]||weak} needs the most work — lessons here will focus on it.`; }
+  else { ft.hidden = true; }
+  // dashboard skills
+  const s = prof.scores || {};
+  $("dashSkills").innerHTML = Object.keys(A_METRIC_LABELS).map(k => {
+    const v = s[k] ?? 0;
+    return `<div class="metric"><div class="m-top"><b>${A_METRIC_LABELS[k]}</b><span>${v}</span></div><div class="bar"><i data-w="${v}"></i></div></div>`;
+  }).join("");
+  setTimeout(() => $("dashSkills").querySelectorAll(".bar i").forEach(i => i.style.width = (i.dataset.w||0) + "%"), 120);
+  // roadmap
+  $("roadmapHead").textContent = "Your roadmap";
+  const cur = j.current_level || 1;
+  $("roadmap").innerHTML = CURRICULUM.map(lv => {
+    const done = lvlDone(lv.level), total = lv.lessons.length, pct = Math.round(done/total*100);
+    const complete = done >= total, isCur = lv.level === cur, locked = lv.level > cur;
+    const cls = complete ? "done playable" : isCur ? "current playable" : locked ? "locked" : "playable";
+    return `<div class="lvl-row ${cls}" data-level="${lv.level}">
+      ${isCur ? '<span class="you-here">You are here</span>' : ''}
+      <div class="lvl-ic">${locked ? "🔒" : LEVEL_ICONS[lv.level-1]}</div>
+      <div class="lvl-main">
+        <div class="lvl-name">${lv.level}. ${lv.name_en}</div>
+        <div class="lvl-sub">${complete ? "Completed ✓" : done + " / " + total + " lessons"}</div>
+        <div class="lvl-bar"><i data-w="${pct}"></i></div>
+      </div>
+      <div class="lvl-right">${complete ? "✅" : locked ? "" : "▶"}</div>
+    </div>`;
+  }).join("");
+  setTimeout(() => $("roadmap").querySelectorAll(".lvl-bar i").forEach(i => i.style.width = (i.dataset.w||0) + "%"), 120);
+  $("roadmap").querySelectorAll(".lvl-row.playable").forEach(r => {
+    r.onclick = () => openLevel(Number(r.dataset.level));
+  });
+}
+
+// lesson list for one level (rendered inside the journey screen)
+function openLevel(level){
+  const j = jJourney(), lv = levelObj(level), doneIds = j.completed?.[String(level)] || [];
+  $("roadmapHead").innerHTML = `<button class="back" id="lvlBack" style="width:30px;height:30px;display:inline-grid;vertical-align:middle;margin-right:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button> ${LEVEL_ICONS[level-1]} ${lv.name_en}`;
+  let rows = lv.lessons.map(ls => {
+    const done = doneIds.includes(ls.id);
+    return `<div class="lvl-row playable" data-lesson="${ls.id}">
+      <div class="lvl-ic">${done ? "✅" : "▶"}</div>
+      <div class="lvl-main"><div class="lvl-name">${ls.en}</div><div class="lvl-sub">${ls.hi}</div></div>
+      <div class="lvl-right">${done ? "+20 XP" : ""}</div>
+    </div>`;
+  }).join("");
+  if(lv.level_test && lv.level_test.length){
+    const allDone = doneIds.length >= lv.lessons.length;
+    const ti = (j.test_scores || {})[String(level)];
+    const passed = !!(ti && ti.passed);
+    const cls = allDone ? (passed ? "playable done" : "playable current") : "locked";
+    const name = passed ? "Level Test — Passed ✓" : "Level Test";
+    const sub = !allDone ? "Finish all lessons first" : ti ? `Best score: ${ti.best}%${passed ? "" : " — try again"}` : "Checks what you've learned";
+    rows += `<div class="lvl-row ${cls}" data-test="1">
+      <div class="lvl-ic">${passed ? "✅" : "📝"}</div>
+      <div class="lvl-main"><div class="lvl-name">${name}</div><div class="lvl-sub">${sub}</div></div>
+      <div class="lvl-right">${allDone && !passed ? "▶" : ""}</div>
+    </div>`;
+  }
+  $("roadmap").innerHTML = rows;
+  $("lvlBack").onclick = renderJourney;
+  $("roadmap").querySelectorAll(".lvl-row[data-lesson]").forEach(r => { r.onclick = () => startLesson(level, r.dataset.lesson); });
+  const testRow = $("roadmap").querySelector(".lvl-row[data-test].playable");
+  if(testRow) testRow.onclick = () => startLevelTest(level);
+}
+
+// ---- lesson evaluation / completion API ----
+async function evaluateAnswer(payload){
+  try{
+    const r = await fetch("/lesson/evaluate", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ token:authToken, ...payload }) });
+    if(r.ok) return await r.json();
+  }catch(_){}
+  return { pass:true, correct_english:"", feedback:"", encouragement:"Good try!" };
+}
+async function completeLesson(level, id, type){
+  try{
+    const r = await fetch("/lesson/complete", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ token:authToken, level, lesson_id:id, lesson_type:type }) });
+    if(r.ok){ const d = await r.json(); if(d.progress && userState) userState.progress = d.progress; return d; }
+  }catch(_){}
+  return { leveled_up:false, new_badges:[] };
+}
+function celebrate(html){
+  const el = document.createElement("div");
+  el.style.cssText = "position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(7,10,20,.7);animation:fade .3s both";
+  el.innerHTML = `<div style="background:var(--glass);border:1px solid var(--gold);border-radius:24px;padding:34px 30px;text-align:center;box-shadow:var(--gold-glow);max-width:340px">${html}</div>`;
+  el.onclick = () => el.remove();
+  document.body.appendChild(el);
+  if(typeof sparkle === "function") try{ sparkle(el.firstChild); }catch(_){}
+  setTimeout(() => el.remove(), 3200);
+}
+
+// ---- lesson player (think / speak) ----
+function lessonGuideVoice(level){ const j = jJourney(); return (j.lang === "hi" && level <= 3) ? HI() : ENG_NORM(); }
+function lessonListen(){
+  return new Promise(async res => {
+    const mic = $("lessonMic");
+    mic.classList.add("listening"); $("lessonState").textContent = "Listening…";
+    const txt = await listenOnce("en-US");
+    mic.classList.remove("listening");
+    res(txt);
+  });
+}
+
+function startLesson(level, id){
+  const lv = levelObj(level), ls = lv.lessons.find(x => x.id === id);
+  if(!ls) return;
+  currentLesson = { level, id, type:lv.type };
+  if(lv.type === "think") startThinkLesson(level, lv, ls);
+  else if(lv.type === "speak") startSpeakLesson(level, lv, ls);
+  else if(lv.type === "converse"){ startSession("conversation"); $("sessTitle").textContent = ls.en; $("sessSub").textContent = "Journey · " + lv.name_en; }
+  else if(lv.type === "interview"){ if($("role")) $("role").value = (jProfile().goal || "general"); startSession("interview"); $("sessTitle").textContent = ls.en; }
+}
+
+// Teach the words/phrases a lesson needs before its speaking drill. Skippable.
+async function playVocabThenContinue(ls, onDone){
+  const vocab = ls.vocab;
+  const mic = $("lessonMic");
+  if(!vocab || !vocab.length){ mic.style.display = ""; return onDone(); }
+  mic.style.display = "none";
+  let i = 0;
+  async function showCard(){
+    if(i >= vocab.length){ mic.style.display = ""; return onDone(); }
+    const v = vocab[i];
+    $("lessonProg").textContent = `Vocabulary ${i+1} of ${vocab.length}`;
+    $("lessonPrompt").innerHTML = `<div style="font-size:27px;margin-bottom:8px">${v.en}</div><span class="hi">${v.hi}</span>`;
+    $("lessonState").innerHTML = `<div class="assess-actions" style="margin-top:20px">
+      <button class="btn ghost" id="vocabSkip">Skip vocabulary</button>
+      <button class="btn primary" id="vocabNext">Next →</button></div>`;
+    $("vocabNext").onclick = () => { i++; showCard(); };
+    $("vocabSkip").onclick = () => { mic.style.display = ""; onDone(); };
+    await say(v.en, ENG_NORM());
+    await say(v.hi, HI());
+  }
+  showCard();
+}
+
+async function startThinkLesson(level, lv, ls){
+  show("lesson"); $("lessonMic").style.display = "";
+  $("lessonTitle").textContent = ls.en; $("lessonSub").textContent = "Level " + level + " · " + lv.name_en;
+  const phrases = ls.phrases; let idx = 0, lastCorrect = "";
+  const mic = $("lessonMic");
+  $("lessonCard").hidden = true;
+  async function nextPhrase(){
+    if(idx >= phrases.length){ return finishLesson(level, ls, "think"); }
+    $("lessonCard").hidden = true; mic.disabled = true;
+    $("lessonProg").textContent = `Phrase ${idx+1} of ${phrases.length}`;
+    $("lessonPrompt").innerHTML = `Say this in English<span class="hi">“${phrases[idx]}”</span>`;
+    await say(phrases[idx], HI());
+    await say(jJourney().lang === "hi" ? "Ise English mein boliye." : "Say it in English.", lessonGuideVoice(level));
+    $("lessonState").textContent = "Tap the mic and speak."; mic.disabled = false;
+  }
+  mic.onclick = async () => {
+    mic.disabled = true;
+    const said = await lessonListen();
+    if(!said){ $("lessonState").textContent = "Didn't catch that — tap again."; mic.disabled = false; return; }
+    $("lessonState").textContent = "Checking…";
+    const d = await evaluateAnswer({ lang:jJourney().lang, type:"think", prompt:phrases[idx], target:"", said });
+    lastCorrect = d.correct_english || "";
+    $("lcSaid").textContent = "“" + said + "”";
+    $("lcCorrect").textContent = lastCorrect || "—";
+    $("lcFeedback").textContent = (d.encouragement ? d.encouragement + " " : "") + (d.feedback || "");
+    $("lessonCard").hidden = false; $("lessonState").textContent = "";
+    if(lastCorrect){ await say(lastCorrect, ENG_SLOW()); }
+  };
+  $("lcReplay").onclick = () => { if(lastCorrect){ stopAssessSpeech(); say(lastCorrect, ENG_SLOW()); } };
+  $("lcNext").onclick = () => { idx++; nextPhrase(); };
+  playVocabThenContinue(ls, nextPhrase);
+}
+
+async function startSpeakLesson(level, lv, ls){
+  show("lesson"); $("lessonMic").style.display = "";
+  $("lessonTitle").textContent = ls.en; $("lessonSub").textContent = "Level " + level + " · " + lv.name_en;
+  const mic = $("lessonMic"); let lastCorrect = "";
+  $("lessonCard").hidden = true; mic.disabled = true;
+  const beginnerHi = jJourney().lang === "hi" && level <= 3;
+  async function showPrompt(){
+    $("lessonProg").textContent = "Speak your answer";
+    $("lessonPrompt").innerHTML = `${ls.prompt_en}${beginnerHi ? `<span class="hi">${ls.prompt_hi}</span>` : ""}`;
+    await say(beginnerHi ? ls.prompt_hi : ls.prompt_en, lessonGuideVoice(level));
+    $("lessonState").textContent = "Tap the mic and answer in English."; mic.disabled = false;
+  }
+  mic.onclick = async () => {
+    mic.disabled = true;
+    const said = await lessonListen();
+    if(!said){ $("lessonState").textContent = "Didn't catch that — tap again."; mic.disabled = false; return; }
+    $("lessonState").textContent = "Checking…";
+    const d = await evaluateAnswer({ lang:jJourney().lang, type:"speak", prompt:ls.prompt_en, target:ls.target||"", said });
+    lastCorrect = d.correct_english || "";
+    $("lcSaid").textContent = "“" + said + "”";
+    $("lcCorrect").textContent = lastCorrect || "—";
+    $("lcFeedback").textContent = (d.encouragement ? d.encouragement + " " : "") + (d.feedback || "");
+    $("lessonCard").hidden = false; $("lessonState").textContent = "";
+    if(lastCorrect){ await say(lastCorrect, ENG_SLOW()); }
+  };
+  $("lcReplay").onclick = () => { if(lastCorrect){ stopAssessSpeech(); say(lastCorrect, ENG_SLOW()); } };
+  $("lcNext").onclick = () => finishLesson(level, ls, "speak");
+  playVocabThenContinue(ls, showPrompt);
+}
+
+async function finishLesson(level, ls, type){
+  stopAssessSpeech();
+  const d = await completeLesson(level, ls.id, type);
+  const badges = (d.new_badges || []).map(b => BADGE_LABELS[b] || b).join("<br>");
+  const lv = levelObj(level);
+  const allDone = lvlDone(level) >= lv.lessons.length;
+  const testInfo = (jJourney().test_scores || {})[String(level)];
+  const needsTest = allDone && lv.level_test && lv.level_test.length && !(testInfo && testInfo.passed);
+
+  if(needsTest){
+    celebrate(`<div style="font-size:40px">✨</div><h2 style="font-family:var(--font-d);font-size:23px;margin:6px 0">All lessons done!</h2><p style="color:var(--gold);font-size:18px">+20 XP</p>${badges?`<div style="margin-top:10px;color:var(--gold)">${badges}</div>`:""}<p style="color:var(--ink-dim);margin-top:10px">Ready for your Level Test?</p>`);
+    setTimeout(() => startLevelTest(level), 1500);
+    return;
+  }
+  if(d.leveled_up){
+    celebrate(`<div style="font-size:44px">🚀</div><h2 style="font-family:var(--font-d);font-size:26px;margin:6px 0">Level Up!</h2><p style="color:var(--ink-dim)">You unlocked Level ${(jJourney().current_level)}. Keep going!</p>${badges?`<div style="margin-top:12px;color:var(--gold)">${badges}</div>`:""}`);
+    say("Congratulations! You levelled up. Keep going!", ENG_NORM());
+  } else {
+    celebrate(`<div style="font-size:40px">✨</div><h2 style="font-family:var(--font-d);font-size:23px;margin:6px 0">Lesson complete!</h2><p style="color:var(--gold);font-size:18px">+20 XP</p>${badges?`<div style="margin-top:10px;color:var(--gold)">${badges}</div>`:""}`);
+  }
+  openJourney();
+}
+
+/* ---- Level Test: fresh prompts drawn from the level, scored together ---- */
+let levelTestState = null;   // { level, items, answers[] }
+
+function startLevelTest(level){
+  const lv = levelObj(level);
+  if(!lv.level_test || !lv.level_test.length) return;
+  levelTestState = { level, items: lv.level_test, answers: [] };
+  show("lesson"); $("lessonMic").style.display = "";
+  $("lessonCard").hidden = true;
+  runLevelTestItem(0);
+}
+
+async function runLevelTestItem(idx){
+  const st = levelTestState;
+  if(!st) return;
+  if(idx >= st.items.length){ return submitLevelTest(); }
+  const it = st.items[idx], mic = $("lessonMic");
+  $("lessonTitle").textContent = "Level Test"; $("lessonSub").textContent = levelObj(st.level).name_en;
+  $("lessonProg").textContent = `Question ${idx+1} of ${st.items.length}`;
+  const beginnerHi = jJourney().lang === "hi" && st.level <= 3;
+  mic.disabled = true;
+  $("lessonPrompt").innerHTML = `${it.prompt_en}${beginnerHi ? `<span class="hi">${it.prompt_hi}</span>` : ""}`;
+  await say(beginnerHi ? it.prompt_hi : it.prompt_en, lessonGuideVoice(st.level));
+  $("lessonState").textContent = "Tap the mic and answer."; mic.disabled = false;
+  mic.onclick = async () => {
+    mic.disabled = true;
+    const said = await lessonListen();
+    st.answers[idx] = said || "";
+    runLevelTestItem(idx + 1);   // no per-item feedback — feels like a real test
+  };
+}
+
+async function submitLevelTest(){
+  const st = levelTestState, level = st.level;
+  $("lessonProg").textContent = ""; $("lessonPrompt").textContent = "";
+  $("lessonMic").style.display = "none";
+  $("lessonState").innerHTML = `<div class="spin" style="margin:20px auto"></div>Scoring your test…`;
+  const items = st.items.map((it, i) => ({ prompt: it.prompt_en, target: it.target || "", said: st.answers[i] || "" }));
+  let result = null;
+  try{
+    const r = await fetch("/level/test/submit", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ token:authToken, level, lang:jJourney().lang, items }) });
+    if(r.ok) result = await r.json();
+  }catch(_){}
+  levelTestState = null;
+  if(!result){ $("lessonMic").style.display = ""; $("lessonState").textContent = "Could not score the test — tap back and try again."; return; }
+  if(result.progress && userState) userState.progress = result.progress;
+  showLevelTestResult(level, result);
+}
+
+function showLevelTestResult(level, result){
+  $("lessonState").textContent = "";
+  const itemsHtml = (result.items || []).map(it => `<div style="margin-bottom:8px">${it.pass ? "✅" : "💡"} ${it.feedback || ""}</div>`).join("");
+  const badges = (result.new_badges || []).map(b => BADGE_LABELS[b] || b).join(" · ");
+  if(result.passed){
+    $("lessonPrompt").innerHTML = `
+      <div style="font-size:40px">🎉</div>
+      <h2 style="font-family:var(--font-d);font-size:24px;margin:8px 0">Level Test Passed! ${result.score}%</h2>
+      <p style="color:var(--ink-dim);max-width:440px;margin:0 auto 16px">${result.message || ""}</p>
+      ${badges ? `<div style="color:var(--gold);margin-bottom:14px">${badges}</div>` : ""}
+      <div class="assess-actions"><button class="btn primary" id="ltContinue">Continue Journey →</button></div>`;
+    say(result.message || "Congratulations, you passed the level test!", ENG_NORM());
+    $("ltContinue").onclick = openJourney;
+  } else {
+    $("lessonPrompt").innerHTML = `
+      <div style="font-size:36px">💪</div>
+      <h2 style="font-family:var(--font-d);font-size:22px;margin:8px 0">Not quite yet — ${result.score}%</h2>
+      <p style="color:var(--ink-dim);max-width:440px;margin:0 auto 14px">${result.message || ""}</p>
+      <div style="text-align:left;max-width:440px;margin:0 auto 18px;font-size:13.5px;color:var(--ink-dim)">${itemsHtml}</div>
+      <div class="assess-actions">
+        <button class="btn ghost" id="ltReview">Review Lessons</button>
+        <button class="btn primary" id="ltRetake">Retake Test</button>
+      </div>`;
+    say(result.message || "Keep practicing — you'll get there.", ENG_NORM());
+    $("ltReview").onclick = () => { show("journey"); openLevel(level); };
+    $("ltRetake").onclick = () => startLevelTest(level);
+  }
+}
+
+$("lessonBack").onclick = () => {
+  stopAssessSpeech(); currentLesson = null; levelTestState = null;
+  $("lessonMic").style.display = ""; openJourney();
+};
+
 /* ================= Google Sign-In ================= */
 const GOOGLE_CLIENT_ID = "__GOOGLE_CLIENT_ID__";
 const AUTH_ENABLED = __AUTH_ENABLED__;
 let authToken = localStorage.getItem("dusu_token") || "";
 let authUser = JSON.parse(localStorage.getItem("dusu_user") || "null");
+let userState = null;   // { onboarded, profile, progress } from the DB
 
 function applyUser(u){
   authUser = u;
@@ -1331,10 +2137,15 @@ function onGoogle(resp){
       authToken = d.token;
       localStorage.setItem("dusu_token", d.token);
       localStorage.setItem("dusu_user", JSON.stringify(d.user));
+      userState = { onboarded: d.onboarded, profile: d.profile || null, progress: d.progress || null };
       applyUser(d.user);
       $("loginNote").textContent = "";
-      show("home");
-      speakWelcome();   // DuSu greets by name (gesture: the sign-in click)
+      if(d.onboarded === false){   // brand-new user (DB on) → first-time level check
+        startAssessment();
+      } else {
+        show("home");
+        speakWelcome();   // DuSu greets by name (gesture: the sign-in click)
+      }
     })
     .catch(() => { $("loginNote").textContent = "Sign-in failed. Please try again."; });
 }
@@ -1345,7 +2156,21 @@ function initAuth(){
     show("home");
     return;
   }
-  if(authToken && authUser){ applyUser(authUser); show("home"); }
+  if(authToken && authUser){
+    applyUser(authUser);
+    // Resolve saved state BEFORE choosing a screen — avoids a home→assessment
+    // flash and (more importantly) never trusts a stale/cached onboarded flag.
+    fetch("/me?token=" + encodeURIComponent(authToken), { cache:"no-store" })
+      .then(r => r.ok ? r.json() : null)
+      .then(st => {
+        if(st){
+          userState = { onboarded: st.onboarded, profile: st.profile || null, progress: st.progress || null };
+        }
+        if(userState && userState.onboarded === false) startAssessment();
+        else show("home");
+      })
+      .catch(() => show("home"));   // network hiccup → don't strand the user, just show home
+  }
   else { show("login"); }
   (function ready(){
     if(!(window.google && google.accounts && google.accounts.id)){ return setTimeout(ready, 200); }

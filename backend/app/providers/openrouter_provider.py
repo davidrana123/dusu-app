@@ -104,6 +104,13 @@ class OpenRouterLLM:
                     {"role": "user", "content": text}]
         return await _complete(messages, max_tokens=120)
 
+    async def assess(self, system: str, payload: str) -> dict:
+        messages = [
+            {"role": "system", "content": system},
+            {"role": "user", "content": payload + "\n\nReturn ONLY the JSON object."},
+        ]
+        return _extract_json(await _complete(messages, max_tokens=700))
+
     async def score(self, system: str, transcript: list[dict]) -> dict:
         convo = "\n".join(f"{m['role']}: {m['content']}" for m in transcript)
         messages = [

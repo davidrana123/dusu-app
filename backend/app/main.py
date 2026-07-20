@@ -26,6 +26,8 @@ from pydantic import BaseModel
 
 from .config import settings
 from .interview.engine import Session
+from .interview.prompts import ASSESS_SYSTEM, LESSON_EVAL_SYSTEM, LEVEL_TEST_SYSTEM
+from .providers import llm
 from . import auth
 from . import db
 
@@ -95,6 +97,168 @@ async def auth_google(inp: GoogleIn):
         except Exception as e:
             print(f"[db] login persist failed: {type(e).__name__}: {e}")
     return resp
+
+
+class AssessIn(BaseModel):
+    token: str
+    lang: str = "en"         # "hi" or "en" — language the learner took the test in
+    goal: str = ""
+    comfort: str = ""
+    practice_time: str = ""
+    intro: str = ""          # task 1 transcript
+    repeat_target: str = ""  # task 2 target sentence
+    repeat_said: str = ""    # task 2 what they said
+    think_hindi: str = ""    # task 3 Hindi prompt
+    think_said: str = ""     # task 3 their English attempt
+    open_said: str = ""      # task 4 transcript
+
+
+@app.get("/me")
+async def me(token: str = ""):
+    """Return the signed-in user's saved state (for reload / routing)."""
+    claims = auth.read_session(token)
+    if not claims:
+        raise HTTPException(401, "Not signed in")
+    if not db.db_enabled:
+        return {"onboarded": None}
+    try:
+        return await db.login(claims)   # upsert row + return state (handles cached-token logins)
+    except Exception as e:
+        print(f"[me] db failed: {type(e).__name__}: {e}")
+        return {"onboarded": False}
+
+
+@app.post("/assessment")
+async def assessment(inp: AssessIn):
+    """Score the level assessment, save the profile, return it."""
+    claims = auth.read_session(inp.token)
+    if not claims:
+        raise HTTPException(401, "Not signed in")
+    payload = (
+        f"goal: {inp.goal}\ncomfort: {inp.comfort}\npractice_time: {inp.practice_time}\n\n"
+        f"TASK 1 (intro): {inp.intro or '(no answer)'}\n\n"
+        f"TASK 2 (repeat)\n  target: {inp.repeat_target}\n  said: {inp.repeat_said or '(no answer)'}\n\n"
+        f"TASK 3 (think)\n  hindi: {inp.think_hindi}\n  said in English: {inp.think_said or '(no answer)'}\n\n"
+        f"TASK 4 (open): {inp.open_said or '(no answer)'}"
+    )
+    if inp.lang == "hi":
+        payload += ("\n\nIMPORTANT: The learner chose HINDI. Write the 'message' field in "
+                    "simple, warm Hindi written in Latin/Roman script (e.g. 'Aap bahut acche kar rahe hain'). "
+                    "Keep all JSON keys and level/score values exactly as specified.")
+    try:
+        result = await llm.assess(ASSESS_SYSTEM, payload)
+    except Exception as e:
+        print(f"[assess] llm failed: {type(e).__name__}: {e}")
+        raise HTTPException(502, "Assessment scoring failed, please try again")
+
+    data = {
+        "goal": inp.goal, "comfort": inp.comfort, "practice_time": inp.practice_time,
+        "level": result.get("level", "A1"),
+        "scores": result.get("scores", {}),
+        "weak_areas": result.get("weak_areas", []),
+    }
+    if db.db_enabled:
+        try:
+            await db.login(claims)   # ensure user+profile+progress rows exist (cached-token logins skip onGoogle)
+            await db.save_assessment(claims["sub"], data, lang=inp.lang)
+        except Exception as e:
+            print(f"[assess] db save failed: {type(e).__name__}: {e}")
+    return {"profile": data, "message": result.get("message", "")}
+
+
+class LessonEvalIn(BaseModel):
+    token: str
+    lang: str = "en"
+    type: str = "speak"       # think | speak
+    prompt: str = ""          # what the learner was asked
+    target: str = ""          # ideal/expected answer
+    said: str = ""            # their transcribed attempt
+
+
+class LessonDoneIn(BaseModel):
+    token: str
+    level: int
+    lesson_id: str
+    lesson_type: str = ""
+
+
+@app.post("/lesson/evaluate")
+async def lesson_evaluate(inp: LessonEvalIn):
+    """Score one spoken lesson answer, return warm feedback (no DB write)."""
+    if not auth.read_session(inp.token):
+        raise HTTPException(401, "Not signed in")
+    payload = (
+        f"lang: {inp.lang}\ntype: {inp.type}\n"
+        f"prompt: {inp.prompt}\ntarget: {inp.target or '(open answer)'}\n"
+        f"learner said: {inp.said or '(no answer)'}"
+    )
+    try:
+        return await llm.assess(LESSON_EVAL_SYSTEM, payload)
+    except Exception as e:
+        print(f"[lesson] eval failed: {type(e).__name__}: {e}")
+        raise HTTPException(502, "Could not evaluate, please try again")
+
+
+@app.post("/lesson/complete")
+async def lesson_complete(inp: LessonDoneIn):
+    """Mark a lesson complete → update journey/xp/streak/badges. Returns progress."""
+    claims = auth.read_session(inp.token)
+    if not claims:
+        raise HTTPException(401, "Not signed in")
+    if not db.db_enabled:
+        return {"progress": None, "leveled_up": False, "new_badges": []}
+    try:
+        await db.login(claims)   # ensure rows exist
+        return await db.complete_lesson(claims["sub"], inp.level, inp.lesson_id, inp.lesson_type)
+    except Exception as e:
+        print(f"[lesson] complete failed: {type(e).__name__}: {e}")
+        raise HTTPException(500, "Could not save progress")
+
+
+class LevelTestItem(BaseModel):
+    prompt: str = ""
+    target: str = ""
+    said: str = ""
+
+
+class LevelTestIn(BaseModel):
+    token: str
+    level: int
+    lang: str = "en"
+    items: list[LevelTestItem] = []
+
+
+@app.post("/level/test/submit")
+async def level_test_submit(inp: LevelTestIn):
+    """Score a whole Level Test in one LLM call, persist the attempt, and
+    unlock the next level if the learner passed (>=70)."""
+    claims = auth.read_session(inp.token)
+    if not claims:
+        raise HTTPException(401, "Not signed in")
+    lines = "\n\n".join(
+        f"Item {i+1}:\n  prompt: {it.prompt}\n  target: {it.target or '(open answer)'}\n  learner said: {it.said or '(no answer)'}"
+        for i, it in enumerate(inp.items)
+    )
+    payload = f"lang: {inp.lang}\nlevel: {inp.level}\n\n{lines}"
+    try:
+        result = await llm.assess(LEVEL_TEST_SYSTEM, payload)
+    except Exception as e:
+        print(f"[level-test] eval failed: {type(e).__name__}: {e}")
+        raise HTTPException(502, "Could not score the test, please try again")
+
+    score = int(result.get("score", 0))
+    out = {"score": score, "passed": result.get("passed", score >= 70),
+           "items": result.get("items", []), "message": result.get("message", "")}
+    if db.db_enabled:
+        try:
+            await db.login(claims)
+            saved = await db.submit_level_test(claims["sub"], inp.level, score)
+            out["leveled_up"] = saved["leveled_up"]
+            out["new_badges"] = saved["new_badges"]
+            out["progress"] = saved["progress"]
+        except Exception as e:
+            print(f"[level-test] db save failed: {type(e).__name__}: {e}")
+    return out
 
 
 @app.get("/")

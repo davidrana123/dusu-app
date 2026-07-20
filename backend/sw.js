@@ -2,7 +2,7 @@
    Network-first for navigations (always try fresh HTML so deploys show up),
    falling back to cache when offline. WebSocket + API calls are never cached. */
 
-const CACHE = "dusu-v1";
+const CACHE = "dusu-v2";   // bumped: /me was wrongly cache-first (served stale onboarded flag)
 const SHELL = ["/", "/logo.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {
@@ -23,7 +23,13 @@ self.addEventListener("fetch", (event) => {
   const req = event.request;
   if (req.method !== "GET") return;                       // never cache POST/auth
   const url = new URL(req.url);
-  if (url.pathname.startsWith("/ws") || url.pathname.startsWith("/auth")) return;
+  // Never cache-first these — they're live per-user API data, not static assets.
+  // (/me previously fell through to the cache-first branch below and could
+  // serve a stale `onboarded` flag forever once cached.)
+  if (url.pathname.startsWith("/ws") || url.pathname.startsWith("/auth")
+      || url.pathname.startsWith("/me") || url.pathname.startsWith("/health")
+      || url.pathname.startsWith("/lesson") || url.pathname.startsWith("/level")
+      || url.pathname.startsWith("/assessment")) return;
 
   // Navigations: network-first so a new deploy is picked up immediately.
   if (req.mode === "navigate") {
