@@ -527,8 +527,8 @@
 
   /* JOURNEY (roadmap + dashboard) */
   .journey-banner { display:flex; align-items:center; gap:16px; width:100%; text-align:left; cursor:pointer;
-    background:linear-gradient(135deg, rgba(212,175,55,.16), rgba(212,175,55,.05)); border:1px solid var(--gold);
-    border-radius:20px; padding:18px 20px; margin:6px 0 22px; box-shadow:var(--gold-glow); transition:transform .15s; touch-action:manipulation; }
+    background:linear-gradient(135deg, rgba(111,140,255,.18), rgba(111,140,255,.05)); border:1px solid var(--gold);
+    border-radius:20px; padding:16px 18px; margin:6px 0 18px; box-shadow:var(--gold-glow); transition:transform .15s; touch-action:manipulation; }
   .journey-banner:active { transform:scale(.99); }
   .jb-ic { width:52px; height:52px; border-radius:16px; display:grid; place-items:center; font-size:26px; flex:none; background:var(--grad); }
   .jb-main { flex:1; min-width:0; }
@@ -550,10 +550,10 @@
   .mood-btn:hover { border-color:var(--gold); transform:translateY(-2px); }
   .event-banner { background:rgba(212,175,55,.12); border:1px solid var(--gold); border-radius:16px;
     padding:14px 16px; margin:6px 0 16px; font-size:14px; color:var(--ink); display:flex; gap:12px; align-items:center; }
-  .letter-card { background:linear-gradient(135deg, rgba(139,124,240,.14), rgba(212,175,55,.06));
-    border:1px solid var(--glass-brd); border-radius:18px; padding:16px 18px; margin:6px 0 16px; cursor:pointer; }
-  .letter-card h4 { font-family:var(--font-d); font-size:17px; margin-bottom:4px; }
-  .letter-card p { font-size:13.5px; color:var(--ink-dim); line-height:1.5; }
+  .letter-card { background:linear-gradient(160deg, rgba(124,134,201,.22), rgba(255,255,255,.04)), #171b28;
+    border:1px solid rgba(124,134,201,.35); border-radius:18px; padding:16px 18px; margin:6px 0 16px; cursor:pointer; }
+  .letter-card h4 { font-family:var(--font-d); font-size:17px; margin-bottom:4px; color:var(--ink); }
+  .letter-card p { font-size:13.5px; color:var(--ink); opacity:.85; line-height:1.5; }
   .jrny-stats { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
   .stat-chip { flex:1; min-width:88px; background:var(--glass); border:1px solid var(--glass-brd); border-radius:14px; padding:12px 8px; text-align:center; }
   .stat-chip b { display:block; font-family:var(--font-d); font-size:23px; line-height:1;
@@ -585,20 +585,29 @@
   /* Explore section: tidy nav cards (journey / leaderboard) + section labels */
   .sec-label { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint);
     font-weight:700; margin:24px 2px 10px; }
+  .sec-label.center { text-align:center; font-family:var(--font-d); text-transform:none; letter-spacing:0;
+    font-size:20px; color:var(--ink); }
+  .sec-label.center span, .free-label { color:var(--gold-lt); }
   .nav-cards { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:4px 0; }
-  @media (max-width:560px){ .nav-cards{ grid-template-columns:1fr; } }
-  .nav-card { display:flex; align-items:center; gap:13px; text-align:left; cursor:pointer; width:100%;
-    padding:15px 16px; border-radius:16px; color:var(--ink);
+  .nav-card { display:flex; flex-direction:column; align-items:center; text-align:center; gap:5px; cursor:pointer;
+    width:100%; padding:16px 12px; border-radius:16px; color:var(--ink);
     background:linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.02));
     border:1px solid rgba(255,255,255,.10); transition:transform .18s, border-color .2s, box-shadow .2s; }
   .nav-card:hover { transform:translateY(-2px); border-color:color-mix(in srgb,var(--gold) 45%,transparent);
     box-shadow:0 16px 34px -22px color-mix(in srgb,var(--gold) 60%,transparent); }
-  .nav-ic { font-size:24px; flex:none; line-height:1; }
-  .nav-txt { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
-  .nav-title { font-family:var(--font-d); font-size:17px; font-weight:600; }
-  .nav-sub { font-size:12px; color:var(--ink-dim); }
-  .nav-go { flex:none; color:var(--ink-faint); font-size:16px; transition:transform .2s, color .2s; }
-  .nav-card:hover .nav-go { transform:translateX(3px); color:var(--gold-lt); }
+  .nav-ic { font-size:26px; line-height:1; }
+  .nav-txt { display:flex; flex-direction:column; gap:2px; align-items:center; }
+  .nav-title { font-family:var(--font-d); font-size:16px; font-weight:600; }
+  .nav-sub { font-size:11.5px; color:var(--ink-dim); }
+  /* mobile app-density: fewer words, tighter cards */
+  @media (max-width:640px){
+    .sec-label { text-align:center; }
+    .sec-label.center { font-size:22px; }
+    .mode-card p { display:none; }
+    .nav-sub { display:none; }
+    .mode-card { min-height:auto; padding:18px 18px 16px; }
+    .mc-wm { display:none; }
+  }
 
   /* S9 — Confidence Stars collectible */
   .collect { margin:4px 0 14px; }
@@ -949,7 +958,7 @@
       <button class="today-card" id="todayCard" hidden></button>
       <div class="hgrow" id="heroGrowth" hidden></div>
       <button class="hbtn" id="startSpeak">Start Speaking</button>
-      <button class="reveal-link" id="exploreBtn">See what DuSu can do →</button>
+      <button class="reveal-link" id="exploreBtn">More ▾</button>
 
       <!-- The Companion Moment: DuSu speaks + 3 curated recommendations -->
       <div class="moment" id="moment" hidden>
@@ -970,21 +979,19 @@
 
     <!-- Journey CTA (shown once onboarded) -->
     <button id="journeyBanner" class="journey-banner" hidden></button>
-    <div class="sec-label" id="progressLabel" hidden>Your progress</div>
+    <div class="sec-label center" id="progressLabel" hidden>Your progress</div>
     <div class="nav-cards">
       <button id="roadmapLink" class="nav-card" hidden>
         <span class="nav-ic">🗺️</span>
-        <span class="nav-txt"><span class="nav-title">My learning journey</span><span class="nav-sub">Worlds, lessons &amp; progress</span></span>
-        <span class="nav-go">→</span>
+        <span class="nav-txt"><span class="nav-title">Journey</span><span class="nav-sub">Worlds & progress</span></span>
       </button>
       <button id="leaderboardLink" class="nav-card" hidden>
-        <span class="nav-ic">🌍</span>
-        <span class="nav-txt"><span class="nav-title">Global leaderboard</span><span class="nav-sub">See where you rank worldwide</span></span>
-        <span class="nav-go">→</span>
+        <span class="nav-ic">🏆</span>
+        <span class="nav-txt"><span class="nav-title">Leaderboard</span><span class="nav-sub">Global ranks</span></span>
       </button>
     </div>
 
-    <div class="free-label" id="freeLabel" hidden>Free practice</div>
+    <div class="sec-label center" id="freeLabel" hidden>Free practice</div>
 
     <div class="gtimeline" id="growthTimeline" hidden></div>
 
@@ -992,13 +999,12 @@
       <span class="curio-emoji">🎁</span>
       <span class="curio-txt">
         <span class="curio-title">Today's challenge</span>
-        <span class="curio-sub">Can you speak for 2 minutes — without switching to Hindi?</span>
+        <span class="curio-sub">Speak 2 min — no Hindi 🔥</span>
       </span>
       <span class="curio-go">→</span>
     </button>
 
-    <div class="modes-head">More ways to <span class="g">improve</span></div>
-    <div class="modes-sub">Explore everything — no pressure.</div>
+    <div class="sec-label center" id="practiceLabel">Practice</div>
 
     <div class="modes">
       <button class="mode-card learn" data-mode="learning">
@@ -1006,8 +1012,8 @@
         <div class="mc-orb">
           <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
         </div>
-        <h3>Learn step by step</h3>
-        <p>Speak in Hindi → I say it in English → you repeat. Your first step.</p>
+        <h3>Learn</h3>
+        <p>Speak Hindi, get English.</p>
         <div class="mc-chips"><span>🇮🇳 → 🇬🇧 Translate</span><span>🐢 Slow &amp; clear</span><span>🎙️ Voice</span></div>
         <span class="mc-cta">Start learning <b>→</b></span>
         <span class="mc-wm">📖</span>
@@ -1018,8 +1024,8 @@
         <div class="mc-orb">
           <svg viewBox="0 0 24 24" fill="none" stroke="#062" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
         </div>
-        <h3>Talk with me, face to face</h3>
-        <p>A relaxed English chat — just speak, I'll keep it going.</p>
+        <h3>Talk</h3>
+        <p>A free English chat.</p>
         <div class="mc-chips"><span>💬 Real chat</span><span>🔥 Build streak</span><span>🎙️ Voice</span></div>
         <span class="mc-cta">Start talking <b>→</b></span>
         <span class="mc-wm">💬</span>
@@ -1030,8 +1036,8 @@
         <div class="mc-orb">
           <svg viewBox="0 0 24 24" fill="none" stroke="#241a08" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
         </div>
-        <h3>Prepare for your interview</h3>
-        <p>A real mock interview with follow-ups, then a scored report.</p>
+        <h3>Interview</h3>
+        <p>Mock + scored report.</p>
         <div class="mc-chips"><span>🎯 Adaptive Q&amp;A</span><span>📊 Scored</span><span>💼 Any role</span></div>
         <span class="mc-cta">Start interview <b>→</b></span>
         <span class="mc-wm">🎯</span>
@@ -2567,8 +2573,8 @@ function renderHomeJourney(){
   b.innerHTML = `
     <div class="jb-ic">💬</div>
     <div class="jb-main">
-      <div class="jb-title">Continue your Journey</div>
-      <div class="jb-sub">Talk with DuSu about your day${nick ? ", " + nick : ""} — and learn English from it</div>
+      <div class="jb-title">Continue</div>
+      <div class="jb-sub">Talk about your day${nick ? ", " + nick : ""} →</div>
     </div>
     <div class="jb-go">→</div>`;
   b.hidden = false; if(fl) fl.hidden = false; if(rl) rl.hidden = false;
