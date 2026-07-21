@@ -89,6 +89,13 @@
     .blob { animation:none !important; }
     .wface, .orb-wrap.idle .orb, .orb-wrap.connecting .orb { animation:none !important; }
   }
+  /* mobile: drop the heavy ambient effects so it feels fast */
+  @media (max-width:640px){
+    .hpart { display:none; }
+    .hwords { display:none; }
+    .fx .blob { animation:none !important; filter:blur(55px); opacity:.4; }
+    .grain { display:none; }
+  }
 
   header.top { display:flex; align-items:center; gap:13px; margin-bottom:30px; }
   .logo { height:44px; width:auto; border-radius:10px; }
@@ -372,7 +379,12 @@
   .hstage.moment-on .reveal-link { display:none !important; }
   .moment { width:min(460px,92vw); display:flex; flex-direction:column; align-items:stretch; gap:12px; margin-top:6px; }
   .moment-say { font-family:var(--font-d); font-size:20px; line-height:1.4; color:var(--ink); text-align:center;
-    margin:2px auto 8px; max-width:420px; opacity:0; animation:fadeUp .6s ease .05s forwards; }
+    margin:2px auto 8px; max-width:420px; opacity:0; animation:fadeUp .6s ease .05s forwards; min-height:28px; }
+  /* loader while the AI greeting is being fetched */
+  .mload { display:inline-flex; gap:7px; vertical-align:middle; }
+  .mload i { width:9px; height:9px; border-radius:50%; background:var(--gold-lt); animation:bnc 1.2s ease-in-out infinite; }
+  .mload i:nth-child(2){ animation-delay:.15s; } .mload i:nth-child(3){ animation-delay:.3s; }
+  .mload-t { display:block; margin-top:10px; font-size:14px; color:var(--ink-dim); font-style:italic; }
   .moment-recs { display:flex; flex-direction:column; gap:12px; }
   .rec { position:relative; display:flex; flex-direction:column; gap:3px; text-align:left; cursor:pointer;
     padding:16px 18px; border-radius:16px; color:var(--ink); overflow:hidden;
@@ -1627,7 +1639,8 @@ async function openMoment(){
   homeHappy(true);
   if($("moment")) $("moment").hidden = false;
   if($("momentRecs")) $("momentRecs").innerHTML = "";
-  if($("momentSay")) $("momentSay").textContent = "…";
+  if($("momentSay")) $("momentSay").innerHTML = '<span class="mload"><i></i><i></i><i></i></span><span class="mload-t">Getting today ready for you…</span>';
+  requestAnimationFrame(() => { const m = $("moment"); if(m) m.scrollIntoView({ behavior:"smooth", block:"center" }); });
   // AI Hinglish greeting — only if a Hindi voice exists (else it sounds robotic); English fallback otherwise.
   const useHi = !!hindiVoice;
   let text = "", voiceOpts = GREET_VOICE();
@@ -1732,7 +1745,7 @@ function startSession(mode){
   $("endBtn").textContent = mode === "interview" ? "End & get report" : "End";
   $("endBtn").className = mode === "interview" ? "btn primary" : "btn danger";
   show("session");
-  orb("connecting", "Connecting…", "");
+  orb("connecting", "DuSu is getting ready…", "one moment");
   addSys("🎧 Tip: use headphones so DuSu's voice isn't picked up by your mic.");
 
   ws = new WebSocket(WS_URL);
@@ -1741,6 +1754,7 @@ function startSession(mode){
     usageInc(); refreshUsage();   // count the session now that it actually started
     ws.send(JSON.stringify({ type:"start", mode, name:$("name").value, role:$("role").value, token:authToken, mood:todayMood, seed:_convSeed }));
     _convSeed = "";   // one-shot: the Companion Moment's spoken answer seeds turn 1
+    orb("connecting", "DuSu is getting ready to talk…", "warming up");
   };
   ws.onmessage = onMessage;
   ws.onclose = () => {
@@ -2088,7 +2102,7 @@ function startDaily(){
   }
   currentMode = "daily"; dLastEng = ""; dLastNext = "";
   $("dailyCard").hidden = true; $("dcHindi").textContent = ""; $("dcEng").textContent = "";
-  $("dailyQ").textContent = "…"; dState("Connecting…"); dMic(false);
+  $("dailyQ").textContent = "…"; dState("DuSu is getting ready…"); dMic(false); dailyOrb("connecting");
   show("daily");
   ws = new WebSocket(WS_URL);
   ws.onopen = () => { running = true; usageInc(); refreshUsage();
