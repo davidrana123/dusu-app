@@ -101,6 +101,7 @@
   .logo { height:44px; width:auto; border-radius:10px; }
   .brand { font-family:var(--font-d); font-weight:700; font-size:26px; letter-spacing:.01em;
            background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  #homeBtn { cursor:pointer; }
   .tag { margin-left:auto; font-size:11px; letter-spacing:.22em; text-transform:uppercase;
          color:var(--ink-faint); }
   .hdr-right { margin-left:auto; display:flex; align-items:center; gap:14px; }
@@ -869,7 +870,7 @@
   </defs></svg>
 
   <header class="top">
-    <div class="brand">DuSu</div>
+    <div class="brand" id="homeBtn" title="Home" role="button">DuSu</div>
     <div class="tag" id="tagline">Speak with confidence</div>
     <div class="hdr-right" id="hdrRight" hidden>
       <span class="usage-chip" id="usageChip" title="Sessions used today"></span>
@@ -954,7 +955,7 @@
 
       <div class="hbubble" id="welcomeMsg">Hi, I'm DuSu.</div>
       <h1 class="htitle" id="htitle">Speak English <span class="g">without fear.</span></h1>
-      <p class="hsub" id="hsub">Your AI speaking partner is waiting.</p>
+      <p class="hsub" id="hsub">I'm ready when you are 🎤</p>
       <button class="today-card" id="todayCard" hidden></button>
       <div class="hgrow" id="heroGrowth" hidden></div>
       <button class="hbtn" id="startSpeak">Start Speaking</button>
@@ -1538,7 +1539,12 @@ const Assistant = (function(){
 })();
 
 function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on")); $(id).classList.add("on");
-  if(id === "home"){ try{ renderHomeJourney(); }catch(_){} } }
+  if(id === "home"){
+    // always land on a clean home: collapse the "More" reveal + reset its toggle
+    const mh = $("moreHome"); if(mh) mh.hidden = true;
+    const eb = $("exploreBtn"); if(eb){ eb.style.display = ""; eb.textContent = "More ▾"; }
+    try{ renderHomeJourney(); }catch(_){}
+  } }
 
 function orb(state, label, hint){
   $("orb").className = "orb-wrap " + state;
@@ -1575,10 +1581,22 @@ document.querySelectorAll(".mode-card").forEach(c=>{
 // Hero: the one primary action → the Companion Moment (DuSu speaks + recommends)
 $("startSpeak").onclick = () => openMoment();
 // Progressive discovery: reveal the modes/journey below on demand
+// "More" is a toggle: open reveals options, tap again collapses back to a clean home.
 $("exploreBtn").onclick = () => {
-  const m = $("moreHome"); m.hidden = false; $("exploreBtn").style.display = "none";
-  requestAnimationFrame(() => m.scrollIntoView({ behavior:"smooth", block:"start" }));
+  const m = $("moreHome");
+  if(m.hidden){
+    m.hidden = false; $("exploreBtn").textContent = "Show less ▴";
+    requestAnimationFrame(() => m.scrollIntoView({ behavior:"smooth", block:"start" }));
+  } else { goHome(); }
 };
+// Tap the DuSu logo (or collapse) to return to a clean home, any time.
+function goHome(){
+  const m = $("moreHome"); if(m) m.hidden = true;
+  const eb = $("exploreBtn"); if(eb){ eb.style.display = ""; eb.textContent = "More ▾"; }
+  try{ closeMoment(false); }catch(_){}
+  window.scrollTo({ top:0, behavior:"smooth" });
+}
+if($("homeBtn")) $("homeBtn").onclick = goHome;
 // curiosity lead card → Confidence Talk (today's challenge)
 document.querySelectorAll(".curio-card").forEach(c => c.onclick = () => chooseMode(c.dataset.mode));
 
@@ -1705,7 +1723,7 @@ if($("momentBack")) $("momentBack").onclick = () => closeMoment(false);
 if($("momentAll")) $("momentAll").onclick = () => {
   closeMoment(false);
   const m = $("moreHome");
-  if(m){ m.hidden = false; if($("exploreBtn")) $("exploreBtn").style.display = "none";
+  if(m){ m.hidden = false; if($("exploreBtn")) $("exploreBtn").textContent = "Show less ▴";
     requestAnimationFrame(() => m.scrollIntoView({ behavior:"smooth", block:"start" })); }
 };
 $("setupBack").onclick = () => show("home");
@@ -3176,13 +3194,13 @@ function refreshUsage(){
 
 // Curiosity headlines — one is chosen per day so the hero changes daily.
 const HERO_LINES = [
-  "I saved something for <span class='g'>today's lesson.</span>",
-  "Let's talk for <span class='g'>five minutes.</span>",
-  "Ready to <span class='g'>surprise yourself?</span>",
-  "I have a <span class='g'>challenge</span> for you.",
-  "Teach me <span class='g'>something new today.</span>",
-  "Speak English <span class='g'>without fear.</span>",
-  "Shall we <span class='g'>pick up where we left off?</span>",
+  "Ready to <span class='g'>speak?</span>",
+  "Let's talk — <span class='g'>5 min.</span>",
+  "Pick up <span class='g'>where we left off?</span>",
+  "A <span class='g'>challenge</span> for you.",
+  "Teach me <span class='g'>something new.</span>",
+  "Speak <span class='g'>without fear.</span>",
+  "Continue <span class='g'>your story.</span>",
 ];
 function setWelcome(){
   const f = memFacts();
