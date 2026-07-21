@@ -1655,30 +1655,7 @@ async function openMoment(){
   if(!text){ text = (userState && userState.opening) || "So… what shall we work on today?"; voiceOpts = ENG_NORM(); }
   if($("momentSay")) $("momentSay").textContent = text;
   try{ if(window.speechSynthesis){ window.speechSynthesis.cancel(); say(text, voiceOpts); } }catch(_){}
-  momentListen();
-  clearTimeout(_momentTimer);
-  _momentTimer = setTimeout(showRecs, 11000);               // freeze → gently offer goals
-}
-
-function momentListen(){
-  if(!SR){ showRecs(); return; }
-  try{ if(_mrec){ _mrec.onend = null; _mrec.stop(); } }catch(_){}
-  _mrec = new SR(); _mrec.lang = "en-IN"; _mrec.interimResults = false; _mrec.maxAlternatives = 1;
-  let got = false;
-  _mrec.onresult = (e) => {
-    if(window.speechSynthesis && window.speechSynthesis.speaking) return;   // ignore DuSu's own voice
-    const t = (e.results[0][0].transcript || "").trim();
-    if(!t || got) return;
-    got = true;
-    if(/\b(i\s*don'?t\s*know|pata nahi|nahi pata|not sure|dunno|hmm+)\b/i.test(t)){ showRecs(); return; }
-    clearTimeout(_momentTimer);
-    _convSeed = t;              // seed the conversation with their answer
-    closeMoment(true);
-    chooseMode("conversation");
-  };
-  _mrec.onerror = () => {};
-  _mrec.onend = () => {};       // silence → the timer shows recs
-  try{ _mrec.start(); }catch(_){}
+  showRecs();   // after DuSu speaks, show the 3 options (no auto mic-jump)
 }
 
 function _recCard(c, primary){
