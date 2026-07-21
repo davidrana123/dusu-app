@@ -3279,8 +3279,8 @@ function renderTimeline(){
 function speakWelcome(){
   const first = authUser ? (authUser.name || "").split(" ")[0] : "";
   const msg = first
-    ? `Welcome back, ${first}, to DuSu. Pick a mode, and let's practice speaking.`
-    : `Welcome to DuSu. Pick a mode, and let's practice speaking.`;
+    ? `Welcome back, ${first}! Let's keep talking, and get a little better every single day.`
+    : `Welcome to DuSu! Let's start speaking, and get a little better every single day.`;
   if(!window.speechSynthesis) return;
   HOMEFACE.set("speaking"); HOMEFACE.startTalking();
   const u = new SpeechSynthesisUtterance(speakable(msg));
