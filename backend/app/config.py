@@ -44,7 +44,7 @@ class Settings(BaseSettings):
                 "key": self.gemini_api_key,
                 "models": ["gemini-flash-latest", "gemini-flash-lite-latest"],
                 "headers": {},
-                "extra": {"reasoning_effort": "none"},  # no thinking → no truncation
+                "extra": {},  # NOTE: Gemini's OpenAI-compat rejects reasoning_effort (400) — leave empty
             })
         if self.groq_api_key:
             chain.append({
@@ -62,9 +62,8 @@ class Settings(BaseSettings):
                 "key": self.openrouter_api_key,
                 "models": [
                     "openai/gpt-oss-20b:free",
-                    "meta-llama/llama-3.3-70b-instruct:free",
                     "nvidia/nemotron-3-super-120b-a12b:free",
-                ],
+                ],  # dropped meta-llama/llama-3.3-70b-instruct:free → now paid-only (404)
                 "headers": {"HTTP-Referer": "https://dusu-app-1.onrender.com", "X-Title": "DuSu"},
                 "extra": {"reasoning": {"exclude": True, "effort": "low"}},
             })

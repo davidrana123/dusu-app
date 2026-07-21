@@ -388,16 +388,29 @@
   .mload i { width:9px; height:9px; border-radius:50%; background:var(--gold-lt); animation:bnc 1.2s ease-in-out infinite; }
   .mload i:nth-child(2){ animation-delay:.15s; } .mload i:nth-child(3){ animation-delay:.3s; }
   .mload-t { display:block; margin-top:10px; font-size:14px; color:var(--ink-dim); font-style:italic; }
+  .daily-loader { display:flex; flex-direction:column; align-items:center; gap:2px; margin:10px 0 16px; }
+  .dc-tip { margin-top:12px; padding:10px 13px; border-radius:12px; font-size:13px; line-height:1.5;
+    color:var(--gold-lt); background:color-mix(in srgb,var(--gold) 12%, transparent);
+    border:1px solid color-mix(in srgb,var(--gold) 30%, transparent); text-align:left; }
   .moment-recs { display:flex; flex-direction:column; gap:12px; }
-  .rec { position:relative; display:flex; flex-direction:column; gap:3px; text-align:left; cursor:pointer;
-    padding:16px 18px; border-radius:16px; color:var(--ink); overflow:hidden;
-    background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
-    border:1px solid rgba(255,255,255,.10); opacity:0; transform:translateY(10px);
-    animation:cardIn .5s cubic-bezier(.2,.7,.2,1) forwards; transition:transform .18s, border-color .2s, box-shadow .2s; }
+  /* match home mode-card look: accent-tinted gradient, colored border, soft shadow, hover lift */
+  .rec { --accent:#8b93b0; position:relative; display:flex; flex-direction:column; gap:4px; text-align:left; cursor:pointer;
+    padding:20px 20px 18px; border-radius:var(--r); color:var(--ink); overflow:hidden;
+    background:linear-gradient(165deg,
+      color-mix(in srgb, var(--accent) 22%, #1c2030) 0%,
+      color-mix(in srgb, var(--accent) 8%, #15171f) 100%);
+    border:1px solid color-mix(in srgb, var(--accent) 28%, rgba(255,255,255,.06));
+    box-shadow:0 1px 0 rgba(255,255,255,.07) inset, 0 20px 42px -26px rgba(0,0,0,.8);
+    opacity:0; transform:translateY(10px);
+    animation:cardIn .5s cubic-bezier(.2,.7,.2,1) forwards;
+    transition:transform .24s cubic-bezier(.2,.7,.2,1), border-color .25s, box-shadow .25s; }
   .moment-recs .rec:nth-child(1){ animation-delay:.12s; }
-  .moment-recs .rec:nth-child(2){ animation-delay:.22s; }
-  .moment-recs .rec:nth-child(3){ animation-delay:.32s; }
-  .rec:hover { transform:translateY(-2px); border-color:rgba(255,255,255,.22); }
+  .moment-recs .rec:nth-child(2){ animation-delay:.22s; --accent:#56b39a; }
+  .moment-recs .rec:nth-child(3){ animation-delay:.32s; --accent:#7c86c9; }
+  .rec:hover { transform:translateY(-6px); border-color:rgba(255,255,255,.22);
+    box-shadow:0 26px 50px -22px rgba(0,0,0,.92),
+      0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent) inset,
+      0 12px 40px -20px color-mix(in srgb, var(--accent) 45%, transparent); }
   .rec-primary { border-color:color-mix(in srgb,var(--gold) 55%,transparent);
     background:linear-gradient(180deg, color-mix(in srgb,var(--gold) 16%, #1b1f2b), color-mix(in srgb,var(--gold) 6%, #14161f));
     box-shadow:0 16px 40px -22px color-mix(in srgb,var(--gold) 75%,transparent); }
@@ -420,6 +433,7 @@
   .moment-back { align-self:center; margin-top:4px; background:none; border:none; cursor:pointer;
     color:var(--ink-faint); font-size:12.5px; opacity:0; animation:fadeUp .6s ease .45s forwards; }
   .moment-back:hover { color:var(--ink); }
+  .moment-home { align-self:flex-start; margin-bottom:2px; }
   @media (prefers-reduced-motion: reduce){
     .moment-say,.rec,.moment-back{ animation:none !important; opacity:1 !important; transform:none !important; } }
 
@@ -438,8 +452,10 @@
   .tc-emoji { font-size:30px; flex:none; }
   .tc-body { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
   .tc-kicker { font-size:10.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--gold-lt); }
-  .tc-title { font-family:var(--font-d); font-size:19px; font-weight:600; line-height:1.2; }
-  .tc-sub { font-size:12.5px; color:var(--ink-dim); line-height:1.4; }
+  .tc-title { font-family:var(--font-d); font-size:19px; font-weight:600; line-height:1.2;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .tc-sub { font-size:12.5px; color:var(--ink-dim); line-height:1.4;
+    display:-webkit-box; -webkit-line-clamp:1; -webkit-box-orient:vertical; overflow:hidden; }
   .tc-go { flex:none; display:grid; place-items:center; width:30px; height:30px; border-radius:50%;
     background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); color:#e7e9ef; font-size:15px;
     transition:transform .2s, background .2s, color .2s; }
@@ -529,15 +545,36 @@
   @keyframes spin { to { transform:rotate(360deg); } }
 
   /* JOURNEY (roadmap + dashboard) */
-  .journey-banner { display:flex; align-items:center; gap:16px; width:100%; text-align:left; cursor:pointer;
-    background:linear-gradient(135deg, rgba(111,140,255,.18), rgba(111,140,255,.05)); border:1px solid var(--gold);
-    border-radius:20px; padding:16px 18px; margin:6px 0 18px; box-shadow:var(--gold-glow); transition:transform .15s; touch-action:manipulation; }
+  .journey-banner { position:relative; overflow:hidden; display:flex; align-items:center; gap:15px; width:100%; text-align:left; cursor:pointer;
+    background:linear-gradient(135deg, color-mix(in srgb,var(--gold) 22%, #1b1f2b), color-mix(in srgb,var(--gold) 7%, #14161f));
+    border:1px solid color-mix(in srgb,var(--gold) 45%, transparent);
+    border-radius:20px; padding:16px 18px; margin:6px 0 18px;
+    box-shadow:0 18px 40px -24px color-mix(in srgb,var(--gold) 80%, transparent);
+    transition:transform .2s cubic-bezier(.2,.7,.2,1), border-color .25s, box-shadow .25s; touch-action:manipulation;
+    opacity:0; animation:fadeUp .55s ease forwards; }
+  .journey-banner:hover { transform:translateY(-3px); border-color:color-mix(in srgb,var(--gold) 70%, transparent);
+    box-shadow:0 24px 48px -22px color-mix(in srgb,var(--gold) 90%, transparent); }
   .journey-banner:active { transform:scale(.99); }
-  .jb-ic { width:52px; height:52px; border-radius:16px; display:grid; place-items:center; font-size:26px; flex:none; background:var(--grad); }
+  /* hover sheen sweep */
+  .journey-banner::after { content:""; position:absolute; top:0; bottom:0; left:-60%; width:45%; pointer-events:none;
+    background:linear-gradient(105deg,transparent,rgba(255,255,255,.14),transparent); transform:skewX(-18deg); transition:left .6s ease; }
+  .journey-banner:hover::after { left:130%; }
+  .journey-banner > * { position:relative; z-index:1; }
+  .jb-ic { position:relative; width:52px; height:52px; border-radius:16px; display:grid; place-items:center; font-size:26px; flex:none;
+    background:var(--grad); box-shadow:0 8px 20px -8px color-mix(in srgb,var(--gold) 70%, transparent); }
+  .jb-ic::after { content:""; position:absolute; inset:-3px; border-radius:inherit; pointer-events:none;
+    border:2px solid color-mix(in srgb,var(--gold) 45%, transparent); opacity:0; animation:jbPulse 2.4s ease-in-out infinite; }
+  @keyframes jbPulse { 0%,100%{ opacity:0; transform:scale(1); } 50%{ opacity:.7; transform:scale(1.09); } }
   .jb-main { flex:1; min-width:0; }
-  .jb-title { font-family:var(--font-d); font-weight:600; font-size:19px; color:var(--ink); }
-  .jb-sub { font-size:13px; color:var(--ink-dim); margin-top:2px; }
-  .jb-go { font-family:var(--font-d); font-size:22px; color:var(--gold); }
+  .jb-kicker { font-size:10px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--gold-lt); margin-bottom:1px; }
+  .jb-title { font-family:var(--font-d); font-weight:600; font-size:20px; color:var(--ink); line-height:1.15;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .jb-sub { font-size:12.5px; color:var(--ink-dim); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .jb-go { flex:none; display:grid; place-items:center; width:34px; height:34px; border-radius:50%;
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.16); color:var(--gold); font-size:17px;
+    transition:transform .2s, background .2s, color .2s; }
+  .journey-banner:hover .jb-go { transform:translateX(4px); background:var(--gold); color:#12141b; border-color:transparent; }
+  @media (prefers-reduced-motion: reduce){ .journey-banner{ animation:none; opacity:1; } .jb-ic::after{ animation:none; } }
   .roadmap-link { display:block; width:100%; text-align:center; background:var(--glass); border:1px solid var(--glass-brd);
     color:var(--ink-dim); font:inherit; font-size:14px; padding:11px; border-radius:14px; cursor:pointer;
     margin:-6px 0 20px; transition:.15s; touch-action:manipulation; }
@@ -619,6 +656,13 @@
     .mode-card h3 { font-size:13.5px; margin:0; }
     .mc-orb { width:42px; height:42px; margin:0 auto 8px; }
     .mc-orb svg { width:22px; height:22px; }
+    /* Today card → tidy app tile: drop the long sentence, keep kicker + short title */
+    .today-card { margin:6px 0 12px; padding:13px 14px; gap:11px; }
+    .tc-emoji { font-size:24px; }
+    .tc-kicker { font-size:9.5px; }
+    .tc-title { font-size:15.5px; }
+    .tc-sub { display:none; }
+    .tc-go { width:26px; height:26px; font-size:14px; }
   }
 
   /* S9 — Confidence Stars collectible */
@@ -969,30 +1013,44 @@
       <div class="hbubble" id="welcomeMsg">Hi, I'm DuSu.</div>
       <h1 class="htitle" id="htitle">Speak English <span class="g">without fear.</span></h1>
       <p class="hsub" id="hsub">I'm ready when you are 🎤</p>
-      <button class="today-card" id="todayCard" hidden></button>
-      <div class="hgrow" id="heroGrowth" hidden></div>
       <button class="hbtn" id="startSpeak">Start Speaking</button>
       <button class="reveal-link" id="exploreBtn">More ▾</button>
 
       <!-- The Companion Moment: DuSu speaks + 3 curated recommendations -->
       <div class="moment" id="moment" hidden>
+        <button class="back back-home moment-home" id="momentHome" title="Home">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          <span>Home</span>
+        </button>
         <div class="moment-say" id="momentSay"></div>
         <div class="moment-recs" id="momentRecs"></div>
-        <button class="moment-all" id="momentAll">See everything DuSu can do →</button>
-        <button class="moment-back" id="momentBack">not now</button>
+        <button class="moment-all" id="momentAll">More ▾</button>
       </div>
     </div><!-- /hstage -->
 
     <input id="name" type="hidden" value="David" />
 
     <div id="moreHome" hidden>
+    <!-- BUG: "Today" slot + growth chips render a kicker/title mismatch ("Today's challenge" + "Tell me a story").
+         Kept in DOM (JS references them) but force-hidden so they never show on home. Re-enable by removing display:none. -->
+    <button class="today-card" id="todayCard" hidden style="display:none !important"></button>
+    <div class="hgrow" id="heroGrowth" hidden style="display:none !important"></div>
+
     <!-- Emotional layer: daily mood check-in, event greeting, weekly letter -->
     <div id="moodRow" class="mood-row" hidden></div>
     <div id="eventBanner" class="event-banner" hidden></div>
     <div id="letterCard" class="letter-card" hidden></div>
 
     <!-- Journey CTA (shown once onboarded) -->
-    <button id="journeyBanner" class="journey-banner" hidden></button>
+    <button id="journeyBanner" class="journey-banner" hidden>
+      <div class="jb-ic">💬</div>
+      <div class="jb-main">
+        <div class="jb-kicker">Continue</div>
+        <div class="jb-title">Talk about your day</div>
+        <div class="jb-sub">Speak Hindi — I'll reply in English</div>
+      </div>
+      <div class="jb-go">→</div>
+    </button>
     <div class="sec-label center" id="progressLabel" hidden>Your progress</div>
     <div class="nav-cards">
       <button id="roadmapLink" class="nav-card" hidden>
@@ -1008,15 +1066,6 @@
     <div class="sec-label center" id="freeLabel" hidden>Free practice</div>
 
     <div class="gtimeline" id="growthTimeline" hidden></div>
-
-    <button class="curio-card" data-mode="conversation">
-      <span class="curio-emoji">🎁</span>
-      <span class="curio-txt">
-        <span class="curio-title">Today's challenge</span>
-        <span class="curio-sub">Speak 2 min — no Hindi 🔥</span>
-      </span>
-      <span class="curio-go">→</span>
-    </button>
 
     <div class="sec-label center" id="practiceLabel">Practice</div>
 
@@ -1228,6 +1277,10 @@
           </div>
         </div>
       </div>
+      <div class="daily-loader" id="dailyLoader" hidden>
+        <span class="mload"><i></i><i></i><i></i></span>
+        <span class="mload-t">DuSu is getting ready…</span>
+      </div>
       <p class="learn-instr" id="dailyQ">…</p>
 
       <button class="mic-btn" id="dailyMic" disabled>
@@ -1242,9 +1295,10 @@
         <div class="tc-hindi" id="dcHindi"></div>
         <div class="tc-label tc-top">In English</div>
         <div class="tc-eng" id="dcEng"></div>
+        <div class="dc-tip" id="dcTip" hidden></div>
         <div class="tc-actions">
           <button class="btn ghost" id="dcReplay">🔊 Replay (slow)</button>
-          <button class="btn primary" id="dcNext">Continue →</button>
+          <button class="btn primary" id="dcNext">🎤 Reply</button>
         </div>
       </div>
 
@@ -1584,6 +1638,7 @@ function addSys(text){ const d=document.createElement("div"); d.className="sysms
 function chooseMode(mode){
   if(mode === "interview"){ show("setup"); setTimeout(()=> $("role").focus(), 120); }
   else if(mode === "learning"){ startLearning(); }
+  else if(mode === "daily"){ startDaily(); }
   else startSession("conversation");
 }
 document.querySelectorAll(".mode-card").forEach(c=>{
@@ -1738,16 +1793,24 @@ function closeMoment(keepSpeech){
   const hs = document.querySelector(".hstage"); if(hs) hs.classList.remove("moment-on");
   if($("moment")) $("moment").hidden = true;
   if($("momentRecs")) $("momentRecs").innerHTML = "";
+  // reset the in-place "More" reveal so the section opens clean next time
+  const mh = $("moreHome"); if(mh) mh.hidden = true;
+  if($("momentAll")) $("momentAll").textContent = "More ▾";
   homeHappy(false);
   if(!keepSpeech){ try{ if(window.speechSynthesis) window.speechSynthesis.cancel(); }catch(_){} }
 }
 if($("momentBack")) $("momentBack").onclick = () => closeMoment(false);
-// "See everything DuSu can do" → close the moment + reveal all options (home explore)
+if($("momentHome")) $("momentHome").onclick = () => goHome();
+// "More ▾" → reveal the full options IN PLACE (keep the Companion Moment open — no bounce to home)
 if($("momentAll")) $("momentAll").onclick = () => {
-  closeMoment(false);
-  const m = $("moreHome");
-  if(m){ m.hidden = false; if($("exploreBtn")) $("exploreBtn").textContent = "Show less ▴";
-    requestAnimationFrame(() => m.scrollIntoView({ behavior:"smooth", block:"start" })); }
+  const m = $("moreHome"); if(!m) return;
+  if(m.hidden){
+    m.hidden = false; $("momentAll").textContent = "Show less ▴";
+    requestAnimationFrame(() => m.scrollIntoView({ behavior:"smooth", block:"start" }));
+  } else {
+    m.hidden = true; $("momentAll").textContent = "More ▾";
+    requestAnimationFrame(() => { const mo = $("moment"); if(mo) mo.scrollIntoView({ behavior:"smooth", block:"center" }); });
+  }
 };
 $("setupBack").onclick = () => show("home");
 $("startInterview").onclick = () => startSession("interview");
@@ -1831,7 +1894,7 @@ function onMessage(ev){
     case "ready": greetLearn(); break;
     case "translation": handleTranslation(m.hindi, m.text); break;
     case "daily_question": greetDaily(m.question); break;
-    case "daily_turn": handleDailyTurn(m.hindi, m.english, m.praise, m.next_question); break;
+    case "daily_turn": handleDailyTurn(m.hindi, m.english, m.reply, m.tip, m.next_question); break;
     case "translate_error":
       say("Translation unavailable. Please try again.", ENG_NORM());
       learnState("Translation failed — tap the mic to try again."); micEnable(true); break;
@@ -2105,7 +2168,23 @@ $("continueBtn").onclick = async () => {
 $("learnBack").onclick = () => { running = false; stopLearn(); try{ ws && ws.close(); }catch(_){} show("home"); };
 
 /* ================= Daily Talk (AI companion) ================= */
-let drec = null, dLastEng = "", dLastNext = "";
+let drec = null, dLastEng = "", dLastNext = "", dailyTurns = [];
+// Resume: keep the recent turns in localStorage so the chat can continue later.
+// (Full history/summaries still go to the DB on session end, as before.)
+function saveDailyResume(){
+  try{ localStorage.setItem("dusu_daily_resume",
+    JSON.stringify({ date: todayStr(), turns: dailyTurns.slice(-12), lastQuestion: dLastNext })); }catch(_){}
+}
+function loadDailyResume(){
+  try{
+    const r = JSON.parse(localStorage.getItem("dusu_daily_resume") || "null");
+    if(!r || !Array.isArray(r.turns) || !r.turns.length) return [];
+    // resume only if recent (<= 2 days old); otherwise start fresh
+    const age = (new Date(todayStr()) - new Date(r.date)) / 86400000;
+    if(!(age >= 0 && age <= 2)) { localStorage.removeItem("dusu_daily_resume"); return []; }
+    return r.turns;
+  }catch(_){ return []; }
+}
 function dState(t){ $("dailyState").textContent = t || ""; }
 function dMic(on){ $("dailyMic").disabled = !on; }
 function dMicActive(on){ $("dailyMic").classList.toggle("listening", on); }
@@ -2126,17 +2205,23 @@ function startDaily(){
   }
   currentMode = "daily"; dLastEng = ""; dLastNext = "";
   $("dailyCard").hidden = true; $("dcHindi").textContent = ""; $("dcEng").textContent = "";
-  $("dailyQ").textContent = "…"; dState("DuSu is getting ready…"); dMic(false); dailyOrb("connecting");
+  $("dailyQ").textContent = ""; if($("dailyLoader")) $("dailyLoader").hidden = false;   // show loader while connecting
+  dState(""); dMic(false); dailyOrb("connecting");
   show("daily");
   ws = new WebSocket(WS_URL);
   ws.onopen = () => { running = true; usageInc(); refreshUsage();
-    ws.send(JSON.stringify({ type:"start", mode:"daily", token:authToken, mood:todayMood, hour:new Date().getHours() })); };
+    dailyTurns = loadDailyResume();   // continue the recent chat if there is one
+    ws.send(JSON.stringify({ type:"start", mode:"daily", token:authToken, mood:todayMood,
+      hour:new Date().getHours(), resume: dailyTurns })); };
   ws.onmessage = onMessage;
   ws.onclose = () => { running = false; stopDaily(); };
-  ws.onerror = () => dState("Connection error. Is the server running?");
+  ws.onerror = () => { if($("dailyLoader")) $("dailyLoader").hidden = true; dState("Connection error. Is the server running?"); };
 }
 async function greetDaily(question){
+  if($("dailyLoader")) $("dailyLoader").hidden = true;   // connected → hide loader
   dLastNext = question;
+  dailyTurns.push({ role:"assistant", content: question });
+  saveDailyResume();
   $("dailyQ").textContent = question;
   await sayFace(question, HI());
   dState("Tap the mic and answer in Hindi."); dMic(true);
@@ -2157,18 +2242,31 @@ function startDailyListen(){
     if(!got && running){ await say(HINDI.noSpeech, HI()); dState("Tap the mic and answer in Hindi."); dMic(true); } };
   try{ drec.start(); }catch(_){}
 }
-async function handleDailyTurn(hindi, english, praise, nextQ){
+async function handleDailyTurn(hindi, english, reply, tip, nextQ){
   dLastEng = english || ""; dLastNext = nextQ || "";
   $("dcHindi").textContent = hindi; $("dcEng").textContent = english || "—";
+  setDailyTip(tip);
   $("dailyCard").hidden = false; $("dcReplay").disabled = !english; dState("");
+  dailyOrb("speaking");
+  // 1) hear YOUR line in English FIRST (learn how to say it)
   if(english){
-    dailyOrb("speaking");
-    if(praise) await say(praise, HI());   // short reply to what they said
-    await say(HINDI.repeat, HI());        // "Ab mere baad dohraiye." FIRST
-    await say(english, ENG_SLOW());       // then the English, said ONCE
-    dailyOrb("idle");
+    await say(HINDI.intro, HI());     // "English mein aise bolte hain."
+    await say(english, ENG_SLOW());   // your sentence, in clear English (said once)
   }
-  dState("Ab aap boliye — phir Continue dabaiye. (🔊 dobara sunne ke liye)");
+  // 2) then DuSu replies like a close friend — NEVER silent (fallback if reply missing)
+  const dusuReply = (reply && reply.trim()) || (nextQ && nextQ.trim()) || "Achha! Aaj ka sabse accha pal kaunsa tha?";
+  await say(dusuReply, HI());
+  dailyOrb("idle");
+  // record this turn (learner's Hindi + DuSu's reply) so we can resume later
+  dailyTurns.push({ role:"user", content: hindi });
+  dailyTurns.push({ role:"assistant", content: dusuReply });
+  saveDailyResume();
+  dState("DuSu tumhaari baat sunne ke liye ready hai — jab chaaho bolo 💬");
+}
+function setDailyTip(tip){
+  const el = $("dcTip"); if(!el) return;
+  if(tip && tip.trim()){ el.innerHTML = "💡 " + esc(tip.trim()); el.hidden = false; }
+  else { el.hidden = true; el.textContent = ""; }
 }
 function stopDaily(){
   try{ if(drec){ drec.onend = null; drec.stop(); drec = null; } }catch(_){}
@@ -2176,9 +2274,9 @@ function stopDaily(){
   dMicActive(false); dailyOrb("idle");
 }
 async function dailyContinue(){
+  // DuSu just asked her question inside the reply — so replying is one tap, no re-ask.
   if(window.speechSynthesis) window.speechSynthesis.cancel();
-  $("dailyCard").hidden = true; $("dcHindi").textContent = ""; $("dcEng").textContent = "";
-  if(dLastNext){ $("dailyQ").textContent = dLastNext; await sayFace(dLastNext, HI()); }
+  $("dailyCard").hidden = true; $("dcHindi").textContent = ""; $("dcEng").textContent = ""; setDailyTip("");
   startDailyListen();
 }
 function finishDaily(){
@@ -2606,7 +2704,10 @@ function levelObj(level){ return CURRICULUM.find(l => l.level === level); }
 function renderHomeJourney(){
   const b = $("journeyBanner"), fl = $("freeLabel"), rl = $("roadmapLink"), lb = $("leaderboardLink"), hj = $("heroJourney"), pl = $("progressLabel");
   if(!b) return;
-  if(!userState || !userState.onboarded){ b.hidden = true; if(fl) fl.hidden = true; if(rl) rl.hidden = true; if(lb) lb.hidden = true; if(hj) hj.hidden = true; if(pl) pl.hidden = true; return; }
+  // Render instantly for any logged-in user (like the static Practice cards) — use the cached
+  // onboarded flag so we DON'T wait on /me. userState (nickname/letter) fills in when it arrives.
+  const onboarded = (userState && userState.onboarded) || (authToken && localStorage.getItem("dusu_onboarded") === "true");
+  if(!onboarded){ b.hidden = true; if(fl) fl.hidden = true; if(rl) rl.hidden = true; if(lb) lb.hidden = true; if(hj) hj.hidden = true; if(pl) pl.hidden = true; return; }
   if(hj) hj.hidden = false;
   if(lb) lb.hidden = false;
   if(pl) pl.hidden = false;
@@ -2614,8 +2715,9 @@ function renderHomeJourney(){
   b.innerHTML = `
     <div class="jb-ic">💬</div>
     <div class="jb-main">
-      <div class="jb-title">Continue</div>
-      <div class="jb-sub">Talk about your day${nick ? ", " + nick : ""} →</div>
+      <div class="jb-kicker">Continue</div>
+      <div class="jb-title">Talk about your day${nick ? ", " + nick : ""}</div>
+      <div class="jb-sub">Speak Hindi — I'll reply in English</div>
     </div>
     <div class="jb-go">→</div>`;
   b.hidden = false; if(fl) fl.hidden = false; if(rl) rl.hidden = false;
@@ -2747,7 +2849,9 @@ async function loadLetter(){
   const card = $("letterCard");
   if(!card) return;
   const f = memFacts();
-  const existing = f.last_letter;
+  // instant paint from cache (state memory OR dedicated key) before the /letter round-trip
+  let existing = f.last_letter;
+  if(!(existing && existing.text)){ try{ existing = JSON.parse(localStorage.getItem("dusu_letter") || "null"); }catch(_){} }
   if(existing && existing.text){ showLetterCard(existing); }
   if(_letterFetched) return;
   _letterFetched = true;
@@ -2756,6 +2860,7 @@ async function loadLetter(){
       body: JSON.stringify({ token:authToken }) });
     if(r.ok){ const d = await r.json(); if(d.letter && d.letter.text){
       if(userState){ userState.memory = userState.memory || {}; userState.memory.last_letter = d.letter; }
+      try{ localStorage.setItem("dusu_letter", JSON.stringify(d.letter)); }catch(_){}
       showLetterCard(d.letter);
     } }
   }catch(_){}
@@ -3342,7 +3447,7 @@ function speakWelcome(){
 
 function logout(){
   authToken = ""; authUser = null;
-  localStorage.removeItem("dusu_token"); localStorage.removeItem("dusu_user");
+  localStorage.removeItem("dusu_token"); localStorage.removeItem("dusu_user"); localStorage.removeItem("dusu_state"); localStorage.removeItem("dusu_letter"); localStorage.removeItem("dusu_daily_resume");
   $("hdrRight").hidden = true; $("tagline").style.display = "";
   try{ ws && ws.close(); }catch(_){}
   if(window.google && google.accounts) google.accounts.id.disableAutoSelect();
@@ -3358,6 +3463,8 @@ function refreshMe(){
       if(!st) return null;
       userState = st;   // full state incl. today / growth / opening / recommendations
       localStorage.setItem("dusu_onboarded", st.onboarded ? "true" : "false");
+      // cache the whole state so the next boot paints mood/note/Continue instantly (no /me wait)
+      try{ localStorage.setItem("dusu_state", JSON.stringify(st)); }catch(_){}
       if(st.onboarded === false){ startAssessment(); }
       else if($("home").classList.contains("on")){ try{ setWelcome(); renderHomeJourney(); }catch(_){} }
       return st;
@@ -3398,6 +3505,9 @@ function initAuth(){
   }
   if(authToken && authUser){
     applyUser(authUser);
+    // Restore cached state BEFORE the first paint so mood/note/Continue render immediately
+    // (renderHomeJourney needs userState). refreshMe() then freshens it in the background.
+    try{ userState = JSON.parse(localStorage.getItem("dusu_state") || "null") || userState; }catch(_){}
     // OPTIMISTIC: show the right screen INSTANTLY from the cached flag — never wait on
     // a slow/cold network. Then refresh state in the background (401 = real logout).
     const cachedOnb = localStorage.getItem("dusu_onboarded");

@@ -611,8 +611,19 @@ async def interview_ws(ws: WebSocket):
                     daily_context=_daily_context_str(facts),
                 )
                 if session.mode == "daily":
+                    # Resume: seed the recent turns the client kept in localStorage so
+                    # DuSu picks up the thread instead of opening cold.
+                    resume = data.get("resume") or []
+                    if isinstance(resume, list) and resume:
+                        for m in resume[-12:]:
+                            r = m.get("role"); c = (m.get("content") or "").strip()
+                            if r in ("user", "assistant") and c:
+                                session.transcript.append({"role": r, "content": c})
+                        session.turns = sum(1 for m in session.transcript if m["role"] == "user")
                     opening = await session.daily_turn("", first=True)
-                    await _send(ws, type="daily_question", question=opening.get("next_question_hindi", "Aaj aapka din kaisa raha?"))
+                    q = (opening.get("reply_hindi") or opening.get("next_question_hindi")
+                         or "Aaj aapka din kaisa raha?")
+                    await _send(ws, type="daily_question", question=q)
                 elif session.mode == "learning":
                     await _send(ws, type="ready")   # client greets in Hindi
                 else:
@@ -649,8 +660,8 @@ async def interview_ws(ws: WebSocket):
                         await _send(ws, type="translate_error")
                         continue
                     await _send(ws, type="daily_turn", hindi=text,
-                                english=d.get("english", ""), praise=d.get("praise", ""),
-                                next_question=d.get("next_question_hindi", ""))
+                                english=d.get("english", ""), reply=d.get("reply_hindi", ""),
+                                tip=d.get("tip", ""), next_question=d.get("next_question_hindi", ""))
                     if uid and db.db_enabled:
                         try:
                             ctx = d.get("context", {}) or {}

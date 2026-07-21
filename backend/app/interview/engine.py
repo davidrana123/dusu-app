@@ -80,13 +80,15 @@ class Session:
                "question. Leave english/praise empty."
                if first else f"learner just said (in Hindi/Hinglish): {answer}")
         )
-        data = await llm.assess(DAILY_TURN_SYSTEM, payload)
+        # bigger budget: the friend-reply + full JSON must fit or it truncates → empty reply
+        data = await llm.assess(DAILY_TURN_SYSTEM, payload, max_tokens=1100)
         if not first and answer:
             self.transcript.append({"role": "user", "content": answer})
             self.turns += 1
-        q = (data.get("next_question_hindi") or "").strip()
-        if q:
-            self.transcript.append({"role": "assistant", "content": q})
+        # keep the richer reply in memory (falls back to the bare question)
+        reply = (data.get("reply_hindi") or data.get("next_question_hindi") or "").strip()
+        if reply:
+            self.transcript.append({"role": "assistant", "content": reply})
         return data
 
     async def build_report(self) -> dict:

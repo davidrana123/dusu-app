@@ -76,11 +76,15 @@ async def _complete(messages: list[dict], max_tokens: int) -> str:
 
 
 def _extract_json(text: str) -> dict:
-    """Models don't always return clean JSON — pull the first {...} block."""
+    """Models don't always return clean JSON — strip code fences, pull the {...} block."""
+    t = (text or "").strip()
+    if t.startswith("```"):                       # ```json ... ``` fences
+        t = re.sub(r"^```(?:json)?\s*", "", t)
+        t = re.sub(r"\s*```$", "", t).strip()
     try:
-        return json.loads(text)
+        return json.loads(t)
     except json.JSONDecodeError:
-        m = re.search(r"\{.*\}", text, re.DOTALL)
+        m = re.search(r"\{.*\}", t, re.DOTALL)     # greedy → to the last closing brace
         if m:
             try:
                 return json.loads(m.group(0))
@@ -110,12 +114,12 @@ class OpenRouterLLM:
                     {"role": "user", "content": prompt}]
         return await _complete(messages, max_tokens=max_tokens)
 
-    async def assess(self, system: str, payload: str) -> dict:
+    async def assess(self, system: str, payload: str, max_tokens: int = 700) -> dict:
         messages = [
             {"role": "system", "content": system},
             {"role": "user", "content": payload + "\n\nReturn ONLY the JSON object."},
         ]
-        return _extract_json(await _complete(messages, max_tokens=700))
+        return _extract_json(await _complete(messages, max_tokens=max_tokens))
 
     async def score(self, system: str, transcript: list[dict]) -> dict:
         convo = "\n".join(f"{m['role']}: {m['content']}" for m in transcript)
