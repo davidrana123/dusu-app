@@ -226,10 +226,12 @@
   .hjourney .hj-go { color:var(--gold-lt); transition:transform .2s; }
   .hjourney:hover .hj-go { transform:translateX(3px); }
 
-  .reveal-link { margin-top:22px; background:none; border:none; cursor:pointer; color:var(--ink-faint);
-    font-size:13px; letter-spacing:.03em; opacity:0; animation:fadeUp .7s ease .8s forwards;
-    transition:color .2s, transform .2s; }
-  .reveal-link:hover { color:var(--ink); transform:translateY(2px); }
+  .reveal-link { margin-top:38px; background:none; border:1px solid rgba(255,255,255,.12); border-radius:999px;
+    padding:9px 20px; cursor:pointer; color:var(--ink-dim); font-size:13px; letter-spacing:.03em;
+    opacity:0; animation:fadeUp .7s ease .8s forwards; transition:color .2s, transform .2s, border-color .2s, background .2s; }
+  .reveal-link:active { transform:scale(.97); }
+  .reveal-link:hover { color:var(--ink); border-color:color-mix(in srgb,var(--gold) 45%,transparent);
+    background:rgba(255,255,255,.04); transform:translateY(-1px); }
 
   #moreHome { animation:fade .5s ease; scroll-margin-top:20px; }
   @media (prefers-reduced-motion: reduce){
@@ -586,9 +588,13 @@
   /* Explore section: tidy nav cards (journey / leaderboard) + section labels */
   .sec-label { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint);
     font-weight:700; margin:24px 2px 10px; }
-  .sec-label.center { text-align:center; font-family:var(--font-d); text-transform:none; letter-spacing:0;
-    font-size:20px; color:var(--ink); }
-  .sec-label.center span, .free-label { color:var(--gold-lt); }
+  .sec-label.center { display:flex; align-items:center; justify-content:center; gap:14px;
+    font-family:var(--font-d); text-transform:none; letter-spacing:.01em; font-weight:600;
+    font-size:22px; color:var(--ink); margin:28px 0 14px; }
+  .sec-label.center::before, .sec-label.center::after { content:""; height:1px; width:40px; flex:none; }
+  .sec-label.center::before { background:linear-gradient(90deg, transparent, color-mix(in srgb,var(--gold) 75%, transparent)); }
+  .sec-label.center::after  { background:linear-gradient(90deg, color-mix(in srgb,var(--gold) 75%, transparent), transparent); }
+  .sec-label.center span { background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
   .nav-cards { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:4px 0; }
   .nav-card { display:flex; flex-direction:column; align-items:center; text-align:center; gap:5px; cursor:pointer;
     width:100%; padding:16px 12px; border-radius:16px; color:var(--ink);
@@ -603,11 +609,16 @@
   /* mobile app-density: fewer words, tighter cards */
   @media (max-width:640px){
     .sec-label { text-align:center; }
-    .sec-label.center { font-size:22px; }
-    .mode-card p { display:none; }
+    .sec-label.center { font-size:21px; }
+    .sec-label.center::before, .sec-label.center::after { width:26px; }
     .nav-sub { display:none; }
-    .mode-card { min-height:auto; padding:18px 18px 16px; }
-    .mc-wm { display:none; }
+    /* practice cards → compact app tiles, 3 across */
+    .modes { grid-template-columns:1fr 1fr 1fr; gap:9px; }
+    .mode-card { min-height:auto; padding:14px 6px; align-items:center; text-align:center; }
+    .mode-card p, .mc-chips, .mc-cta, .mc-badge, .mc-wm { display:none; }
+    .mode-card h3 { font-size:13.5px; margin:0; }
+    .mc-orb { width:42px; height:42px; margin:0 auto 8px; }
+    .mc-orb svg { width:22px; height:22px; }
   }
 
   /* S9 — Confidence Stars collectible */
@@ -1591,9 +1602,13 @@ $("exploreBtn").onclick = () => {
 };
 // Tap the DuSu logo (or collapse) to return to a clean home, any time.
 function goHome(){
-  const m = $("moreHome"); if(m) m.hidden = true;
-  const eb = $("exploreBtn"); if(eb){ eb.style.display = ""; eb.textContent = "More ▾"; }
+  // leave any live session cleanly, then land on a clean home from anywhere
+  try{ if(ws && ws.readyState === 1) ws.send(JSON.stringify({ type:"end" })); }catch(_){}
+  try{ ws && ws.close(); }catch(_){}
+  running = false;
+  try{ if(window.speechSynthesis) window.speechSynthesis.cancel(); }catch(_){}
   try{ closeMoment(false); }catch(_){}
+  show("home");   // show() collapses the More reveal + re-renders home
   window.scrollTo({ top:0, behavior:"smooth" });
 }
 if($("homeBtn")) $("homeBtn").onclick = goHome;
@@ -1658,6 +1673,9 @@ let _convSeed = "", _mrec = null, _momentTimer = null;
 const GREET_VOICE = () => ({ lang:"hi-IN", rate:0.95, voice: hindiVoice || pickedVoice });
 
 async function openMoment(){
+  // collapse the "More" reveal so only the Companion Moment shows (no menu behind)
+  const mh = $("moreHome"); if(mh) mh.hidden = true;
+  const eb = $("exploreBtn"); if(eb){ eb.style.display = ""; eb.textContent = "More ▾"; }
   const hs = document.querySelector(".hstage"); if(hs) hs.classList.add("moment-on");
   const hc = $("hchar"); if(hc) hc.style.transform = "";     // release cursor-follow offset
   homeHappy(true);
@@ -3327,6 +3345,21 @@ function logout(){
 }
 $("logoutBtn").onclick = logout;
 
+// Background state refresh (also handles real logout on 401). Never blocks the UI.
+function refreshMe(){
+  return fetch("/me", { cache:"no-store", headers:{ Authorization:"Bearer " + authToken } })
+    .then(r => { if(r.status === 401){ logout(); return null; } return r.ok ? r.json() : null; })
+    .then(st => {
+      if(!st) return null;
+      userState = st;   // full state incl. today / growth / opening / recommendations
+      localStorage.setItem("dusu_onboarded", st.onboarded ? "true" : "false");
+      if(st.onboarded === false){ startAssessment(); }
+      else if($("home").classList.contains("on")){ try{ setWelcome(); renderHomeJourney(); }catch(_){} }
+      return st;
+    })
+    .catch(() => null);   // offline/slow → keep the cached home, don't strand the user
+}
+
 function onGoogle(resp){
   $("loginNote").textContent = "Signing you in…";
   fetch("/auth/google", {
@@ -3337,6 +3370,7 @@ function onGoogle(resp){
       authToken = d.token;
       localStorage.setItem("dusu_token", d.token);
       localStorage.setItem("dusu_user", JSON.stringify(d.user));
+      localStorage.setItem("dusu_onboarded", d.onboarded ? "true" : "false");
       userState = { onboarded: d.onboarded, profile: d.profile || null, progress: d.progress || null, memory: d.memory || {} };
       applyUser(d.user);
       $("loginNote").textContent = "";
@@ -3345,6 +3379,7 @@ function onGoogle(resp){
       } else {
         show("home");
         speakWelcome();   // DuSu greets by name (gesture: the sign-in click)
+        refreshMe();      // enrich with today / growth / recommendations
       }
     })
     .catch(() => { $("loginNote").textContent = "Sign-in failed. Please try again."; });
@@ -3358,18 +3393,11 @@ function initAuth(){
   }
   if(authToken && authUser){
     applyUser(authUser);
-    // Resolve saved state BEFORE choosing a screen — avoids a home→assessment
-    // flash and (more importantly) never trusts a stale/cached onboarded flag.
-    fetch("/me", { cache:"no-store", headers:{ Authorization:"Bearer " + authToken } })
-      .then(r => r.ok ? r.json() : null)
-      .then(st => {
-        if(st){
-          userState = { onboarded: st.onboarded, profile: st.profile || null, progress: st.progress || null, memory: st.memory || {} };
-        }
-        if(userState && userState.onboarded === false) startAssessment();
-        else show("home");
-      })
-      .catch(() => show("home"));   // network hiccup → don't strand the user, just show home
+    // OPTIMISTIC: show the right screen INSTANTLY from the cached flag — never wait on
+    // a slow/cold network. Then refresh state in the background (401 = real logout).
+    const cachedOnb = localStorage.getItem("dusu_onboarded");
+    if(cachedOnb === "false") startAssessment(); else show("home");
+    refreshMe();
   }
   else { show("login"); }
   (function ready(){

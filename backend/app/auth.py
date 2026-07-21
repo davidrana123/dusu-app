@@ -56,7 +56,7 @@ def _ub64(s: str) -> bytes:
     return base64.urlsafe_b64decode(s + "=" * (-len(s) % 4))
 
 
-def make_session(user: dict, ttl: int = 7 * 86400) -> str:
+def make_session(user: dict, ttl: int = 30 * 86400) -> str:   # 30-day login
     payload = {
         "sub": user["sub"], "email": user.get("email", ""),
         "name": user.get("name", ""), "exp": int(time.time()) + ttl,
