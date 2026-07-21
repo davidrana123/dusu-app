@@ -426,6 +426,57 @@ _MAX_CHECKINS = 30
 _MAX_VOCAB = 500
 _MAX_FACTS = 40
 
+# --- S1: 4-type memory (Companion System) ---
+# Identity + Relationship live in facts (never expire). Moments expire; Achievements never.
+_MOMENT_TTL_DAYS = 7          # emotional moments fade after a week
+_MAX_MOMENTS = 40
+_MAX_ACHIEVEMENTS = 60
+# Relationship Journey (internal, invisible to the user) — drives DuSu's tone.
+_REL_STAGES = ["Guest", "Friend", "Practice Partner", "Coach", "Mentor", "Companion"]
+# Journey worlds (mirror the client) — story, not level numbers.
+_WORLD_NAMES = ["The Village", "The Street", "The City", "The Workplace",
+                "The Interview Hall", "The Boardroom", "The Global Stage"]
+
+
+def _prune_moments(moms: list) -> list:
+    """Drop expired moments (Moment memory = 2–7 day shelf life)."""
+    today = _now().date().isoformat()
+    return [m for m in (moms or [])
+            if isinstance(m, dict) and (m.get("expires") or "9999-12-31") >= today]
+
+
+def _add_moments(f: dict, moms: list) -> None:
+    cur = list(f.get("moments") or [])
+    now = _now()
+    exp = (now + dt.timedelta(days=_MOMENT_TTL_DAYS)).date().isoformat()
+    for m in moms:
+        if isinstance(m, str):
+            m = {"text": m}
+        if not isinstance(m, dict) or not (m.get("text") or "").strip():
+            continue
+        cur.append({"text": m["text"].strip(),
+                    "emotion": (m.get("emotion") or "").strip(),
+                    "created": now.date().isoformat(),
+                    "expires": m.get("expires") or exp})
+    f["moments"] = _prune_moments(cur)[-_MAX_MOMENTS:]
+
+
+def _add_achievements(f: dict, achs: list) -> None:
+    cur = list(f.get("achievements") or [])
+    have = {a.get("text") for a in cur if isinstance(a, dict)}
+    today = _now().date().isoformat()
+    for a in achs:
+        if isinstance(a, str):
+            a = {"text": a}
+        if not isinstance(a, dict):
+            continue
+        t = (a.get("text") or "").strip()
+        if not t or t in have:
+            continue
+        cur.append({"text": t, "date": a.get("date") or today})
+        have.add(t)
+    f["achievements"] = cur[-_MAX_ACHIEVEMENTS:]
+
 
 async def _get_or_make_memory(s, user_id: str) -> "Memory":
     # row-lock so concurrent writers (WS finally + /checkin, two tabs) don't
@@ -443,7 +494,246 @@ async def _get_or_make_memory(s, user_id: str) -> "Memory":
 async def get_memory(user_id: str) -> dict:
     async with _Session() as s:               # type: ignore[misc]
         mem = await s.get(Memory, user_id)
-        return dict(mem.facts) if mem and mem.facts else {}
+        f = dict(mem.facts) if mem and mem.facts else {}
+        if f.get("moments"):                  # never surface expired moments
+            f["moments"] = _prune_moments(f["moments"])
+        return f
+
+
+async def relationship_stage(user_id: str) -> dict:
+    """S3 — internal Relationship Journey (Guest→Companion). Drives DuSu's tone. Never shown."""
+    async with _Session() as s:               # type: ignore[misc]
+        u = await s.get(User, user_id)
+        sessions = (await s.execute(
+            select(func.count(Conversation.id)).where(Conversation.user_id == user_id)
+        )).scalar() or 0
+    days = (_now() - u.created_at).days if (u and u.created_at) else 0
+    if   sessions <= 1 and days < 1: idx = 0
+    elif sessions < 4:               idx = 1
+    elif sessions < 10:              idx = 2
+    elif sessions < 25:              idx = 3
+    elif sessions < 60:              idx = 4
+    else:                            idx = 5
+    return {"stage": _REL_STAGES[idx], "idx": idx, "days": days, "sessions": sessions}
+
+
+async def build_companion_context(user_id: str) -> dict:
+    """S3 — everything DuSu needs to sound like she knows + cares about this user."""
+    f = await get_memory(user_id)
+    stage = await relationship_stage(user_id)
+    async with _Session() as s:               # type: ignore[misc]
+        prog = await s.get(Progress, user_id)
+    cur = int(((prog.journey if prog else {}) or {}).get("current_level", 1) or 1)
+    world = _WORLD_NAMES[cur - 1] if 0 <= cur - 1 < len(_WORLD_NAMES) else ""
+    identity = {k: f[k] for k in ("nickname", "profession", "dream", "native_lang") if f.get(k)}
+    if f.get("interests"):
+        identity["interests"] = f["interests"]
+    return {
+        "identity": identity,
+        "relationship": f.get("relationship") or {},
+        "moments": _prune_moments(f.get("moments") or [])[-6:],
+        "achievements": (f.get("achievements") or [])[-6:],
+        "energy_today": f.get("energy_today") or {},
+        "stage": stage, "world": world, "level": cur,
+        "next_hook": f.get("next_hook", ""),
+    }
+
+
+_TODAY_CHALLENGES = [   # by weekday (0=Mon) — the home belongs to *today*
+    ("Monday reset", "New week — introduce the 'new you' in English.", "conversation"),
+    ("Tell me a story", "Something small that made you smile recently.", "conversation"),
+    ("Two-minute challenge", "Can you speak for 2 minutes — no Hindi?", "conversation"),
+    ("Interview muscle", "One tough interview question, together.", "interview"),
+    ("Friday win", "Tell me about a small victory this week.", "conversation"),
+    ("Weekend talk", "Relax — chat with me about anything.", "daily"),
+    ("Sunday dream", "Picture your dream. Say it out loud in English.", "conversation"),
+]
+
+
+async def build_growth(user_id: str) -> dict:
+    """S6 — growth as *becoming*, not points: confidence, vocabulary, transformation timeline."""
+    async with _Session() as s:               # type: ignore[misc]
+        u = await s.get(User, user_id)
+        prog = await s.get(Progress, user_id)
+        mem = await s.get(Memory, user_id)
+    f = dict(mem.facts) if mem and mem.facts else {}
+    streak = (prog.streak_days if prog else 0) or 0
+    journey = (prog.journey if prog else {}) or {}
+    cur_level = int(journey.get("current_level", 1) or 1)
+    total_sent = int(f.get("total_sentences", 0))
+    total_min = int(f.get("total_seconds", 0)) // 60
+    vocab_total = int(f.get("vocab_total", 0))
+    today = _now().date().isoformat()
+    vocab_today = int(((f.get("daily_stats") or {}).get(today) or {}).get("new_words", 0))
+
+    # Confidence — a felt composite (0-96), with a delta vs last time.
+    conf = min(96, 28 + streak * 3 + min(30, total_sent // 8)
+               + (cur_level - 1) * 6 + vocab_total // 40)
+    last = int(f.get("last_confidence", 0))
+    delta = conf - last
+    if conf != last:                          # persist the new baseline (best-effort)
+        try:
+            async with _Session() as s:       # type: ignore[misc]
+                m2 = await _get_or_make_memory(s, user_id)
+                g = dict(m2.facts or {}); g["last_confidence"] = conf
+                m2.facts = g; flag_modified(m2, "facts"); await s.commit()
+        except Exception:
+            pass
+
+    # Transformation timeline — Day 1 join + real achievements, by day number.
+    first = (u.created_at.date() if (u and u.created_at) else _now().date())
+    items = [{"day": 1, "icon": "✨", "text": "You met DuSu"}]
+    for a in (f.get("achievements") or []):
+        try:
+            ad = dt.date.fromisoformat(a.get("date"))
+            items.append({"day": (ad - first).days + 1, "icon": "✅", "text": a.get("text", "")})
+        except Exception:
+            continue
+    items = sorted(items, key=lambda x: x["day"])[-6:]
+
+    return {
+        "confidence": {"value": conf, "delta": delta},
+        "vocabulary": {"total": vocab_total, "today": vocab_today},
+        "streak": streak, "sentences": total_sent, "minutes": total_min,
+        "dream": f.get("dream", ""), "dream_pct": round(cur_level / MAX_LEVEL * 100),
+        "timeline": items,
+    }
+
+
+# A clear, well-named activity (name, action, plain what-you'll-do, icon, meta)
+_GOALS = {
+    "talk":      ("Talk with me, face to face", "conversation", "A relaxed English chat — just speak, I'll keep it going.", "💬", "~5 min"),
+    "journey":   ("Tell me about your day",      "daily",        "Chat in Hinglish about your life — learn as we go.",        "🌱", "~5 min"),
+    "learn":     ("Continue your learning",      "learning",     "Say it in Hindi → I say it in English → you repeat.",       "📖", "~4 min"),
+    "roadmap":   ("Pick up your lessons",        "journey",      "Your guided path — one step at a time.",                    "🗺️", "guided"),
+    "interview": ("Prepare for your interview",  "interview",    "A real mock interview, then a scored report.",              "🎯", "mock + score"),
+    "challenge": ("Today's challenge",           "conversation", "Speak for 2 minutes — no Hindi. Can you?",                  "⭐", "2 min"),
+}
+
+
+def _goal_card(key: str, why: str = "") -> dict:
+    g = _GOALS[key]
+    c = {"key": key, "goal": g[0], "action": g[1], "desc": g[2], "icon": g[3], "meta": g[4]}
+    if why:
+        c["why"] = why
+    return c
+
+
+async def build_opening(user_id: str) -> str:
+    """The Companion Moment — DuSu's memory-aware first line on Start Speaking."""
+    f = await get_memory(user_id)
+    if f.get("next_hook"):
+        return f"Last time we started something — {f['next_hook']}. Shall we pick it up?"
+    sums = await recent_summaries(user_id, 1)
+    if sums:
+        return f"I was just thinking about last time — {sums[0]}"
+    achs = f.get("achievements") or []
+    if achs:
+        return f"You did something great recently: {achs[-1].get('text','')}. Ready for more?"
+    moms = _prune_moments(f.get("moments") or [])
+    if moms:
+        return f"You mentioned {moms[-1].get('text','')}. How's that going?"
+    stage = await relationship_stage(user_id)
+    if stage["idx"] == 0:
+        return "I'm really glad you're here. Let's find your voice together."
+    return "Good to see you again. What shall we work on today?"
+
+
+async def build_recommendations(user_id: str) -> dict:
+    """Invisible ranking → 3 curated goals (primary carries a 'why'). Intent → feature."""
+    f = await get_memory(user_id)
+    async with _Session() as s:               # type: ignore[misc]
+        prog = await s.get(Progress, user_id)
+        prof = await s.get(Profile, user_id)
+    streak = (prog.streak_days if prog else 0) or 0
+    last = prog.last_active if prog else None
+    journey = (prog.journey if prog else {}) or {}
+    cur_level = int(journey.get("current_level", 1) or 1)
+    today = _now().date()
+    gap = (today - last).days if last else 99
+    energy = (f.get("energy_today") or {}).get("value", "")
+    onboarded = bool(prof and prof.onboarded)
+
+    # interview event within a week?
+    iv_days = None
+    for e in (f.get("events") or []):
+        if e.get("type") == "interview" and e.get("date"):
+            try:
+                d = (dt.date.fromisoformat(e["date"]) - today).days
+                if 0 <= d <= 7 and (iv_days is None or d < iv_days):
+                    iv_days = d
+            except Exception:
+                pass
+
+    if iv_days is not None:
+        primary = _goal_card("interview", f"your interview is only {iv_days} day{'s' if iv_days != 1 else ''} away")
+    elif f.get("next_hook"):
+        primary = _goal_card("journey", "let's pick up where we left off")
+    elif gap >= 3:
+        primary = _goal_card("talk", "it's been a few days — let's ease back in")
+    elif energy in ("low", "tired", "sad"):
+        primary = _goal_card("talk", "let's take it gentle today")
+    elif streak >= 2:
+        primary = _goal_card("learn", f"you're on a {streak}-day roll — keep it going")
+    elif energy in ("great", "confident", "excited"):
+        primary = _goal_card("challenge", "you sound confident today — let's push a little")
+    elif not onboarded or cur_level <= 1:
+        primary = _goal_card("learn", "let's build your foundation")
+    else:
+        primary = _goal_card("talk", "a few minutes keeps you sharp")
+
+    # Always show a clear trio: primary + one "connect" + one "learn".
+    picks = [primary["key"]]
+    def _add(k):
+        if k not in picks and len(picks) < 3:
+            picks.append(k)
+    if not any(p in ("talk", "journey") for p in picks):            # ensure a connect option
+        _add("journey" if primary["key"] != "journey" else "talk")
+    if not any(p in ("learn", "roadmap", "interview", "challenge") for p in picks):  # ensure a learn option
+        for k in (["interview"] if iv_days is not None else []) + ["learn", "roadmap"]:
+            _add(k); break
+    for k in ["talk", "journey", "learn", "roadmap", "interview", "challenge"]:      # fill if needed
+        _add(k)
+    cards = [primary if k == primary["key"] else _goal_card(k) for k in picks[:3]]
+    return {"primary": cards[0], "second": cards[1], "third": cards[2]}
+
+
+async def build_today(user_id: str) -> dict:
+    """S4 — the one dynamic 'today' card. Never the same two days running."""
+    ctx = await build_companion_context(user_id)
+    async with _Session() as s:               # type: ignore[misc]
+        prog = await s.get(Progress, user_id)
+        mem = await s.get(Memory, user_id)
+    f = dict(mem.facts) if mem and mem.facts else {}
+    streak = (prog.streak_days if prog else 0) or 0
+    sessions_today = (prog.sessions_today if prog else 0) or 0
+    last = prog.last_active if prog else None
+    today = _now().date()
+
+    # 1. A promise DuSu made last time (S5 story hook) — highest priority.
+    hook = f.get("next_hook")
+    if hook and sessions_today == 0:
+        return {"type": "story", "emoji": "📖", "title": "Where we left off",
+                "body": hook, "cta": "Continue", "action": "daily"}
+    # 2. Streak about to break (practised yesterday, nothing today).
+    if streak > 0 and last == today - dt.timedelta(days=1) and sessions_today == 0:
+        return {"type": "streak", "emoji": "🔥", "title": f"Keep your {streak}-day streak alive",
+                "body": "A few minutes today and it lives on.", "cta": "Continue", "action": "daily"}
+    # 3. A live moment to care about.
+    moments = ctx.get("moments") or []
+    if moments and sessions_today == 0:
+        m = moments[-1]
+        return {"type": "moment", "emoji": "💭", "title": "I've been thinking…",
+                "body": f"You mentioned {m.get('text','')}. How's that going?",
+                "cta": "Tell DuSu", "action": "daily"}
+    # 4. Celebrate a recent achievement.
+    achs = ctx.get("achievements") or []
+    if achs and sessions_today == 0:
+        return {"type": "celebrate", "emoji": "⭐", "title": "Look what you did",
+                "body": f"{achs[-1].get('text','')} — proud of you.", "cta": "Keep going", "action": "daily"}
+    # 5. Day-of-week challenge (variety).
+    t, b, action = _TODAY_CHALLENGES[today.weekday()]
+    return {"type": "challenge", "emoji": "🎯", "title": t, "body": b, "cta": "Start", "action": action}
 
 
 async def recent_summaries(user_id: str, limit: int = 3) -> list[str]:
@@ -499,6 +789,15 @@ async def merge_facts(user_id: str, facts: dict, events: list) -> None:
             if notes:
                 learned = (f.get("facts_learned") or []) + [n for n in notes if n]
                 f["facts_learned"] = list(dict.fromkeys(learned))[-_MAX_FACTS:]
+            # S1/S2 — Relationship traits (never expire): how DuSu should behave.
+            rel = facts.get("relationship")
+            if isinstance(rel, dict) and rel:
+                f["relationship"] = {**(f.get("relationship") or {}), **rel}
+            # S1/S2 — emotional Moments (2–7 day shelf life) + Achievements (permanent).
+            if isinstance(facts.get("moments"), list) and facts["moments"]:
+                _add_moments(f, facts["moments"])
+            if isinstance(facts.get("achievements"), list) and facts["achievements"]:
+                _add_achievements(f, facts["achievements"])
         if isinstance(events, list) and events:
             cur = f.get("events") or []
             seen = {(e.get("type"), e.get("date")) for e in cur}
@@ -506,6 +805,21 @@ async def merge_facts(user_id: str, facts: dict, events: list) -> None:
                 if isinstance(e, dict) and (e.get("type"), e.get("date")) not in seen:
                     cur.append(e)
             f["events"] = cur[-20:]
+        mem.facts = f
+        flag_modified(mem, "facts")
+        await s.commit()
+
+
+async def set_next_hook(user_id: str, hook: str) -> None:
+    """S5 — store the promise DuSu made for next time (story continuity)."""
+    hook = (hook or "").strip()
+    async with _Session() as s:               # type: ignore[misc]
+        mem = await _get_or_make_memory(s, user_id)
+        f = dict(mem.facts or {})
+        if hook:
+            f["next_hook"] = hook[:200]
+        else:
+            f.pop("next_hook", None)
         mem.facts = f
         flag_modified(mem, "facts")
         await s.commit()
@@ -519,14 +833,16 @@ async def add_conversation(user_id: str, mode: str, summary: str) -> None:
         await s.commit()
 
 
-async def save_checkin(user_id: str, mood: str) -> dict:
+async def save_checkin(user_id: str, mood: str, energy: str = "") -> dict:
     async with _Session() as s:               # type: ignore[misc]
         mem = await _get_or_make_memory(s, user_id)
         f = dict(mem.facts or {})
         today = _now().date().isoformat()
         checkins = [c for c in (f.get("checkins") or []) if c.get("date") != today]
-        checkins.append({"date": today, "mood": mood})
+        checkins.append({"date": today, "mood": mood, "energy": energy or mood})
         f["checkins"] = checkins[-_MAX_CHECKINS:]
+        # S1 — today's energy reshapes the whole session (read by the prompt builder).
+        f["energy_today"] = {"date": today, "value": energy or mood}
         mem.facts = f
         flag_modified(mem, "facts")
         await s.commit()
@@ -596,9 +912,38 @@ async def bump_daily_stat(user_id: str, sentences: int = 0, seconds: int = 0) ->
         f["daily_stats"] = dict(sorted(stats.items())[-14:])
         if seconds > int(f.get("longest_convo_sec", 0)):
             f["longest_convo_sec"] = seconds
+        # S6 — lifetime totals for Growth signals
+        f["total_sentences"] = int(f.get("total_sentences", 0)) + sentences
+        f["total_seconds"] = int(f.get("total_seconds", 0)) + seconds
         mem.facts = f
         flag_modified(mem, "facts")
         await s.commit()
+
+
+async def add_vocab(user_id: str, words: list[str]) -> None:
+    """S6 — grow the learner's spoken-vocabulary set; count new words per day."""
+    clean = {w for w in ((x or "").lower().strip(".,!?;:\"'") for x in words)
+             if w.isalpha() and len(w) >= 2}
+    if not clean:
+        return
+    async with _Session() as s:               # type: ignore[misc]
+        mem = await _get_or_make_memory(s, user_id)
+        f = dict(mem.facts or {})
+        have = set(f.get("vocab") or [])
+        fresh = clean - have
+        if fresh:
+            merged = list(have | clean)[-_MAX_VOCAB:]
+            f["vocab"] = merged
+            f["vocab_total"] = int(f.get("vocab_total", 0)) + len(fresh)
+            today = _now().date().isoformat()
+            stats = dict(f.get("daily_stats") or {})
+            d = dict(stats.get(today) or {})
+            d["new_words"] = int(d.get("new_words", 0)) + len(fresh)
+            stats[today] = d
+            f["daily_stats"] = stats
+            mem.facts = f
+            flag_modified(mem, "facts")
+            await s.commit()
 
 
 async def save_letter(user_id: str, text: str) -> None:

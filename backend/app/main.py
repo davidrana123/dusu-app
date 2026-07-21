@@ -27,7 +27,7 @@ from pydantic import BaseModel
 
 from .config import settings
 from .interview.engine import Session
-from .interview.prompts import ASSESS_SYSTEM, LESSON_EVAL_SYSTEM, LEVEL_TEST_SYSTEM, LETTER_SYSTEM
+from .interview.prompts import ASSESS_SYSTEM, LESSON_EVAL_SYSTEM, LEVEL_TEST_SYSTEM, LETTER_SYSTEM, GREETING_SYSTEM
 from .providers import llm
 from . import auth
 from . import db
@@ -139,7 +139,17 @@ async def me(token: str = "", authorization: str | None = Header(None)):
     if not db.db_enabled:
         return {"onboarded": None}
     try:
-        return await db.login(claims)   # upsert row + return state (handles cached-token logins)
+        state = await db.login(claims)   # upsert row + return state (handles cached-token logins)
+        if isinstance(state, dict) and state.get("onboarded"):
+            try:
+                uid_ = claims["sub"]
+                state["today"] = await db.build_today(uid_)                    # S4 — Today's Home
+                state["growth"] = await db.build_growth(uid_)                  # S6 — Growth signals
+                state["opening"] = await db.build_opening(uid_)                # Companion Moment — greeting
+                state["recommendations"] = await db.build_recommendations(uid_)  # Companion Moment — 3 recs
+            except Exception as e:
+                print(f"[home] build failed: {type(e).__name__}: {e}")
+        return state
     except Exception as e:
         print(f"[me] db failed: {type(e).__name__}: {e}")
         return {"onboarded": False}
@@ -232,6 +242,37 @@ async def checkin(inp: CheckinIn):
     except Exception as e:
         print(f"[checkin] failed: {type(e).__name__}: {e}")
         return {"ok": False}
+
+
+@app.post("/greeting")
+async def greeting(inp: TokenIn):
+    """The Companion Moment — DuSu's AI-generated Hinglish greeting from memory."""
+    claims = auth.read_session(inp.token)
+    if not claims:
+        raise HTTPException(401, "Not signed in")
+    if not db.db_enabled:
+        return {"text": ""}
+    try:
+        uid = claims["sub"]
+        ctx = await db.build_companion_context(uid)
+        sums = await db.recent_summaries(uid, 1)
+        payload = {
+            "name": ctx["identity"].get("nickname", ""),
+            "stage": ctx["stage"]["stage"],
+            "days_together": ctx["stage"]["days"],
+            "identity": ctx["identity"],
+            "moments": ctx["moments"],
+            "achievements": ctx["achievements"],
+            "energy_today": ctx["energy_today"].get("value", ""),
+            "next_hook": ctx.get("next_hook", ""),
+            "world": ctx.get("world", ""),
+            "last_session": sums[0] if sums else "",
+        }
+        text = await llm.next_question(GREETING_SYSTEM, [{"role": "user", "content": json.dumps(payload, ensure_ascii=False)}])
+        return {"text": (text or "").strip()}
+    except Exception as e:
+        print(f"[greeting] failed: {type(e).__name__}: {e}")
+        return {"text": ""}
 
 
 @app.post("/futureme")
@@ -411,6 +452,17 @@ async def _send(ws: WebSocket, **payload) -> None:
     await ws.send_text(json.dumps(payload))
 
 
+# S3 — Relationship Journey → how DuSu should sound at each stage (never shown to user).
+_STAGE_TONE = {
+    "Guest":            "You've just met. Be warm, welcoming and encouraging; keep it light.",
+    "Friend":           "You're becoming friends. Be friendly and personal; reference small things they told you.",
+    "Practice Partner": "You're their regular practice partner. Relaxed and familiar; pick up where you left off.",
+    "Coach":            "You're their coach now. Warmly push them a little; celebrate progress you've seen.",
+    "Mentor":           "You're a trusted mentor. Speak with warmth and belief in them; reference their journey.",
+    "Companion":        "You're a close companion. Warm and familiar; use natural callbacks; show you truly know them.",
+}
+
+
 def _facts_summary(facts: dict, summaries: list[str]) -> str:
     """Compact 'what DuSu remembers' block injected into the session persona."""
     lines = []
@@ -426,8 +478,27 @@ def _facts_summary(facts: dict, summaries: list[str]) -> str:
     ev = facts.get("events") or []
     if ev:
         lines.append("- Upcoming: " + "; ".join(f"{e.get('type','')} {e.get('date','')}".strip() for e in ev[-3:]))
+    # S1/S3 — relationship traits, live emotional moments, achievements, today's energy
+    rel = facts.get("relationship") or {}
+    if rel:
+        lines.append("- How to treat them: " + ", ".join(str(k).replace("_", " ") for k in rel.keys()))
+    moments = facts.get("moments") or []
+    if moments:
+        lines.append("- Recent moments (care about / gently ask about these): " + "; ".join(
+            (m.get("text", "") + (f" [{m.get('emotion')}]" if m.get("emotion") else "")) for m in moments[-4:]))
+    achs = facts.get("achievements") or []
+    if achs:
+        lines.append("- Proud of: " + "; ".join(a.get("text", "") for a in achs[-4:]))
+    energy = (facts.get("energy_today") or {}).get("value")
+    if energy:
+        lines.append(f"- Their energy today: {energy} (match it)")
+    if facts.get("next_hook"):
+        lines.append(f"- Last time you promised to: {facts['next_hook']} — pick up on it early.")
     if summaries:
         lines.append("- Recent chats: " + " | ".join(summaries))
+    if lines:
+        lines.append("- Show you remember and care; you may gently ask about ONE recent moment. "
+                     "Never invent memories you don't actually have.")
     return "\n".join(lines)
 
 
@@ -471,11 +542,19 @@ async def interview_ws(ws: WebSocket):
             if mem:
                 await db.add_conversation(uid, session.mode, mem.get("summary", ""))
                 await db.merge_facts(uid, mem.get("facts", {}) or {}, mem.get("events", []) or [])
+                await db.set_next_hook(uid, mem.get("next_hook", ""))   # S5 story continuity
             secs = int(time.monotonic() - started_at)
             if session.mode == "daily":
                 await db.record_practice(uid, seconds=secs, sentences=session.turns, xp=20)
             else:
                 await db.bump_daily_stat(uid, sentences=session.turns, seconds=secs)
+            # S6 — grow spoken vocabulary from what the learner actually said
+            try:
+                said = " ".join(m["content"] for m in session.transcript if m.get("role") == "user")
+                if said:
+                    await db.add_vocab(uid, said.split())
+            except Exception:
+                pass
             badges = []
             if mem.get("no_hindi"):       badges.append("courage_no_hindi")
             if mem.get("asked_question"): badges.append("courage_question")
@@ -505,6 +584,12 @@ async def interview_ws(ws: WebSocket):
                         facts = await db.get_memory(uid)
                         summaries = await db.recent_summaries(uid, 3)
                         facts_summary = _facts_summary(facts, summaries)
+                        # S3 — prepend the Relationship Journey tone so DuSu behaves per stage.
+                        st = await db.relationship_stage(uid)
+                        tone = _STAGE_TONE.get(st.get("stage", ""), "")
+                        if tone:
+                            facts_summary = (f"- Relationship stage: {st['stage']}. {tone}\n"
+                                             + facts_summary)
                     except Exception as e:
                         print(f"[memory] load failed: {type(e).__name__}: {e}")
                 started_at = time.monotonic()
@@ -532,7 +617,12 @@ async def interview_ws(ws: WebSocket):
                     await _send(ws, type="ready")   # client greets in Hindi
                 else:
                     await _send(ws, type="status", msg="starting")
-                    greeting = await session.next_ai_turn()  # DuSu speaks first
+                    # Companion Moment: if the user already answered DuSu's greeting out loud,
+                    # seed it so DuSu responds to their topic instead of greeting again.
+                    seed = (data.get("seed") or "").strip()
+                    if seed and session.mode == "conversation":
+                        session.add_user(seed)
+                    greeting = await session.next_ai_turn()  # DuSu speaks first (or replies to seed)
                     await _send(ws, type="ai_text", text=greeting)
 
             elif mtype == "user_text":

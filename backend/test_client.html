@@ -23,11 +23,11 @@
     --glass: rgba(255,255,255,.04);
     --glass-brd: rgba(212,175,55,.18);
     --ink:#f3ecd8; --ink-dim:#c8bd9e; --ink-faint:#8a815f;
-    --gold:#d4af37; --gold-lt:#f5d97a; --gold-dk:#b8860b; --champ:#e8dcc0;
+    --gold:#6f8cff; --gold-lt:#9db4ff; --gold-dk:#4257c9; --champ:#c9d4ff;
     --green:#4fd6a0; --amber:#f0a952; --rose:#e08a7a;
-    --grad: linear-gradient(135deg,#f5d97a 0%,#d4af37 48%,#a9791b 100%);
+    --grad: linear-gradient(135deg,#9db4ff 0%,#6f8cff 50%,#7a5cf0 100%);
     --shadow: 0 24px 70px -24px rgba(0,0,0,.85);
-    --gold-glow: 0 8px 30px -6px rgba(212,175,55,.55);
+    --gold-glow: 0 8px 30px -6px rgba(111,140,255,.55);
     --r: 22px;
     --font-d:"Cormorant Garamond", Georgia, serif;
     --font-b:"Inter", system-ui, sans-serif;
@@ -68,11 +68,11 @@
   .fx { position:fixed; inset:0; z-index:0; overflow:hidden; pointer-events:none; }
   .blob { position:absolute; border-radius:50%; filter:blur(95px); opacity:.5; }
   .b1 { width:520px; height:520px; top:-150px; left:-110px;
-        background:radial-gradient(circle,#4a3a16,transparent 70%); animation:drift1 27s ease-in-out infinite; }
+        background:radial-gradient(circle,#2a336e,transparent 70%); animation:drift1 27s ease-in-out infinite; }
   .b2 { width:620px; height:620px; bottom:-200px; right:-150px;
-        background:radial-gradient(circle,#12324a,transparent 70%); animation:drift2 31s ease-in-out infinite; }
+        background:radial-gradient(circle,#123a52,transparent 70%); animation:drift2 31s ease-in-out infinite; }
   .b3 { width:440px; height:440px; top:38%; left:52%;
-        background:radial-gradient(circle,#2c2517,transparent 70%); animation:drift3 24s ease-in-out infinite; }
+        background:radial-gradient(circle,#3a2668,transparent 70%); animation:drift3 24s ease-in-out infinite; }
   @keyframes drift1 { 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(70px,50px); } }
   @keyframes drift2 { 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(-60px,-40px); } }
   @keyframes drift3 { 0%,100%{ transform:translate(0,0); } 50%{ transform:translate(-50px,60px); } }
@@ -137,8 +137,8 @@
   .welcome { display:flex; align-items:center; gap:14px; justify-content:center; margin:6px 0 20px; }
   .wface { flex:none; border-radius:20px; padding:4px;
     background:radial-gradient(circle at 50% 38%, #3a4a6e, #141a30 74%);
-    box-shadow:0 8px 24px -8px rgba(0,0,0,.5), inset 0 0 0 1px rgba(212,175,55,.25);
-    filter:drop-shadow(0 6px 16px rgba(212,175,55,.2)); animation:floaty 4s ease-in-out infinite; }
+    box-shadow:0 8px 24px -8px rgba(0,0,0,.5), inset 0 0 0 1px rgba(111,140,255,.28);
+    filter:drop-shadow(0 6px 16px rgba(111,140,255,.22)); animation:floaty 4s ease-in-out infinite; }
   @keyframes floaty { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-5px); } }
   .wbubble { position:relative; background:var(--glass); border:1px solid var(--glass-brd); border-radius:16px;
              padding:14px 18px; font-size:15px; color:var(--ink); max-width:420px; line-height:1.5; }
@@ -153,6 +153,81 @@
   .hero h1 .g { background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
   .hero p { color:var(--ink-dim); font-size:15px; max-width:520px; margin:0 auto 26px; line-height:1.6; }
 
+  /* ===== "Meet DuSu" hero stage — one job: tap Start Speaking ===== */
+  .hstage { min-height:calc(100vh - 130px); display:flex; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center; padding:10px 0 40px; gap:2px; }
+  .hchar { position:relative; width:230px; height:230px; display:grid; place-items:center; margin-bottom:6px; }
+  .hchar .wface { width:172px !important; height:172px !important; position:relative; z-index:2; }
+  .hchar .wface-png { width:172px; height:172px; position:relative; z-index:2; }
+  /* soft breathing glow halo behind the character */
+  .halo { position:absolute; inset:0; border-radius:50%; z-index:0; pointer-events:none;
+    background:radial-gradient(circle at 50% 46%,
+      color-mix(in srgb, var(--gold) 55%, transparent), transparent 62%);
+    filter:blur(26px); animation:haloPulse 5.5s ease-in-out infinite; }
+  @keyframes haloPulse { 0%,100%{ transform:scale(.92); opacity:.55; } 50%{ transform:scale(1.12); opacity:.9; } }
+  /* floating particles */
+  .hpart { position:absolute; inset:-20px; z-index:1; pointer-events:none; }
+  .hpart i { position:absolute; width:6px; height:6px; border-radius:50%;
+    background:radial-gradient(circle, var(--gold-lt), transparent 70%); opacity:.7;
+    animation:floatUp linear infinite; }
+  .hpart i:nth-child(1){ left:12%; bottom:8%;  animation-duration:7s;  }
+  .hpart i:nth-child(2){ left:82%; bottom:20%; animation-duration:9s;  width:4px; animation-delay:1.2s; }
+  .hpart i:nth-child(3){ left:26%; bottom:2%;  animation-duration:8s;  width:5px; animation-delay:2.4s; }
+  .hpart i:nth-child(4){ left:68%; bottom:6%;  animation-duration:10s; width:4px; animation-delay:.6s; }
+  .hpart i:nth-child(5){ left:48%; bottom:14%; animation-duration:6.5s; width:3px; animation-delay:3s; }
+  .hpart i:nth-child(6){ left:90%; bottom:2%;  animation-duration:11s; width:5px; animation-delay:1.8s; }
+  @keyframes floatUp { 0%{ transform:translateY(0) scale(1); opacity:0; }
+    15%{ opacity:.8; } 85%{ opacity:.6; } 100%{ transform:translateY(-190px) scale(.4); opacity:0; } }
+
+  .hbubble { font-family:var(--font-d); font-size:19px; color:var(--gold-lt); letter-spacing:.01em;
+    margin:6px 0 2px; opacity:0; animation:fadeUp .7s ease .15s forwards; }
+  .htitle { font-family:var(--font-d); font-weight:600; font-size:clamp(30px,6vw,46px); line-height:1.1;
+    margin:6px 0 8px; color:var(--ink); opacity:0; animation:fadeUp .7s ease .3s forwards; }
+  .htitle .g { background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .hsub { color:var(--ink-dim); font-size:15.5px; margin:0 0 30px; opacity:0; animation:fadeUp .7s ease .45s forwards; }
+  @keyframes fadeUp { to { opacity:1; transform:none; } }
+  .hbubble,.htitle,.hsub{ transform:translateY(10px); }
+
+  /* the one button */
+  .hbtn { position:relative; border:none; cursor:pointer; color:#0b1020; font-weight:800; font-size:17px;
+    letter-spacing:.02em; padding:18px 44px; border-radius:999px; background:var(--grad);
+    box-shadow:0 14px 40px -10px color-mix(in srgb, var(--gold) 80%, transparent);
+    opacity:0; animation:fadeUp .7s ease .6s forwards, hbtnPulse 2.8s ease-in-out 1.3s infinite;
+    transition:transform .18s; }
+  .hbtn:hover { transform:translateY(-2px) scale(1.03); }
+  .hbtn:active { transform:scale(.98); }
+  .hbtn::after { content:""; position:absolute; inset:0; border-radius:inherit; z-index:-1;
+    box-shadow:0 0 0 0 color-mix(in srgb, var(--gold) 60%, transparent);
+    animation:hbtnRing 2.8s ease-out 1.3s infinite; }
+  @keyframes hbtnPulse { 0%,100%{ box-shadow:0 14px 40px -10px color-mix(in srgb,var(--gold) 80%,transparent); }
+    50%{ box-shadow:0 14px 54px -6px color-mix(in srgb,var(--gold) 95%,transparent); } }
+  @keyframes hbtnRing { 0%{ box-shadow:0 0 0 0 color-mix(in srgb,var(--gold) 55%,transparent); }
+    100%{ box-shadow:0 0 0 26px transparent; } }
+
+  /* return-user CTA above the primary button */
+  .hjourney { display:inline-flex; align-items:center; gap:9px; margin:0 0 16px; cursor:pointer;
+    padding:12px 22px; border-radius:999px; font-size:14px; font-weight:600; color:var(--ink);
+    background:color-mix(in srgb, var(--gold) 14%, rgba(255,255,255,.03));
+    border:1px solid color-mix(in srgb, var(--gold) 42%, transparent);
+    box-shadow:0 8px 24px -14px color-mix(in srgb, var(--gold) 70%, transparent);
+    opacity:0; animation:fadeUp .7s ease .5s forwards; transition:transform .18s, background .2s, border-color .2s; }
+  .hjourney:hover { transform:translateY(-2px);
+    background:color-mix(in srgb, var(--gold) 22%, rgba(255,255,255,.04));
+    border-color:color-mix(in srgb, var(--gold) 62%, transparent); }
+  .hjourney .hj-ic { font-size:15px; }
+  .hjourney .hj-go { color:var(--gold-lt); transition:transform .2s; }
+  .hjourney:hover .hj-go { transform:translateX(3px); }
+
+  .reveal-link { margin-top:22px; background:none; border:none; cursor:pointer; color:var(--ink-faint);
+    font-size:13px; letter-spacing:.03em; opacity:0; animation:fadeUp .7s ease .8s forwards;
+    transition:color .2s, transform .2s; }
+  .reveal-link:hover { color:var(--ink); transform:translateY(2px); }
+
+  #moreHome { animation:fade .5s ease; scroll-margin-top:20px; }
+  @media (prefers-reduced-motion: reduce){
+    .halo,.hpart i,.hbtn,.hbubble,.htitle,.hsub,.reveal-link,.hjourney{ animation:none !important; opacity:1 !important; transform:none !important; }
+  }
+
   .field { margin-bottom:16px; }
   .field label { display:block; font-size:11px; color:var(--ink-faint); margin:0 0 7px 3px;
                  text-transform:uppercase; letter-spacing:.14em; font-weight:600; }
@@ -163,31 +238,224 @@
   }
   .field input:focus { border-color:var(--gold); box-shadow:0 0 0 3px rgba(212,175,55,.18); }
 
-  .modes { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); gap:16px; margin-top:8px; }
-  @media (max-width:640px){ .modes{ grid-template-columns:1fr; } }
+  /* ===== Home: premium-dark product cards ===== */
+  .modes-head { text-align:center; font-family:var(--font-d); font-weight:600; font-size:24px;
+    color:var(--ink); margin:30px 0 4px; }
+  .modes-head .g, #home .hero h1 .g {
+    background:linear-gradient(135deg,#ffffff 0%,#aab0be 100%);
+    -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .modes-sub { text-align:center; font-size:13px; color:var(--ink-faint); margin-bottom:18px; }
+  .modes { display:grid; grid-template-columns:repeat(auto-fit,minmax(250px,1fr)); gap:18px; margin-top:8px; }
+  @media (max-width:720px){ .modes{ grid-template-columns:1fr; } }
+
   .mode-card {
-    position:relative; text-align:left; cursor:pointer; padding:22px; border-radius:var(--r);
-    background:var(--glass); border:1px solid var(--glass-brd); color:var(--ink);
-    transition:transform .18s, border-color .2s, background .2s; overflow:hidden;
-  }
-  .mode-card:hover { transform:translateY(-4px); border-color:rgba(212,175,55,.55);
-                     background:rgba(212,175,55,.06); box-shadow:var(--gold-glow); }
+    --accent:#8b93b0;
+    position:relative; display:flex; flex-direction:column; text-align:left; cursor:pointer;
+    padding:24px 22px 20px; border-radius:var(--r); min-height:274px; overflow:hidden;
+    background:linear-gradient(165deg,
+      color-mix(in srgb, var(--accent) 22%, #1c2030) 0%,
+      color-mix(in srgb, var(--accent) 8%, #15171f) 100%);
+    border:1px solid color-mix(in srgb, var(--accent) 28%, rgba(255,255,255,.06)); color:var(--ink);
+    box-shadow:0 1px 0 rgba(255,255,255,.07) inset, 0 20px 42px -26px rgba(0,0,0,.8);
+    transition:transform .24s cubic-bezier(.2,.7,.2,1), border-color .25s, box-shadow .25s;
+    opacity:0; transform:translateY(14px); animation:cardIn .55s cubic-bezier(.2,.7,.2,1) forwards; }
+  .mode-card.learn     { --accent:#7c86c9; }
+  .mode-card.talk      { --accent:#56b39a; }
+  .mode-card.interview { --accent:#cf9a8f; }
+  .mode-card:nth-child(1){ animation-delay:.05s; }
+  .mode-card:nth-child(2){ animation-delay:.13s; }
+  .mode-card:nth-child(3){ animation-delay:.21s; }
+  @keyframes cardIn { to { opacity:1; transform:none; } }
+  @media (prefers-reduced-motion: reduce){ .mode-card{ animation:none; opacity:1; transform:none; } }
+  .mode-card > * { position:relative; z-index:1; }
+
+  /* soft cursor-follow spotlight (subtle accent tint) */
   .mode-card::before { content:""; position:absolute; inset:0; border-radius:inherit; opacity:0;
-    transition:opacity .3s; pointer-events:none;
-    background:radial-gradient(240px circle at var(--mx,50%) var(--my,50%), rgba(212,175,55,.16), transparent 60%); }
+    transition:opacity .3s; pointer-events:none; z-index:0;
+    background:radial-gradient(280px circle at var(--mx,50%) var(--my,50%),
+      color-mix(in srgb, var(--accent) 20%, transparent), transparent 62%); }
   .mode-card:hover::before { opacity:1; }
-  .mode-card .ic { width:46px; height:46px; border-radius:14px; display:grid; place-items:center;
-                   margin-bottom:14px; }
-  .mode-card.talk .ic { background:linear-gradient(135deg,#4fd6a0,#2f9e78); }
-  .mode-card.interview .ic { background:var(--grad); }
-  .mode-card.learn .ic { background:linear-gradient(135deg,#8b7cf0,#5b48d8); }
-  .mode-card h3 { font-family:var(--font-d); font-size:22px; font-weight:600; margin-bottom:5px; }
-  .mode-card p { font-size:13px; color:var(--ink-dim); line-height:1.5; }
-  .mode-card .go { position:absolute; top:20px; right:20px; color:var(--ink-faint);
-                   transition:transform .2s,color .2s; }
-  .mode-card:hover .go { transform:translateX(3px); color:var(--gold); }
-  .soon { margin-top:20px; font-size:12px; color:var(--ink-faint); text-align:center; letter-spacing:.02em; }
+  /* diagonal sheen sweep on hover */
+  .mode-card::after { content:""; position:absolute; top:0; bottom:0; left:-60%; width:45%; z-index:2;
+    background:linear-gradient(105deg, transparent, rgba(255,255,255,.10), transparent);
+    transform:skewX(-18deg); transition:left .6s ease; pointer-events:none; }
+  .mode-card:hover::after { left:120%; }
+  .mode-card:hover { transform:translateY(-6px); border-color:rgba(255,255,255,.22);
+    box-shadow:0 26px 50px -22px rgba(0,0,0,.92),
+      0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent) inset,
+      0 12px 40px -20px color-mix(in srgb, var(--accent) 45%, transparent); }
+
+  .mc-orb { position:relative; width:56px; height:56px; border-radius:16px; display:grid; place-items:center;
+    margin-bottom:16px; background:linear-gradient(145deg,#262a36,#12141b);
+    border:1px solid rgba(255,255,255,.10);
+    box-shadow:0 8px 20px -10px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.06) inset;
+    transition:transform .25s, border-color .25s; }
+  .mc-orb::after { content:""; position:absolute; inset:-1px; border-radius:inherit; opacity:0;
+    box-shadow:0 0 22px -1px var(--accent); transition:opacity .3s; }
+  .mode-card:hover .mc-orb { transform:translateY(-2px) scale(1.05);
+    border-color:color-mix(in srgb, var(--accent) 50%, rgba(255,255,255,.1)); }
+  .mode-card:hover .mc-orb::after { opacity:.5; }
+  .mc-orb svg { width:26px; height:26px; position:relative; }
+  .mc-orb svg [stroke]{ stroke:#eef0f5 !important; }   /* soft-white icons */
+
+  .mc-badge { position:absolute; top:15px; right:15px; z-index:3; display:inline-flex; align-items:center; gap:6px;
+    font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#d7dae2;
+    padding:5px 11px 5px 9px; border-radius:999px;
+    background:rgba(255,255,255,.05); border:1px solid rgba(255,255,255,.12); }
+  .mc-badge::before { content:""; width:6px; height:6px; border-radius:50%; background:var(--accent);
+    box-shadow:0 0 8px var(--accent); }
+
+  .mode-card h3 { font-family:var(--font-d); font-size:25px; font-weight:600; margin-bottom:6px; color:#f3f4f8; }
+  .mode-card p  { font-size:13.5px; color:#9ea3b2; line-height:1.55; }
+
+  .mc-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; }
+  .mc-chips span { font-size:11px; color:#b7bcc9; padding:4px 9px; border-radius:999px;
+    background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); white-space:nowrap; }
+
+  .mc-cta { margin-top:auto; padding-top:18px; display:flex; align-items:center; gap:9px;
+    font-weight:600; font-size:14px; color:#e7e9ef; }
+  .mc-cta b { display:inline-grid; place-items:center; width:26px; height:26px; border-radius:50%;
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); color:#e7e9ef;
+    font-size:14px; transition:transform .2s, background .2s, color .2s; }
+  .mode-card:hover .mc-cta b { transform:translateX(4px); background:#f2f3f7; color:#12141b; border-color:transparent; }
+
+  .mc-wm { position:absolute; right:-4px; bottom:-16px; font-size:92px; line-height:1;
+    opacity:.05; z-index:0; pointer-events:none; filter:grayscale(1); }
+
+  .soon { margin-top:22px; font-size:12px; color:var(--ink-faint); text-align:center; letter-spacing:.02em; }
   .soon b { color:var(--ink-dim); }
+
+  /* floating faded words behind the hero */
+  .hwords { position:absolute; inset:0; z-index:0; pointer-events:none; overflow:hidden; }
+  .hwords span { position:absolute; font-family:var(--font-d); font-weight:600; white-space:nowrap;
+    color:var(--gold); opacity:.05; animation:wordDrift linear infinite; }
+  .hwords span:nth-child(1){ top:12%; left:6%;  font-size:60px; animation-duration:34s; }
+  .hwords span:nth-child(2){ top:70%; left:10%; font-size:40px; animation-duration:40s; animation-delay:-6s; }
+  .hwords span:nth-child(3){ top:22%; left:76%; font-size:52px; animation-duration:44s; animation-delay:-12s; }
+  .hwords span:nth-child(4){ top:82%; left:68%; font-size:36px; animation-duration:38s; animation-delay:-3s; }
+  .hwords span:nth-child(5){ top:46%; left:2%;  font-size:34px; animation-duration:48s; animation-delay:-20s; }
+  .hwords span:nth-child(6){ top:8%;  left:46%; font-size:30px; animation-duration:42s; animation-delay:-9s; }
+  .hwords span:nth-child(7){ top:88%; left:40%; font-size:46px; animation-duration:36s; animation-delay:-15s; }
+  .hwords span:nth-child(8){ top:40%; left:82%; font-size:32px; animation-duration:50s; animation-delay:-25s; }
+  @keyframes wordDrift { 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-26px); } }
+  .hstage > *:not(.hwords){ position:relative; z-index:1; }
+
+  /* Living DuSu: eyes ease + happy reaction when reaching for Start */
+  .hchar { transition:transform .25s ease; }
+  #hEyes { transition:transform .16s ease; }
+  #hchar.happy .halo { opacity:.95 !important; }
+  #hchar.happy .wface { filter:drop-shadow(0 8px 22px rgba(111,140,255,.5)) brightness(1.06); }
+
+  /* Curiosity lead card */
+  .curio-card { --accent:#7c86c9; position:relative; display:flex; align-items:center; gap:16px; width:100%;
+    text-align:left; cursor:pointer; margin:0 0 18px; padding:20px 22px; border-radius:var(--r); overflow:hidden; color:var(--ink);
+    background:linear-gradient(120deg, color-mix(in srgb,var(--accent) 30%, #1b1f2b), color-mix(in srgb,var(--accent) 10%, #14161f));
+    border:1px solid color-mix(in srgb,var(--accent) 40%, rgba(255,255,255,.08));
+    box-shadow:0 18px 40px -24px rgba(0,0,0,.8); transition:transform .2s, border-color .25s, box-shadow .25s; }
+  .curio-card::after { content:""; position:absolute; top:0; bottom:0; left:-60%; width:45%;
+    background:linear-gradient(105deg,transparent,rgba(255,255,255,.12),transparent); transform:skewX(-18deg);
+    transition:left .6s ease; pointer-events:none; }
+  .curio-card:hover::after { left:120%; }
+  .curio-card:hover { transform:translateY(-3px); border-color:color-mix(in srgb,var(--accent) 65%,transparent);
+    box-shadow:0 24px 48px -22px color-mix(in srgb,var(--accent) 55%,transparent); }
+  .curio-emoji { font-size:34px; flex:none; filter:drop-shadow(0 4px 10px rgba(0,0,0,.4)); }
+  .curio-txt { display:flex; flex-direction:column; gap:3px; flex:1; }
+  .curio-title { font-family:var(--font-d); font-size:22px; font-weight:600; }
+  .curio-sub { font-size:13.5px; color:var(--ink-dim); line-height:1.45; }
+  .curio-go { flex:none; display:grid; place-items:center; width:34px; height:34px; border-radius:50%;
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); color:#e7e9ef; font-size:17px;
+    transition:transform .2s, background .2s, color .2s; }
+  .curio-card:hover .curio-go { transform:translateX(4px); background:#f2f3f7; color:#12141b; border-color:transparent; }
+  /* The Companion Moment — intent-first: DuSu speaks, then 3 curated goals */
+  .hstage.moment-on .htitle, .hstage.moment-on .hsub, .hstage.moment-on .today-card,
+  .hstage.moment-on .hgrow, .hstage.moment-on .hjourney, .hstage.moment-on .hbtn,
+  .hstage.moment-on .reveal-link { display:none !important; }
+  .moment { width:min(460px,92vw); display:flex; flex-direction:column; align-items:stretch; gap:12px; margin-top:6px; }
+  .moment-say { font-family:var(--font-d); font-size:20px; line-height:1.4; color:var(--ink); text-align:center;
+    margin:2px auto 8px; max-width:420px; opacity:0; animation:fadeUp .6s ease .05s forwards; }
+  .moment-recs { display:flex; flex-direction:column; gap:12px; }
+  .rec { position:relative; display:flex; flex-direction:column; gap:3px; text-align:left; cursor:pointer;
+    padding:16px 18px; border-radius:16px; color:var(--ink); overflow:hidden;
+    background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.10); opacity:0; transform:translateY(10px);
+    animation:cardIn .5s cubic-bezier(.2,.7,.2,1) forwards; transition:transform .18s, border-color .2s, box-shadow .2s; }
+  .moment-recs .rec:nth-child(1){ animation-delay:.12s; }
+  .moment-recs .rec:nth-child(2){ animation-delay:.22s; }
+  .moment-recs .rec:nth-child(3){ animation-delay:.32s; }
+  .rec:hover { transform:translateY(-2px); border-color:rgba(255,255,255,.22); }
+  .rec-primary { border-color:color-mix(in srgb,var(--gold) 55%,transparent);
+    background:linear-gradient(180deg, color-mix(in srgb,var(--gold) 16%, #1b1f2b), color-mix(in srgb,var(--gold) 6%, #14161f));
+    box-shadow:0 16px 40px -22px color-mix(in srgb,var(--gold) 75%,transparent); }
+  .rec-primary::after { content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
+    box-shadow:0 0 0 1px color-mix(in srgb,var(--gold) 30%,transparent) inset; animation:recGlow 2.6s ease-in-out infinite; }
+  @keyframes recGlow { 0%,100%{ opacity:.5; } 50%{ opacity:1; } }
+  .rec-star { font-size:10.5px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--gold-lt); }
+  .rec-head { display:flex; align-items:center; gap:11px; }
+  .rec-ic { font-size:22px; flex:none; line-height:1; }
+  .rec-goal { font-family:var(--font-d); font-size:20px; font-weight:600; line-height:1.2; }
+  .rec-desc { font-size:12.5px; color:var(--ink-dim); line-height:1.45; }
+  .rec-why { font-size:12.5px; color:var(--gold-lt); font-style:italic; }
+  .moment-all { align-self:center; margin-top:8px; background:none; border:none; cursor:pointer;
+    color:var(--gold-lt); font-size:13px; font-weight:600; }
+  .moment-all:hover { text-decoration:underline; }
+  .rec-meta { display:flex; justify-content:space-between; align-items:center; font-size:12px; color:var(--ink-faint); margin-top:2px; }
+  .rec-meta b { display:inline-grid; place-items:center; width:24px; height:24px; border-radius:50%;
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); color:#e7e9ef; font-size:13px; transition:transform .2s,background .2s,color .2s; }
+  .rec:hover .rec-meta b { transform:translateX(3px); background:#f2f3f7; color:#12141b; border-color:transparent; }
+  .moment-back { align-self:center; margin-top:4px; background:none; border:none; cursor:pointer;
+    color:var(--ink-faint); font-size:12.5px; opacity:0; animation:fadeUp .6s ease .45s forwards; }
+  .moment-back:hover { color:var(--ink); }
+  @media (prefers-reduced-motion: reduce){
+    .moment-say,.rec,.moment-back{ animation:none !important; opacity:1 !important; transform:none !important; } }
+
+  /* S4 — Today's Home: the one dynamic card ("what's waiting for me today?") */
+  .today-card { position:relative; display:flex; align-items:center; gap:14px; text-align:left; cursor:pointer;
+    width:min(440px,92vw); margin:6px 0 16px; padding:16px 18px; border-radius:18px; overflow:hidden; color:var(--ink);
+    background:linear-gradient(120deg, color-mix(in srgb,var(--gold) 26%, #1b1f2b), color-mix(in srgb,var(--gold) 9%, #14161f));
+    border:1px solid color-mix(in srgb,var(--gold) 42%, transparent);
+    box-shadow:0 16px 38px -22px color-mix(in srgb,var(--gold) 70%, transparent);
+    opacity:0; animation:fadeUp .7s ease .4s forwards; transition:transform .18s, border-color .2s, box-shadow .2s; }
+  .today-card:hover { transform:translateY(-3px); border-color:color-mix(in srgb,var(--gold) 65%,transparent); }
+  .today-card::after { content:""; position:absolute; top:0; bottom:0; left:-60%; width:45%;
+    background:linear-gradient(105deg,transparent,rgba(255,255,255,.12),transparent); transform:skewX(-18deg);
+    transition:left .6s ease; pointer-events:none; }
+  .today-card:hover::after { left:120%; }
+  .tc-emoji { font-size:30px; flex:none; }
+  .tc-body { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
+  .tc-kicker { font-size:10.5px; font-weight:700; letter-spacing:.09em; text-transform:uppercase; color:var(--gold-lt); }
+  .tc-title { font-family:var(--font-d); font-size:19px; font-weight:600; line-height:1.2; }
+  .tc-sub { font-size:12.5px; color:var(--ink-dim); line-height:1.4; }
+  .tc-go { flex:none; display:grid; place-items:center; width:30px; height:30px; border-radius:50%;
+    background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); color:#e7e9ef; font-size:15px;
+    transition:transform .2s, background .2s, color .2s; }
+  .today-card:hover .tc-go { transform:translateX(3px); background:#f2f3f7; color:#12141b; border-color:transparent; }
+  @media (prefers-reduced-motion: reduce){ .today-card{ animation:none !important; opacity:1 !important; } }
+
+  /* S6 — Transformation timeline (in the reveal): watch yourself become someone new */
+  .gtimeline { margin:6px 0 20px; padding:18px 20px; border-radius:var(--r);
+    background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.09); }
+  .gt-title { font-family:var(--font-d); font-size:20px; font-weight:600; margin-bottom:12px; }
+  .gt-row { display:flex; align-items:center; gap:12px; padding:7px 0; border-top:1px solid rgba(255,255,255,.05); }
+  .gt-row:first-of-type { border-top:none; }
+  .gt-day { font-size:11px; font-weight:700; letter-spacing:.05em; color:var(--gold-lt); min-width:52px; }
+  .gt-ic { font-size:15px; }
+  .gt-text { font-size:13.5px; color:var(--ink-dim); }
+  .gt-dream { margin-top:14px; }
+  .gt-dream-top { display:flex; justify-content:space-between; font-size:12.5px; color:var(--ink); margin-bottom:6px; }
+  .gt-bar { height:8px; border-radius:999px; background:rgba(255,255,255,.08); overflow:hidden; }
+  .gt-bar i { display:block; height:100%; border-radius:999px; background:var(--grad); }
+
+  /* transformation strip — becoming, not stats (returning users) */
+  .hgrow { margin:2px 0 20px; display:flex; flex-direction:column; gap:9px; align-items:center;
+    opacity:0; animation:fadeUp .7s ease .55s forwards; }
+  .hg-chips { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; }
+  .hg-chips span { font-size:12px; color:var(--ink-dim); padding:5px 12px; border-radius:999px; white-space:nowrap;
+    background:color-mix(in srgb,var(--gold) 12%, rgba(255,255,255,.03));
+    border:1px solid color-mix(in srgb,var(--gold) 30%, transparent); }
+  .hg-line { font-family:var(--font-d); font-style:italic; font-size:16px; color:var(--gold-lt); }
+
+  @media (prefers-reduced-motion: reduce){ .hwords span{ animation:none !important; } .hchar,#hEyes{ transition:none !important; } .hgrow{ animation:none !important; opacity:1 !important; } }
 
   /* LEARNING MODE */
   .learn-body { display:flex; flex-direction:column; align-items:center; text-align:center; padding-top:14px; }
@@ -201,7 +469,7 @@
   .mic-btn.listening .mic-ring { opacity:1; animation:micPulse 1.4s ease-out infinite; }
   .mic-btn.listening { animation:micGlow 1.4s ease-in-out infinite; }
   @keyframes micPulse { 0%{ transform:scale(.9); opacity:.7; } 100%{ transform:scale(1.35); opacity:0; } }
-  @keyframes micGlow { 0%,100%{ box-shadow:var(--gold-glow); } 50%{ box-shadow:0 0 40px -2px rgba(212,175,55,.7); } }
+  @keyframes micGlow { 0%,100%{ box-shadow:var(--gold-glow); } 50%{ box-shadow:0 0 40px -2px rgba(111,140,255,.7); } }
   .mic-label { margin-top:16px; font-family:var(--font-d); font-weight:600; font-size:17px; }
   .learn-state { margin-top:8px; font-size:13px; color:var(--ink-faint); min-height:18px; }
   .trans-card { width:100%; max-width:480px; margin-top:26px; text-align:left;
@@ -300,7 +568,35 @@
   .lvl-row { display:flex; gap:14px; align-items:center; background:var(--glass); border:1px solid var(--glass-brd);
     border-radius:18px; padding:16px 18px; cursor:pointer; transition:.15s; position:relative; touch-action:manipulation; }
   .lvl-row.playable:hover { border-color:var(--gold); }
-  .lvl-row.locked { opacity:.45; cursor:default; }
+  .lvl-row.locked { opacity:.5; cursor:default; }
+  .worlds-ahead { text-align:center; font-size:12.5px; color:var(--ink-faint); padding:16px 10px 6px; letter-spacing:.02em; }
+  /* Explore section: tidy nav cards (journey / leaderboard) + section labels */
+  .sec-label { font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:var(--ink-faint);
+    font-weight:700; margin:24px 2px 10px; }
+  .nav-cards { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin:4px 0; }
+  @media (max-width:560px){ .nav-cards{ grid-template-columns:1fr; } }
+  .nav-card { display:flex; align-items:center; gap:13px; text-align:left; cursor:pointer; width:100%;
+    padding:15px 16px; border-radius:16px; color:var(--ink);
+    background:linear-gradient(180deg, rgba(255,255,255,.055), rgba(255,255,255,.02));
+    border:1px solid rgba(255,255,255,.10); transition:transform .18s, border-color .2s, box-shadow .2s; }
+  .nav-card:hover { transform:translateY(-2px); border-color:color-mix(in srgb,var(--gold) 45%,transparent);
+    box-shadow:0 16px 34px -22px color-mix(in srgb,var(--gold) 60%,transparent); }
+  .nav-ic { font-size:24px; flex:none; line-height:1; }
+  .nav-txt { display:flex; flex-direction:column; gap:2px; flex:1; min-width:0; }
+  .nav-title { font-family:var(--font-d); font-size:17px; font-weight:600; }
+  .nav-sub { font-size:12px; color:var(--ink-dim); }
+  .nav-go { flex:none; color:var(--ink-faint); font-size:16px; transition:transform .2s, color .2s; }
+  .nav-card:hover .nav-go { transform:translateX(3px); color:var(--gold-lt); }
+
+  /* S9 — Confidence Stars collectible */
+  .collect { margin:4px 0 14px; }
+  .collect-title { display:flex; justify-content:space-between; font-size:12px; color:var(--ink-dim);
+    text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px; }
+  .collect-title span { color:var(--gold-lt); font-weight:700; }
+  .collect-row { display:flex; gap:8px; flex-wrap:wrap; }
+  .cstar { font-size:24px; filter:grayscale(1); opacity:.4; transition:transform .2s; }
+  .cstar.on { filter:none; opacity:1; }
+  .cstar.on:hover { transform:scale(1.15) rotate(-6deg); }
   .lvl-row.current { border-color:var(--gold); box-shadow:var(--gold-glow); }
   .lvl-ic { width:48px; height:48px; border-radius:14px; display:grid; place-items:center; font-size:24px; flex:none;
     background:radial-gradient(circle at 50% 38%, #3a4a6e, #141a30 74%); }
@@ -582,7 +878,11 @@
 
   <!-- ===================== HOME ===================== -->
   <section id="home" class="screen">
-    <div class="welcome">
+    <div class="hstage">
+      <div class="hwords" aria-hidden="true"><span>Confidence</span><span>Dream</span><span>Fluency</span><span>Future</span><span>Success</span><span>Hello</span><span>Speak</span><span>Believe</span></div>
+      <div class="hchar" id="hchar">
+        <span class="halo"></span>
+        <span class="hpart"><i></i><i></i><i></i><i></i><i></i><i></i></span>
       <svg class="wface" viewBox="-50 -50 100 100" width="96" height="96" aria-hidden="true">
         <path d="M-50 51 L-50 42 C-42 30 -22 25 0 25 C22 25 42 30 50 42 L50 51 Z" fill="#e4e8ef"/>
         <path d="M-13 26 L0 41 L13 26 C9 24 -9 24 -13 26 Z" fill="#3f63b0"/>
@@ -605,6 +905,7 @@
             <circle cx="-12.6" cy="-2.4" r="5.6" fill="url(#iris)"/>
             <circle cx="-12.6" cy="-2.4" r="2.6" fill="#171b2e"/>
             <circle cx="-14.6" cy="-4.6" r="2.1" fill="#fff"/>
+            <circle cx="-10.8" cy="-0.4" r="1.1" fill="#fff" opacity=".85"/>
             <path d="M-20.6 -8.5 Q -13 -13.5 -5.4 -8.5" stroke="#2a1a12" stroke-width="2.3" fill="none" stroke-linecap="round"/>
           </g>
           <g class="eye" id="hERwrap">
@@ -612,9 +913,11 @@
             <circle cx="12.6" cy="-2.4" r="5.6" fill="url(#iris)"/>
             <circle cx="12.6" cy="-2.4" r="2.6" fill="#171b2e"/>
             <circle cx="10.6" cy="-4.6" r="2.1" fill="#fff"/>
+            <circle cx="14.4" cy="-0.4" r="1.1" fill="#fff" opacity=".85"/>
             <path d="M5.4 -8.5 Q 13 -13.5 20.6 -8.5" stroke="#2a1a12" stroke-width="2.3" fill="none" stroke-linecap="round"/>
           </g>
         </g>
+        <path d="M0 4 q -1.4 3 0 3.8" stroke="#d99a86" stroke-width="1.1" fill="none" stroke-linecap="round" opacity=".6"/>
         <g transform="translate(-19,-30) rotate(-12)">
           <path d="M0 0 L-9 -5.5 L-9 5.5 Z" fill="#e23b4e"/>
           <path d="M0 0 L9 -5.5 L9 5.5 Z" fill="#e23b4e"/>
@@ -626,16 +929,28 @@
         </g>
       </svg>
       <img class="wface-png" hidden alt="DuSu" />
-      <div class="wbubble" id="welcomeMsg">Hi! 👋 I'm DuSu — pick a mode and let's practice speaking.</div>
-    </div>
+      </div><!-- /hchar -->
 
-    <div class="hero">
-      <h1>Practice <span class="g">speaking</span>,<br/>the way it really happens.</h1>
-      <p>Talk out loud with DuSu. Have a free-flowing chat to build fluency, or run a realistic interview and get a scored report. Pick a mode to begin.</p>
-    </div>
+      <div class="hbubble" id="welcomeMsg">Hi, I'm DuSu.</div>
+      <h1 class="htitle" id="htitle">Speak English <span class="g">without fear.</span></h1>
+      <p class="hsub" id="hsub">Your AI speaking partner is waiting.</p>
+      <button class="today-card" id="todayCard" hidden></button>
+      <div class="hgrow" id="heroGrowth" hidden></div>
+      <button class="hbtn" id="startSpeak">Start Speaking</button>
+      <button class="reveal-link" id="exploreBtn">See what DuSu can do →</button>
+
+      <!-- The Companion Moment: DuSu speaks + 3 curated recommendations -->
+      <div class="moment" id="moment" hidden>
+        <div class="moment-say" id="momentSay"></div>
+        <div class="moment-recs" id="momentRecs"></div>
+        <button class="moment-all" id="momentAll">See everything DuSu can do →</button>
+        <button class="moment-back" id="momentBack">not now</button>
+      </div>
+    </div><!-- /hstage -->
 
     <input id="name" type="hidden" value="David" />
 
+    <div id="moreHome" hidden>
     <!-- Emotional layer: daily mood check-in, event greeting, weekly letter -->
     <div id="moodRow" class="mood-row" hidden></div>
     <div id="eventBanner" class="event-banner" hidden></div>
@@ -643,36 +958,71 @@
 
     <!-- Journey CTA (shown once onboarded) -->
     <button id="journeyBanner" class="journey-banner" hidden></button>
-    <button id="roadmapLink" class="roadmap-link" hidden>📈 View my roadmap & progress →</button>
-    <button id="leaderboardLink" class="roadmap-link" hidden>🏆 Leaderboard →</button>
+    <div class="sec-label" id="progressLabel" hidden>Your progress</div>
+    <div class="nav-cards">
+      <button id="roadmapLink" class="nav-card" hidden>
+        <span class="nav-ic">🗺️</span>
+        <span class="nav-txt"><span class="nav-title">My learning journey</span><span class="nav-sub">Worlds, lessons &amp; progress</span></span>
+        <span class="nav-go">→</span>
+      </button>
+      <button id="leaderboardLink" class="nav-card" hidden>
+        <span class="nav-ic">🌍</span>
+        <span class="nav-txt"><span class="nav-title">Global leaderboard</span><span class="nav-sub">See where you rank worldwide</span></span>
+        <span class="nav-go">→</span>
+      </button>
+    </div>
 
     <div class="free-label" id="freeLabel" hidden>Free practice</div>
+
+    <div class="gtimeline" id="growthTimeline" hidden></div>
+
+    <button class="curio-card" data-mode="conversation">
+      <span class="curio-emoji">🎁</span>
+      <span class="curio-txt">
+        <span class="curio-title">Today's challenge</span>
+        <span class="curio-sub">Can you speak for 2 minutes — without switching to Hindi?</span>
+      </span>
+      <span class="curio-go">→</span>
+    </button>
+
+    <div class="modes-head">More ways to <span class="g">improve</span></div>
+    <div class="modes-sub">Explore everything — no pressure.</div>
+
     <div class="modes">
       <button class="mode-card learn" data-mode="learning">
-        <span class="go">→</span>
-        <div class="ic">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
+        <span class="mc-badge">Start here</span>
+        <div class="mc-orb">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
         </div>
-        <h3>Learning Mode</h3>
-        <p>Speak in Hindi — DuSu translates it into natural English and helps you practice speaking, slowly.</p>
+        <h3>Learn step by step</h3>
+        <p>Speak in Hindi → I say it in English → you repeat. Your first step.</p>
+        <div class="mc-chips"><span>🇮🇳 → 🇬🇧 Translate</span><span>🐢 Slow &amp; clear</span><span>🎙️ Voice</span></div>
+        <span class="mc-cta">Start learning <b>→</b></span>
+        <span class="mc-wm">📖</span>
       </button>
 
       <button class="mode-card talk" data-mode="conversation">
-        <span class="go">→</span>
-        <div class="ic">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#062" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
+        <span class="mc-badge">Most loved ♥</span>
+        <div class="mc-orb">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#062" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
         </div>
-        <h3>Confidence Talk</h3>
-        <p>End-to-end English conversation to build real confidence — speak start to finish, no pressure.</p>
+        <h3>Talk with me, face to face</h3>
+        <p>A relaxed English chat — just speak, I'll keep it going.</p>
+        <div class="mc-chips"><span>💬 Real chat</span><span>🔥 Build streak</span><span>🎙️ Voice</span></div>
+        <span class="mc-cta">Start talking <b>→</b></span>
+        <span class="mc-wm">💬</span>
       </button>
 
       <button class="mode-card interview" data-mode="interview">
-        <span class="go">→</span>
-        <div class="ic">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#241a08" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
+        <span class="mc-badge">Scored report</span>
+        <div class="mc-orb">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#241a08" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7h-9M14 17H5"/><circle cx="17" cy="17" r="3"/><circle cx="7" cy="7" r="3"/></svg>
         </div>
-        <h3>Interview Prep</h3>
-        <p>Realistic mock interview with adaptive follow-ups. Ends with a detailed scored report on how you did.</p>
+        <h3>Prepare for your interview</h3>
+        <p>A real mock interview with follow-ups, then a scored report.</p>
+        <div class="mc-chips"><span>🎯 Adaptive Q&amp;A</span><span>📊 Scored</span><span>💼 Any role</span></div>
+        <span class="mc-cta">Start interview <b>→</b></span>
+        <span class="mc-wm">🎯</span>
       </button>
     </div>
     <div class="soon">More modes coming soon — <b>Group Discussion · IELTS Speaking · Sales Pitch</b></div>
@@ -707,6 +1057,7 @@
         <button id="toTop">Back to top ↑</button>
       </div>
     </footer>
+    </div><!-- /moreHome -->
   </section>
 
   <!-- ===================== INTERVIEW SETUP ===================== -->
@@ -749,8 +1100,8 @@
         </g>
       </svg>
       <img class="wface-png" hidden alt="DuSu" />
-      <h1>Interview <span class="g">setup</span></h1>
-      <p>Which role are you interviewing for?</p>
+      <h1>Your interviewer is <span class="g">waiting…</span></h1>
+      <p>Step into the room. Which role are you here for today?</p>
       <div class="field" style="text-align:left">
         <label>Interview role</label>
         <input id="role" placeholder="e.g. Frontend Developer" value="Frontend Developer" />
@@ -805,7 +1156,7 @@
       </button>
       <div>
         <div class="sess-title">Daily Talk with DuSu</div>
-        <div class="sess-sub">Talk about your day — learn English from it</div>
+        <div class="sess-sub">I've been wondering how your day went…</div>
       </div>
     </div>
 
@@ -830,13 +1181,14 @@
               <ellipse cx="17" cy="12" rx="6" ry="3.3" fill="#ff8f86" opacity=".4"/>
               <path d="M-20 -15 Q -13 -18 -7 -15.5" stroke="#b9a9b0" stroke-width="1.8" fill="none" stroke-linecap="round"/>
               <path d="M7 -15.5 Q 13 -18 20 -15" stroke="#b9a9b0" stroke-width="1.8" fill="none" stroke-linecap="round"/>
-              <g>
-                <ellipse cx="-13" cy="-3" rx="7.4" ry="9" fill="#fff"/><circle cx="-12.6" cy="-2.4" r="5.6" fill="url(#iris)"/><circle cx="-12.6" cy="-2.4" r="2.6" fill="#171b2e"/><circle cx="-14.6" cy="-4.6" r="2.1" fill="#fff"/><path d="M-20.6 -8.5 Q -13 -13.5 -5.4 -8.5" stroke="#2a1a12" stroke-width="2.3" fill="none" stroke-linecap="round"/>
-                <ellipse cx="13" cy="-3" rx="7.4" ry="9" fill="#fff"/><circle cx="12.6" cy="-2.4" r="5.6" fill="url(#iris)"/><circle cx="12.6" cy="-2.4" r="2.6" fill="#171b2e"/><circle cx="10.6" cy="-4.6" r="2.1" fill="#fff"/><path d="M5.4 -8.5 Q 13 -13.5 20.6 -8.5" stroke="#2a1a12" stroke-width="2.3" fill="none" stroke-linecap="round"/>
+              <g id="dEyes">
+                <g class="eye" id="dELwrap"><ellipse cx="-13" cy="-3" rx="7.4" ry="9" fill="#fff"/><circle cx="-12.6" cy="-2.4" r="5.6" fill="url(#iris)"/><circle cx="-12.6" cy="-2.4" r="2.6" fill="#171b2e"/><circle cx="-14.6" cy="-4.6" r="2.1" fill="#fff"/><circle cx="-10.8" cy="-0.4" r="1.1" fill="#fff" opacity=".85"/><path d="M-20.6 -8.5 Q -13 -13.5 -5.4 -8.5" stroke="#2a1a12" stroke-width="2.3" fill="none" stroke-linecap="round"/></g>
+                <g class="eye" id="dERwrap"><ellipse cx="13" cy="-3" rx="7.4" ry="9" fill="#fff"/><circle cx="12.6" cy="-2.4" r="5.6" fill="url(#iris)"/><circle cx="12.6" cy="-2.4" r="2.6" fill="#171b2e"/><circle cx="10.6" cy="-4.6" r="2.1" fill="#fff"/><circle cx="14.4" cy="-0.4" r="1.1" fill="#fff" opacity=".85"/><path d="M5.4 -8.5 Q 13 -13.5 20.6 -8.5" stroke="#2a1a12" stroke-width="2.3" fill="none" stroke-linecap="round"/></g>
               </g>
-              <g transform="translate(-19,-30) rotate(-12)"><path d="M0 0 L-9 -5.5 L-9 5.5 Z" fill="#e23b4e"/><path d="M0 0 L9 -5.5 L9 5.5 Z" fill="#e23b4e"/><circle cx="0" cy="0" r="2.6" fill="#b91f33"/></g>
-              <path class="dsmile" d="M-7 17 Q 0 23 7 17" stroke="#c2506a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
-              <ellipse class="dtalk" cx="0" cy="19" rx="6" ry="2.4" fill="#a83b57" style="display:none"/>
+              <path d="M0 4 q -1.4 3 0 3.8" stroke="#d99a86" stroke-width="1.1" fill="none" stroke-linecap="round" opacity=".6"/>
+              <g transform="translate(-19,-30) rotate(-12)"><path d="M0 0 L-9 -5.5 L-9 5.5 Z" fill="#e23b4e"/><path d="M0 0 L9 -5.5 L9 5.5 Z" fill="#e23b4e"/><path d="M0 0 L-9 -5.5 L-9 5.5 Z" fill="#000" opacity=".1"/><circle cx="0" cy="0" r="2.6" fill="#b91f33"/></g>
+              <path id="dSmile" d="M-7 17 Q 0 23 7 17" stroke="#c2506a" stroke-width="2.6" fill="none" stroke-linecap="round"/>
+              <ellipse id="dTalk" cx="0" cy="19" rx="6" ry="2" fill="#a83b57" style="display:none"/>
               </g>
             </svg>
           </div>
@@ -891,6 +1243,7 @@
       </div>
     </div>
     <div class="jrny-stats" id="jrnyStats"></div>
+    <div class="collect" id="collectStars"></div>
     <div class="focus-tip" id="focusTip" hidden></div>
     <div class="dash-head">Your skills</div>
     <div class="dash-skills" id="dashSkills"></div>
@@ -908,7 +1261,7 @@
       </button>
       <div>
         <div class="sess-title">🏆 Leaderboard</div>
-        <div class="sess-sub">Top speakers by XP</div>
+        <div class="sess-sub">Who's ahead of you today? 👀</div>
       </div>
     </div>
     <div class="podium" id="lbPodium"></div>
@@ -1111,6 +1464,7 @@ function makeFace(o){
 }
 const FACE     = makeFace({ eyes:"eyes",  lidL:"eLwrap",  lidR:"eRwrap",  smile:"smile",  talk:"talk"  });
 const HOMEFACE = makeFace({ eyes:"hEyes", lidL:"hELwrap", lidR:"hERwrap", smile:"hSmile", talk:"hTalk" });
+const DAILYFACE= makeFace({ eyes:"dEyes", lidL:"dELwrap", lidR:"dERwrap", smile:"dSmile", talk:"dTalk" });
 
 /* ---- avatar: beautiful PNG portrait, smooth (no flickery mouth-swap).
    Only gentle blink + breathing + a speaking glow move — so it stays smooth
@@ -1200,6 +1554,164 @@ document.querySelectorAll(".mode-card").forEach(c=>{
     c.style.setProperty("--my", (e.clientY - r.top) + "px");
   });
 });
+// Hero: the one primary action → the Companion Moment (DuSu speaks + recommends)
+$("startSpeak").onclick = () => openMoment();
+// Progressive discovery: reveal the modes/journey below on demand
+$("exploreBtn").onclick = () => {
+  const m = $("moreHome"); m.hidden = false; $("exploreBtn").style.display = "none";
+  requestAnimationFrame(() => m.scrollIntoView({ behavior:"smooth", block:"start" }));
+};
+// curiosity lead card → Confidence Talk (today's challenge)
+document.querySelectorAll(".curio-card").forEach(c => c.onclick = () => chooseMode(c.dataset.mode));
+
+// Living DuSu — her eyes + a slight lean follow your cursor (home hero only)
+(function(){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const hchar = () => $("hchar"), eyesEl = () => $("hEyes");
+  function reset(){ const ey = eyesEl(), hc = hchar(); if(ey) ey.setAttribute("transform","translate(0,0)"); if(hc) hc.style.transform = ""; }
+  document.addEventListener("mousemove", e => {
+    const hc = hchar(); if(!hc || !hc.offsetParent) return;   // only when home visible
+    const stg = hc.closest(".hstage"); if(stg && stg.classList.contains("moment-on")) return;  // pause during the Companion Moment
+    const r = hc.getBoundingClientRect(), cx = r.left + r.width/2, cy = r.top + r.height/2;
+    const dx = Math.max(-1, Math.min(1, (e.clientX - cx) / (window.innerWidth  / 2)));
+    const dy = Math.max(-1, Math.min(1, (e.clientY - cy) / (window.innerHeight / 2)));
+    const ey = eyesEl(); if(ey) ey.setAttribute("transform", `translate(${(dx*3.2).toFixed(2)},${(dy*2.2).toFixed(2)})`);
+    hc.style.transform = `translate(${(dx*7).toFixed(1)}px,${(dy*5).toFixed(1)}px)`;
+  });
+  document.addEventListener("mouseleave", reset);
+})();
+// She smiles + brightens when you reach for Start Speaking
+function homeHappy(on){
+  const hc = $("hchar"), sm = $("hSmile");
+  if(hc) hc.classList.toggle("happy", on);
+  if(sm) sm.setAttribute("d", on ? "M-8 15 Q 0 25 8 15" : "M-7 17 Q 0 23 7 17");
+}
+$("startSpeak").addEventListener("mouseenter", () => homeHappy(true));
+$("startSpeak").addEventListener("mouseleave", () => homeHappy(false));
+
+// S10 — Delight: tap DuSu and she lights up + says something sweet (not useful, just felt).
+const _DELIGHT = [
+  "You showed up — that's the hard part. ✨",
+  "I'm really glad you're here.",
+  "Your English is getting braver, I can tell.",
+  "Let's make today count. 💪",
+  "You + me = unstoppable.",
+  "I saved a little courage for you today. 🫶",
+];
+let _delightI = 0, _delightT = null;
+function dusuGiggle(){
+  const hc = $("hchar"), b = $("welcomeMsg"); if(!hc) return;
+  homeHappy(true);
+  if(b){
+    if(!_delightT) hc.dataset.prevMsg = b.textContent;   // remember the real greeting
+    b.textContent = _DELIGHT[_delightI++ % _DELIGHT.length];
+  }
+  clearTimeout(_delightT);
+  _delightT = setTimeout(() => {
+    homeHappy(false);
+    if(b && hc.dataset.prevMsg) b.textContent = hc.dataset.prevMsg;
+    _delightT = null;
+  }, 1800);
+}
+if($("hchar")) $("hchar").addEventListener("click", dusuGiggle);
+
+// ===== The Living Conversation: Start Speaking → DuSu speaks (Hinglish), waits, then =====
+// user answers → conversation begins on their topic · user freezes → 3 goal recs appear.
+let _convSeed = "", _mrec = null, _momentTimer = null;
+// Hinglish greeting reads best on a hi-IN voice (Hindi words in Devanagari, English in Latin).
+const GREET_VOICE = () => ({ lang:"hi-IN", rate:0.95, voice: hindiVoice || pickedVoice });
+
+async function openMoment(){
+  const hs = document.querySelector(".hstage"); if(hs) hs.classList.add("moment-on");
+  const hc = $("hchar"); if(hc) hc.style.transform = "";     // release cursor-follow offset
+  homeHappy(true);
+  if($("moment")) $("moment").hidden = false;
+  if($("momentRecs")) $("momentRecs").innerHTML = "";
+  if($("momentSay")) $("momentSay").textContent = "…";
+  // AI Hinglish greeting — only if a Hindi voice exists (else it sounds robotic); English fallback otherwise.
+  const useHi = !!hindiVoice;
+  let text = "", voiceOpts = GREET_VOICE();
+  if(useHi){
+    try{
+      const r = await fetch("/greeting", { method:"POST", headers:{"Content-Type":"application/json"},
+        body: JSON.stringify({ token:authToken }) });
+      if(r.ok) text = ((await r.json()).text || "").trim();
+    }catch(_){}
+  }
+  if(!$("moment") || $("moment").hidden) return;             // user backed out during fetch
+  if(!text){ text = (userState && userState.opening) || "So… what shall we work on today?"; voiceOpts = ENG_NORM(); }
+  if($("momentSay")) $("momentSay").textContent = text;
+  try{ if(window.speechSynthesis){ window.speechSynthesis.cancel(); say(text, voiceOpts); } }catch(_){}
+  momentListen();
+  clearTimeout(_momentTimer);
+  _momentTimer = setTimeout(showRecs, 11000);               // freeze → gently offer goals
+}
+
+function momentListen(){
+  if(!SR){ showRecs(); return; }
+  try{ if(_mrec){ _mrec.onend = null; _mrec.stop(); } }catch(_){}
+  _mrec = new SR(); _mrec.lang = "en-IN"; _mrec.interimResults = false; _mrec.maxAlternatives = 1;
+  let got = false;
+  _mrec.onresult = (e) => {
+    if(window.speechSynthesis && window.speechSynthesis.speaking) return;   // ignore DuSu's own voice
+    const t = (e.results[0][0].transcript || "").trim();
+    if(!t || got) return;
+    got = true;
+    if(/\b(i\s*don'?t\s*know|pata nahi|nahi pata|not sure|dunno|hmm+)\b/i.test(t)){ showRecs(); return; }
+    clearTimeout(_momentTimer);
+    _convSeed = t;              // seed the conversation with their answer
+    closeMoment(true);
+    chooseMode("conversation");
+  };
+  _mrec.onerror = () => {};
+  _mrec.onend = () => {};       // silence → the timer shows recs
+  try{ _mrec.start(); }catch(_){}
+}
+
+function _recCard(c, primary){
+  if(!c) return "";
+  return `<button class="rec ${primary ? "rec-primary" : ""}" data-action="${c.action || "conversation"}">`
+    + (primary ? '<span class="rec-star">⭐ I recommend this</span>' : "")
+    + `<span class="rec-head"><span class="rec-ic">${c.icon || "💬"}</span><span class="rec-goal">${c.goal || "Talk with me"}</span></span>`
+    + `<span class="rec-desc">${c.desc || ""}</span>`
+    + (primary && c.why ? `<span class="rec-why">${c.why}</span>` : "")
+    + `<span class="rec-meta"><span>${c.meta || ""}</span><b>→</b></span></button>`;
+}
+function showRecs(){
+  clearTimeout(_momentTimer);
+  try{ if(_mrec){ _mrec.onend = null; _mrec.stop(); _mrec = null; } }catch(_){}
+  const el = $("momentRecs"); if(!el || !$("moment") || $("moment").hidden) return;
+  let rec = userState && userState.recommendations;
+  if(!rec || !rec.primary){   // graceful fallback (db off / new user)
+    rec = { primary:{icon:"💬", goal:"Talk with me, face to face", action:"conversation", why:"a few minutes keeps you sharp", desc:"A relaxed English chat — just speak, I'll keep it going.", meta:"~5 min"},
+            second:{icon:"📖", goal:"Continue your learning", action:"learning", desc:"Say it in Hindi → I say it in English → you repeat.", meta:"~4 min"},
+            third:{icon:"🌱", goal:"Tell me about your day", action:"daily", desc:"Chat in Hinglish about your life — learn as we go.", meta:"~5 min"} };
+  }
+  el.innerHTML = _recCard(rec.primary, true) + _recCard(rec.second, false) + _recCard(rec.third, false);
+  el.querySelectorAll(".rec").forEach(b => b.onclick = () => {
+    const a = b.dataset.action; closeMoment(true);
+    if(a === "daily") startDaily();
+    else if(a === "journey") openJourney();
+    else chooseMode(a);           // conversation | learning | interview (→ setup)
+  });
+}
+function closeMoment(keepSpeech){
+  clearTimeout(_momentTimer);
+  try{ if(_mrec){ _mrec.onend = null; _mrec.stop(); _mrec = null; } }catch(_){}
+  const hs = document.querySelector(".hstage"); if(hs) hs.classList.remove("moment-on");
+  if($("moment")) $("moment").hidden = true;
+  if($("momentRecs")) $("momentRecs").innerHTML = "";
+  homeHappy(false);
+  if(!keepSpeech){ try{ if(window.speechSynthesis) window.speechSynthesis.cancel(); }catch(_){} }
+}
+if($("momentBack")) $("momentBack").onclick = () => closeMoment(false);
+// "See everything DuSu can do" → close the moment + reveal all options (home explore)
+if($("momentAll")) $("momentAll").onclick = () => {
+  closeMoment(false);
+  const m = $("moreHome");
+  if(m){ m.hidden = false; if($("exploreBtn")) $("exploreBtn").style.display = "none";
+    requestAnimationFrame(() => m.scrollIntoView({ behavior:"smooth", block:"start" })); }
+};
 $("setupBack").onclick = () => show("home");
 $("startInterview").onclick = () => startSession("interview");
 $("role").addEventListener("keydown", e => { if(e.key === "Enter") startSession("interview"); });
@@ -1227,7 +1739,8 @@ function startSession(mode){
   ws.onopen = () => {
     running = true; srFails = 0;
     usageInc(); refreshUsage();   // count the session now that it actually started
-    ws.send(JSON.stringify({ type:"start", mode, name:$("name").value, role:$("role").value, token:authToken, mood:todayMood }));
+    ws.send(JSON.stringify({ type:"start", mode, name:$("name").value, role:$("role").value, token:authToken, mood:todayMood, seed:_convSeed }));
+    _convSeed = "";   // one-shot: the Companion Moment's spoken answer seeds turn 1
   };
   ws.onmessage = onMessage;
   ws.onclose = () => {
@@ -1319,7 +1832,9 @@ function pickVoice(){
   // audio; a local voice (e.g. Microsoft Zira) is reliable in Chrome and Edge.
   const local = en.filter(v => v.localService);
   const pool = local.length ? local : (en.length ? en : voices);
-  hindiVoice = voices.find(v => /^hi(-|_|$)/i.test(v.lang)) || null;
+  // Prefer a natural-sounding Hindi voice (Google/Swara/Natural) for Hinglish.
+  hindiVoice = voices.find(v => /^hi(-|_|$)/i.test(v.lang) && /natural|swara|google|neerja|madhur/i.test(v.name))
+            || voices.find(v => /^hi(-|_|$)/i.test(v.lang)) || null;
   if(!pool.length){ pickedVoice = null; return; }
   if(voiceGender === "female")
     pickedVoice = pool.find(v => FEMALE_RE.test(v.name)) || pool.find(v => !MALE_RE.test(v.name)) || pool[0];
@@ -1372,12 +1887,13 @@ function startListening(){
   recog = new SR();
   recog.lang = "en-US"; recog.interimResults = false; recog.maxAlternatives = 1;
   let sent = false;
-  recog.onstart = () => orb("listening", "Listening", "speak, then pause");
+  recog.onstart = () => { _lisT0 = performance.now(); orb("listening", "Listening", "speak, then pause"); };
   recog.onresult = (e) => {
     if(aiSpeaking) return;   // echo guard: drop speaker bleed
     const text = e.results[0][0].transcript.trim();
     if(text && !sent){
       sent = true; srFails = 0;
+      pushThink((performance.now() - _lisT0) / 1000);   // S6 — thinking speed
       addMsg(text, "user");
       orb("thinking", "DuSu is thinking", "");
       if(ws && ws.readyState === 1) ws.send(JSON.stringify({ type:"user_text", text }));
@@ -1465,7 +1981,7 @@ const HINDI = {
 };
 let lrec = null, lastEnglish = "";
 const HI       = () => ({ lang:"hi-IN", rate:0.95, voice:hindiVoice });
-const ENG_SLOW = () => ({ lang:"en-IN", rate:0.62, voice:pickedVoice });  // Learning: extra slow, clear
+const ENG_SLOW = () => ({ lang:"en-IN", rate:0.8, voice:pickedVoice });  // Learning: clear, medium pace
 const ENG_NORM = () => ({ lang:"en-US", rate:1.0,  voice:pickedVoice });
 
 // A single spoken line, awaitable, with a watchdog (no cancel-before-speak).
@@ -1530,11 +2046,9 @@ async function handleTranslation(hindi, english){
   $("tcHindi").textContent = hindi; $("tcEng").textContent = english;
   $("transCard").hidden = false; $("replayBtn").disabled = true; learnState("");
   await say(HINDI.intro, HI());          // "English mein aise bolte hain."
-  await pause(700);
-  await say(english, ENG_SLOW());
-  await say(HINDI.repeat, HI());         // "Ab mere baad dohraiye."
-  await say(english, ENG_SLOW());
-  learnState("Now repeat after DuSu. Tap 🔊 to hear again, or the mic for a new sentence.");
+  await say(HINDI.repeat, HI());         // "Ab mere baad dohraiye." FIRST
+  await say(english, ENG_SLOW());        // then the English, said ONCE
+  learnState("Ab aap boliye — 🔊 dobara sunne ke liye, ya mic naye vaakya ke liye.");
   $("replayBtn").disabled = false; micEnable(true);
 }
 function stopLearn(){
@@ -1561,10 +2075,8 @@ function dMicActive(on){ $("dailyMic").classList.toggle("listening", on); }
 function dailyOrb(state){
   const orb = $("dorb"); if(!orb) return;
   orb.className = "orb-wrap " + state;
-  const talking = state === "speaking";
-  const sm = orb.querySelector(".dsmile"), tk = orb.querySelector(".dtalk");
-  if(sm) sm.style.display = talking ? "none" : "";
-  if(tk) tk.style.display = talking ? "" : "none";
+  if(state === "speaking"){ DAILYFACE.set("speaking"); DAILYFACE.startTalking(); }
+  else { DAILYFACE.stopTalking(); DAILYFACE.set(state === "thinking" ? "thinking" : "idle"); }
 }
 // speak with the face animating (used in Daily Talk)
 async function sayFace(text, opts){ dailyOrb("speaking"); await say(text, opts); dailyOrb("idle"); }
@@ -1613,15 +2125,12 @@ async function handleDailyTurn(hindi, english, praise, nextQ){
   $("dailyCard").hidden = false; $("dcReplay").disabled = !english; dState("");
   if(english){
     dailyOrb("speaking");
-    if(praise) await say(praise, HI());
-    await say(HINDI.intro, HI());        // "English mein aise bolte hain."
-    await pause(400);
-    await say(english, ENG_SLOW());
-    await say(HINDI.repeat, HI());        // "Ab mere baad dohraiye."
-    await say(english, ENG_SLOW());
+    if(praise) await say(praise, HI());   // short reply to what they said
+    await say(HINDI.repeat, HI());        // "Ab mere baad dohraiye." FIRST
+    await say(english, ENG_SLOW());       // then the English, said ONCE
     dailyOrb("idle");
   }
-  dState("Repeat it, then tap Continue for the next question.");
+  dState("Ab aap boliye — phir Continue dabaiye. (🔊 dobara sunne ke liye)");
 }
 function stopDaily(){
   try{ if(drec){ drec.onend = null; drec.stop(); drec = null; } }catch(_){}
@@ -1929,6 +2438,8 @@ function goHomeAfterAssess(){ stopAssessSpeech(); show("home"); setWelcome(); }
 
 /* ================= My Journey (roadmap + lessons) ================= */
 const LEVEL_ICONS = ["🧠","🗣️","💬","💪","🎯","💼","🚀"];
+// S7 — levels are places, not numbers.
+const WORLD_NAMES = ["The Village","The Street","The City","The Workplace","The Interview Hall","The Boardroom","The Global Stage"];
 const BADGE_LABELS = { first_lesson:"🎤 First Lesson", first_converse:"💬 First Chat",
   streak_7:"🔥 7-Day Streak", sentences_100:"⭐ 100 Sentences", level_up:"🚀 Level Up",
   courage_no_hindi:"🧠 Spoke without Hindi", courage_question:"❓ Asked a question",
@@ -2055,10 +2566,12 @@ function levelObj(level){ return CURRICULUM.find(l => l.level === level); }
 
 // ---- render ----
 function renderHomeJourney(){
-  const b = $("journeyBanner"), fl = $("freeLabel"), rl = $("roadmapLink"), lb = $("leaderboardLink");
+  const b = $("journeyBanner"), fl = $("freeLabel"), rl = $("roadmapLink"), lb = $("leaderboardLink"), hj = $("heroJourney"), pl = $("progressLabel");
   if(!b) return;
-  if(!userState || !userState.onboarded){ b.hidden = true; if(fl) fl.hidden = true; if(rl) rl.hidden = true; if(lb) lb.hidden = true; return; }
+  if(!userState || !userState.onboarded){ b.hidden = true; if(fl) fl.hidden = true; if(rl) rl.hidden = true; if(lb) lb.hidden = true; if(hj) hj.hidden = true; if(pl) pl.hidden = true; return; }
+  if(hj) hj.hidden = false;
   if(lb) lb.hidden = false;
+  if(pl) pl.hidden = false;
   const nick = memFacts().nickname || (authUser && (authUser.name||"").split(" ")[0]) || "";
   b.innerHTML = `
     <div class="jb-ic">💬</div>
@@ -2070,7 +2583,7 @@ function renderHomeJourney(){
   b.hidden = false; if(fl) fl.hidden = false; if(rl) rl.hidden = false;
   renderHomeExtras();
 }
-$("journeyBanner").onclick = startDaily;   // Continue your Journey → Daily Talk
+$("journeyBanner").onclick = startDaily;   // Continue your Journey → Daily Talk (in the reveal)
 $("roadmapLink").onclick = openJourney;    // roadmap/dashboard/becoming
 $("leaderboardLink").onclick = openLeaderboard;
 $("lbBack").onclick = () => show("home");
@@ -2243,24 +2756,41 @@ function renderJourney(){
   }).join("");
   setTimeout(() => $("dashSkills").querySelectorAll(".bar i").forEach(i => i.style.width = (i.dataset.w||0) + "%"), 120);
   renderBecoming();
+  // S9 — Confidence Stars: one per world cleared (empty slots invite curiosity)
+  const stars = Math.max(0, (j.current_level || 1) - 1);
+  const cs = $("collectStars");
+  if(cs){
+    cs.innerHTML = `<div class="collect-title">Confidence Stars <span>${stars}/${WORLD_NAMES.length}</span></div>` +
+      `<div class="collect-row">` + WORLD_NAMES.map((w, i) =>
+        `<span class="cstar ${i < stars ? "on" : ""}" title="${i < stars ? w + " — cleared" : "Locked — clear " + w}">${i < stars ? "⭐" : "☆"}</span>`
+      ).join("") + `</div>`;
+  }
   // roadmap
-  $("roadmapHead").textContent = "Your roadmap";
+  $("roadmapHead").textContent = "Your worlds";
   const cur = j.current_level || 1;
-  $("roadmap").innerHTML = CURRICULUM.map(lv => {
+  const rows = CURRICULUM.map(lv => {
+    if(lv.level > cur + 1) return null;                       // S7 gradual reveal — only next world teased
     const done = lvlDone(lv.level), total = lv.lessons.length, pct = Math.round(done/total*100);
     const complete = done >= total, isCur = lv.level === cur, locked = lv.level > cur;
+    const world = WORLD_NAMES[lv.level-1] || lv.name_en;
     const cls = complete ? "done playable" : isCur ? "current playable" : locked ? "locked" : "playable";
+    const sub = complete ? "Cleared ✓"
+      : locked ? `Clear ${WORLD_NAMES[cur-1] || "this world"} to unlock`
+      : `${done} / ${total} episodes`;
     return `<div class="lvl-row ${cls}" data-level="${lv.level}">
       ${isCur ? '<span class="you-here">You are here</span>' : ''}
       <div class="lvl-ic">${locked ? "🔒" : LEVEL_ICONS[lv.level-1]}</div>
       <div class="lvl-main">
-        <div class="lvl-name">${lv.level}. ${lv.name_en}</div>
-        <div class="lvl-sub">${complete ? "Completed ✓" : done + " / " + total + " lessons"}</div>
-        <div class="lvl-bar"><i data-w="${pct}"></i></div>
+        <div class="lvl-name">${world}</div>
+        <div class="lvl-sub">${sub}</div>
+        ${locked ? "" : `<div class="lvl-bar"><i data-w="${pct}"></i></div>`}
       </div>
       <div class="lvl-right">${complete ? "✅" : locked ? "" : "▶"}</div>
     </div>`;
-  }).join("");
+  }).filter(Boolean).join("");
+  const ahead = CURRICULUM.length - Math.min(CURRICULUM.length, cur + 1);
+  $("roadmap").innerHTML = rows + (ahead > 0
+    ? `<div class="worlds-ahead">✨ ${ahead} more world${ahead>1?"s":""} ahead — keep going to discover ${ahead>1?"them":"it"}</div>` : "");
   setTimeout(() => $("roadmap").querySelectorAll(".lvl-bar i").forEach(i => i.style.width = (i.dataset.w||0) + "%"), 120);
   $("roadmap").querySelectorAll(".lvl-row.playable").forEach(r => {
     r.onclick = () => openLevel(Number(r.dataset.level));
@@ -2320,12 +2850,12 @@ async function recordFutureMe(){
 // lesson list for one level (rendered inside the journey screen)
 function openLevel(level){
   const j = jJourney(), lv = levelObj(level), doneIds = j.completed?.[String(level)] || [];
-  $("roadmapHead").innerHTML = `<button class="back" id="lvlBack" style="width:30px;height:30px;display:inline-grid;vertical-align:middle;margin-right:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button> ${LEVEL_ICONS[level-1]} ${lv.name_en}`;
-  let rows = lv.lessons.map(ls => {
+  $("roadmapHead").innerHTML = `<button class="back" id="lvlBack" style="width:30px;height:30px;display:inline-grid;vertical-align:middle;margin-right:8px"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg></button> ${LEVEL_ICONS[level-1]} ${WORLD_NAMES[level-1] || lv.name_en}`;
+  let rows = lv.lessons.map((ls, i) => {
     const done = doneIds.includes(ls.id);
     return `<div class="lvl-row playable" data-lesson="${ls.id}">
       <div class="lvl-ic">${done ? "✅" : "▶"}</div>
-      <div class="lvl-main"><div class="lvl-name">${ls.en}</div><div class="lvl-sub">${ls.hi}</div></div>
+      <div class="lvl-main"><div class="lvl-name">Episode ${i+1}: ${ls.en}</div><div class="lvl-sub">${ls.hi}</div></div>
       <div class="lvl-right">${done ? "+20 XP" : ""}</div>
     </div>`;
   }).join("");
@@ -2647,16 +3177,110 @@ function refreshUsage(){
   el.classList.toggle("low", left <= 3);
 }
 
+// Curiosity headlines — one is chosen per day so the hero changes daily.
+const HERO_LINES = [
+  "I saved something for <span class='g'>today's lesson.</span>",
+  "Let's talk for <span class='g'>five minutes.</span>",
+  "Ready to <span class='g'>surprise yourself?</span>",
+  "I have a <span class='g'>challenge</span> for you.",
+  "Teach me <span class='g'>something new today.</span>",
+  "Speak English <span class='g'>without fear.</span>",
+  "Shall we <span class='g'>pick up where we left off?</span>",
+];
 function setWelcome(){
   const f = memFacts();
   const first = f.nickname || (authUser ? (authUser.name || "").split(" ")[0] : "");
-  const moodLine = { great:"You're feeling great — let's make it a strong session! 💪",
-    good:"Good to see you 🙂 let's keep the momentum.", okay:"Let's ease into it — one small win today.",
-    low:"Take it gentle today — I'm right here with you. 💛", tired:"Feeling tired? Let's keep today short and easy." }[todayMood];
-  if(!first){ $("welcomeMsg").textContent = "Welcome to DuSu 👋 — pick a mode and let's practice speaking."; return; }
-  if(moodLine){ $("welcomeMsg").textContent = `Welcome back, ${first} 👋 ${moodLine}`; return; }
-  const dream = f.dream ? ` One step closer to your dream: ${f.dream}.` : "";
-  $("welcomeMsg").textContent = `Welcome back, ${first} 👋 — pick a mode and let's practice speaking.${dream}`;
+  const h = new Date().getHours();
+  const part  = h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+  const emoji = h < 12 ? "☀️" : h < 17 ? "🌤️" : "🌙";
+  if($("welcomeMsg")) $("welcomeMsg").textContent = first ? `${part}, ${first} ${emoji}` : "Hi, I'm DuSu.";
+  // rotate headline by day-of-year → feels alive, changes daily
+  const now = new Date();
+  const doy = Math.floor((now - new Date(now.getFullYear(), 0, 0)) / 86400000);
+  if($("htitle")) $("htitle").innerHTML = HERO_LINES[doy % HERO_LINES.length];
+  renderToday();
+  renderGrowth();
+  renderTimeline();
+}
+
+// S4 — Today's Home: render the one dynamic card the server chose for today.
+const _TODAY_KICKER = { streak:"Don't lose it", moment:"DuSu remembers", celebrate:"A win",
+  story:"Your story", challenge:"Today's challenge" };
+function renderToday(){
+  const el = $("todayCard"); if(!el) return;
+  const t = userState && userState.today;
+  if(!t || !t.title){ el.hidden = true; return; }
+  el.innerHTML =
+    `<span class="tc-emoji">${t.emoji || "🎯"}</span>` +
+    `<span class="tc-body"><span class="tc-kicker">${_TODAY_KICKER[t.type] || "Today"}</span>` +
+    `<span class="tc-title">${t.title}</span><span class="tc-sub">${t.body || ""}</span></span>` +
+    `<span class="tc-go">→</span>`;
+  el.onclick = () => {
+    const a = t.action || "conversation";
+    if(a === "daily") startDaily(); else chooseMode(a);
+  };
+  el.hidden = false;
+}
+
+// S6 — thinking speed (client-side): time from mic-ready to first speech.
+let _lisT0 = 0;
+function pushThink(sec){
+  if(!(sec > 0.2 && sec < 30)) return;
+  try{ const a = JSON.parse(localStorage.getItem("dusu_think") || "[]");
+    a.push(Math.round(sec * 10) / 10);
+    localStorage.setItem("dusu_think", JSON.stringify(a.slice(-30))); }catch(_){}
+}
+function thinkingSpeed(){
+  try{ const a = JSON.parse(localStorage.getItem("dusu_think") || "[]");
+    if(a.length < 3) return null;
+    const recent = a.slice(-10);
+    return (recent.reduce((x, y) => x + y, 0) / recent.length).toFixed(1) + "s"; }catch(_){ return null; }
+}
+
+// Growth strip — becoming, not points (S6). Prefers server growth; falls back to journey.
+function renderGrowth(){
+  const el = $("heroGrowth"); if(!el) return;
+  if(!userState || !userState.onboarded){ el.hidden = true; return; }
+  const g = userState.growth, chips = [];
+  let line = "Every session, a little braver.";
+  if(g){
+    if(g.confidence && g.confidence.value){
+      const d = g.confidence.delta > 0 ? ` ↑${g.confidence.delta}` : "";
+      chips.push(`<span>💪 Confidence ${g.confidence.value}%${d}</span>`);
+    }
+    if(g.vocabulary && g.vocabulary.total){
+      const t = g.vocabulary.today > 0 ? ` +${g.vocabulary.today} today` : "";
+      chips.push(`<span>📚 ${g.vocabulary.total} words${t}</span>`);
+    }
+    if(g.streak > 0) chips.push(`<span>🔥 ${g.streak}-day streak</span>`);
+    const ts = thinkingSpeed(); if(ts) chips.push(`<span>⚡ Thinking ${ts}</span>`);
+    if(g.confidence && g.confidence.delta > 0) line = `You're ${g.confidence.delta}% more confident than last time.`;
+    else if(g.vocabulary && g.vocabulary.today > 0) line = `${g.vocabulary.today} new words today — braver than day one.`;
+    else if(g.streak >= 3) line = `${g.streak} days in a row — this is becoming you.`;
+  } else {
+    const p = jProg(), j = jJourney();
+    if((p.streak_days || 0) > 0) chips.push(`<span>🔥 ${p.streak_days}-day streak</span>`);
+    if((j.sentences_spoken || 0) > 0) chips.push(`<span>💬 ${j.sentences_spoken} sentences</span>`);
+  }
+  if(!chips.length){ el.hidden = true; return; }
+  el.innerHTML = `<div class="hg-chips">${chips.join("")}</div><div class="hg-line">${line}</div>`;
+  el.hidden = false;
+}
+
+// S6 — Transformation timeline: watching yourself become someone new.
+function renderTimeline(){
+  const el = $("growthTimeline"); if(!el) return;
+  const g = userState && userState.growth;
+  if(!g || !g.timeline || g.timeline.length < 2){ el.hidden = true; return; }
+  const rows = g.timeline.map(t =>
+    `<div class="gt-row"><span class="gt-day">Day ${t.day}</span>` +
+    `<span class="gt-ic">${t.icon || "✅"}</span><span class="gt-text">${t.text || ""}</span></div>`).join("");
+  const dream = g.dream
+    ? `<div class="gt-dream"><div class="gt-dream-top"><span>Dream: ${g.dream}</span><span>${g.dream_pct}%</span></div>` +
+      `<div class="gt-bar"><i style="width:${g.dream_pct}%"></i></div></div>`
+    : "";
+  el.innerHTML = `<div class="gt-title">Your transformation</div>${rows}${dream}`;
+  el.hidden = false;
 }
 
 // DuSu speaks a welcome by name (home). Needs a recent user gesture, so we only
