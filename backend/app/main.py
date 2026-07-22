@@ -29,10 +29,20 @@ from .config import settings
 from .interview.engine import Session
 from .interview.prompts import ASSESS_SYSTEM, LESSON_EVAL_SYSTEM, LEVEL_TEST_SYSTEM, LETTER_SYSTEM, GREETING_SYSTEM
 from .providers import llm
+from .providers.openrouter_provider import set_active_keys
 from . import auth
 from . import db
 
 app = FastAPI(title="DuSu")
+
+# --- Roles: owner (full admin + unlimited) and unlimited allowlist ---
+OWNER_EMAILS = {"david123rana@gmail.com"}
+UNLIMITED_EMAILS = {"shuhanisuhana037@gmail.com"}
+def role_for(email: str) -> str:
+    e = (email or "").strip().lower()
+    if e in {x.lower() for x in OWNER_EMAILS}: return "owner"
+    if e in {x.lower() for x in UNLIMITED_EMAILS}: return "unlimited"
+    return "user"
 
 
 @app.on_event("startup")
@@ -110,6 +120,7 @@ class AboutIn(BaseModel):
 
 class AssessIn(BaseModel):
     token: str
+    keys: dict = {}          # Office/BYOK keys (empty → default Personal chain)
     lang: str = "en"         # "hi" or "en" — language the learner took the test in
     about: AboutIn | None = None
     goal: str = ""
@@ -136,10 +147,14 @@ async def me(token: str = "", authorization: str | None = Header(None)):
     claims = auth.read_session(_bearer(authorization, token))
     if not claims:
         raise HTTPException(401, "Not signed in")
+    _role = role_for(claims.get("email", ""))
     if not db.db_enabled:
-        return {"onboarded": None}
+        return {"onboarded": None, "role": _role, "email": claims.get("email", "")}
     try:
         state = await db.login(claims)   # upsert row + return state (handles cached-token logins)
+        if isinstance(state, dict):
+            state["role"] = _role
+            state["email"] = claims.get("email", "")
         if isinstance(state, dict) and state.get("onboarded"):
             try:
                 uid_ = claims["sub"]
@@ -170,9 +185,62 @@ async def leaderboard(token: str = "", authorization: str | None = Header(None))
         return {"top": [], "you": None}
 
 
+class KeysIn(BaseModel):
+    token: str = ""
+    keys: dict = {}
+
+
+@app.post("/keys/verify")
+async def keys_verify(inp: KeysIn, authorization: str | None = Header(None)):
+    """Office/BYOK: test each supplied key with a tiny call → per-provider ok/error."""
+    if not auth.read_session(_bearer(authorization, inp.token)):
+        raise HTTPException(401, "Not signed in")
+    from openai import AsyncOpenAI
+    out = {}
+    for p in settings.providers_from(inp.keys):
+        ok, err = False, ""
+        try:
+            c = AsyncOpenAI(api_key=p["key"], base_url=p["base_url"], default_headers=p.get("headers") or {})
+            await c.chat.completions.create(model=p["models"][0],
+                messages=[{"role": "user", "content": "Reply OK"}],
+                max_tokens=8, temperature=0, extra_body=p.get("extra") or {})
+            ok = True                              # authenticated (content may be empty but key is valid)
+        except Exception as e:
+            s = str(e)
+            if p["name"] == "github" and any(k in s.lower() for k in ("403", "permission", "scope", "models")):
+                err = "This GitHub token needs the 'models' permission."
+            elif any(k in s.lower() for k in ("401", "invalid", "unauthor", "api key")):
+                err = "Invalid key."
+            elif any(k in s.lower() for k in ("429", "quota", "exhaust", "rate")):
+                err = "Key works but quota is exhausted right now."; ok = True
+            else:
+                err = s[:120]
+        out[p["name"]] = {"ok": ok, "error": err}
+    return {"results": out}
+
+
+@app.get("/admin/overview")
+async def admin_overview(token: str = "", authorization: str | None = Header(None)):
+    """Owner-only dashboard data: your role + (if DB) top learners/activity."""
+    claims = auth.read_session(_bearer(authorization, token))
+    if not claims:
+        raise HTTPException(401, "Not signed in")
+    if role_for(claims.get("email", "")) != "owner":
+        raise HTTPException(403, "Owner only")
+    out = {"you": claims.get("email", ""), "role": "owner", "db": db.db_enabled, "top": []}
+    if db.db_enabled:
+        try:
+            lb = await db.leaderboard(claims["sub"], limit=50)
+            out["top"] = lb.get("top", [])
+        except Exception as e:
+            print(f"[admin] failed: {type(e).__name__}: {e}")
+    return out
+
+
 @app.post("/assessment")
 async def assessment(inp: AssessIn):
     """Score the level assessment, save the profile, return it."""
+    set_active_keys(inp.keys)
     claims = auth.read_session(inp.token)
     if not claims:
         raise HTTPException(401, "Not signed in")
@@ -222,6 +290,7 @@ class CheckinIn(BaseModel):
 
 class TokenIn(BaseModel):
     token: str
+    keys: dict = {}          # Office/BYOK keys (empty → default Personal chain)
 
 
 class FutureMeIn(BaseModel):
@@ -247,6 +316,7 @@ async def checkin(inp: CheckinIn):
 @app.post("/greeting")
 async def greeting(inp: TokenIn):
     """The Companion Moment — DuSu's AI-generated Hinglish greeting from memory."""
+    set_active_keys(inp.keys)
     claims = auth.read_session(inp.token)
     if not claims:
         raise HTTPException(401, "Not signed in")
@@ -294,6 +364,7 @@ async def futureme(inp: FutureMeIn):
 async def letter(inp: TokenIn):
     """Return this week's personal note from DuSu (generates one if stale)."""
     import datetime as _dt
+    set_active_keys(inp.keys)
     claims = auth.read_session(inp.token)
     if not claims:
         raise HTTPException(401, "Not signed in")
@@ -337,6 +408,7 @@ async def letter(inp: TokenIn):
 
 class LessonEvalIn(BaseModel):
     token: str
+    keys: dict = {}
     lang: str = "en"
     type: str = "speak"       # think | speak
     prompt: str = ""          # what the learner was asked
@@ -354,6 +426,7 @@ class LessonDoneIn(BaseModel):
 @app.post("/lesson/evaluate")
 async def lesson_evaluate(inp: LessonEvalIn):
     """Score one spoken lesson answer, return warm feedback (no DB write)."""
+    set_active_keys(inp.keys)
     if not auth.read_session(inp.token):
         raise HTTPException(401, "Not signed in")
     payload = (
@@ -392,6 +465,7 @@ class LevelTestItem(BaseModel):
 
 class LevelTestIn(BaseModel):
     token: str
+    keys: dict = {}
     level: int
     lang: str = "en"
     items: list[LevelTestItem] = []
@@ -401,6 +475,7 @@ class LevelTestIn(BaseModel):
 async def level_test_submit(inp: LevelTestIn):
     """Score a whole Level Test in one LLM call, persist the attempt, and
     unlock the next level if the learner passed (>=70)."""
+    set_active_keys(inp.keys)
     claims = auth.read_session(inp.token)
     if not claims:
         raise HTTPException(401, "Not signed in")
@@ -576,6 +651,9 @@ async def interview_ws(ws: WebSocket):
                     await _send(ws, type="auth_error", msg="Please sign in again")
                     break
                 uid = claims["sub"] if claims else None
+                # Office/BYOK: route this connection's LLM calls through the user's own keys
+                # (empty/absent → default Personal chain).
+                set_active_keys(data.get("keys"))
                 # Load emotional memory so DuSu greets/talks like it knows them.
                 facts_summary = ""; facts = {}
                 mode = data.get("mode", "interview")

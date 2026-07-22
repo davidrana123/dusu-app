@@ -78,5 +78,32 @@ class Settings(BaseSettings):
             })
         return chain
 
+    def providers_from(self, keys: dict) -> list[dict]:
+        """BYOK / Office mode: build a chain from caller-supplied keys.
+        Same base_urls / models / headers / order as providers(); only the key
+        differs. Missing keys are skipped. keys = {gemini, groq, openrouter, github}."""
+        k = {kk: (str(vv or "")).strip() for kk, vv in (keys or {}).items()}
+        chain: list[dict] = []
+        if k.get("gemini"):
+            chain.append({"name": "gemini",
+                "base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+                "key": k["gemini"], "models": ["gemini-flash-latest", "gemini-flash-lite-latest"],
+                "headers": {}, "extra": {}})
+        if k.get("groq"):
+            chain.append({"name": "groq", "base_url": "https://api.groq.com/openai/v1",
+                "key": k["groq"], "models": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"],
+                "headers": {}, "extra": {}})
+        if k.get("openrouter"):
+            chain.append({"name": "openrouter", "base_url": "https://openrouter.ai/api/v1",
+                "key": k["openrouter"],
+                "models": ["openai/gpt-oss-20b:free", "nvidia/nemotron-3-super-120b-a12b:free"],
+                "headers": {"HTTP-Referer": "https://dusu-app-1.onrender.com", "X-Title": "DuSu"},
+                "extra": {"reasoning": {"exclude": True, "effort": "low"}}})
+        if k.get("github"):
+            chain.append({"name": "github", "base_url": "https://models.github.ai/inference",
+                "key": k["github"], "models": ["openai/gpt-4o-mini", "meta/Llama-3.3-70B-Instruct"],
+                "headers": {}, "extra": {}})
+        return chain
+
 
 settings = Settings()

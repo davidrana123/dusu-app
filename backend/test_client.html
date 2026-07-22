@@ -936,6 +936,21 @@
     padding-bottom:env(safe-area-inset-bottom)}
   .bnav.hide{display:none}
   #logoutBtn{ display:none; }   /* Sign out lives in the More menu now */
+  /* AI keys / Office mode + admin dashboard */
+  .keys-wrap,.admin-body{ padding:4px 2px 12px }
+  .mode-pick{ display:flex; gap:10px; margin:16px 0 }
+  .mode-opt{ flex:1; display:flex; flex-direction:column; gap:3px; padding:14px; border-radius:14px; background:var(--glass); border:1px solid var(--glass-brd); color:var(--ink); cursor:pointer; text-align:left; font:inherit }
+  .mode-opt b{ font-family:var(--font-d); font-size:16px }
+  .mode-opt span{ font-size:11.5px; color:var(--ink-faint) }
+  .mode-opt.on{ border-color:var(--gold); color:var(--gold-lt); box-shadow:0 0 0 1px color-mix(in srgb,var(--gold) 40%,transparent) inset }
+  .keys-note{ font-size:12.5px; color:var(--ink-dim); margin:4px 0 14px; line-height:1.5 }
+  .keyrow{ display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--ink-dim); margin-bottom:10px }
+  .keyrow input{ flex:1; background:var(--glass); border:1px solid var(--glass-brd); border-radius:10px; padding:11px 12px; color:var(--ink); font:inherit; font-size:14px }
+  .kst{ font-style:normal; width:16px; text-align:center }
+  .keys-status{ font-size:13px; margin-top:12px; color:var(--ink-dim); line-height:1.6 }
+  .admin-head{ font-family:var(--font-d); font-size:15px; color:var(--ink-dim); margin:16px 0 10px; text-align:center }
+  .admin-row{ display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:12px; background:var(--glass); border:1px solid var(--glass-brd); margin-bottom:8px; font-size:14px }
+  .admin-row .xp{ margin-left:auto; color:var(--gold-lt); font-size:13px }
   /* subtle scrollbar that blends with the dark background (Firefox + WebKit) */
   .wrap{ scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.12) transparent; }
   .wrap::-webkit-scrollbar{ width:6px; }
@@ -1174,6 +1189,38 @@
       </div>
     </footer>
     </div><!-- /moreHome -->
+  </section>
+
+  <!-- ===================== AI KEYS / MODE ===================== -->
+  <section id="keys" class="screen">
+    <div class="sess-head">
+      <button class="back back-home" id="keysBack" title="Home"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>Home</span></button>
+      <div><div class="sess-title">AI keys</div><div class="sess-sub">Personal (our keys) or Office (your own)</div></div>
+    </div>
+    <div class="keys-wrap">
+      <div class="mode-pick">
+        <button class="mode-opt" id="modePersonal"><b>🏠 Personal</b><span>Use DuSu's shared keys</span></button>
+        <button class="mode-opt" id="modeOffice"><b>🏢 Office</b><span>Use your own free AI keys</span></button>
+      </div>
+      <div id="keysForm" hidden>
+        <p class="keys-note">Add any/all — DuSu tries them in order. GitHub token needs the <b>models</b> permission.</p>
+        <label class="keyrow">Gemini<input id="kGemini" type="password" autocomplete="off" placeholder="AIza…"><i class="kst" id="stGemini"></i></label>
+        <label class="keyrow">OpenRouter<input id="kOpenrouter" type="password" autocomplete="off" placeholder="sk-or-…"><i class="kst" id="stOpenrouter"></i></label>
+        <label class="keyrow">GitHub token<input id="kGithub" type="password" autocomplete="off" placeholder="github_pat_…"><i class="kst" id="stGithub"></i></label>
+        <label class="keyrow">Groq<input id="kGroq" type="password" autocomplete="off" placeholder="gsk_…"><i class="kst" id="stGroq"></i></label>
+        <button class="btn primary" id="verifyKeys" style="width:100%;margin-top:6px">Verify &amp; save</button>
+        <div class="keys-status" id="keysStatus"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===================== ADMIN DASHBOARD (owner only) ===================== -->
+  <section id="admin" class="screen">
+    <div class="sess-head">
+      <button class="back back-home" id="adminBack" title="Home"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>Home</span></button>
+      <div><div class="sess-title">Dashboard</div><div class="sess-sub">Owner · users &amp; activity</div></div>
+    </div>
+    <div id="adminBody" class="admin-body"><div class="spin" style="margin:24px auto"></div></div>
   </section>
 
   <!-- ===================== PRACTICE (hub) ===================== -->
@@ -1605,7 +1652,9 @@
 <div class="msheet-bg" id="msheetBg"></div>
 <div class="msheet" id="msheet">
   <h3>More</h3>
+  <button class="mrow" data-more="admin" id="mrowAdmin" hidden><span class="mi">📊</span><span><span class="mt">Dashboard</span><br><span class="msub">Users &amp; activity (owner)</span></span></button>
   <button class="mrow" data-more="profile"><span class="mi">👤</span><span><span class="mt">Profile</span><br><span class="msub">Streaks, badges, memories</span></span></button>
+  <button class="mrow" data-more="keys"><span class="mi">🔑</span><span><span class="mt">AI keys / Mode</span><br><span class="msub">Personal or Office (own keys)</span></span></button>
   <button class="mrow" data-more="leveltest"><span class="mi">🧪</span><span><span class="mt">Level check</span><br><span class="msub">Re-check your English level</span></span></button>
   <button class="mrow" data-more="signout"><span class="mi">🚪</span><span><span class="mt">Sign out</span><br><span class="msub">See you soon 👋</span></span></button>
 </div>
@@ -1622,6 +1671,12 @@
 // ---- Speech is 100% browser-side (Web Speech API). Server only sees text. ----
 const WS_URL = (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws/interview";
 const $ = id => document.getElementById(id);
+// Office/BYOK: use the user's own AI keys when in Office mode; {} = default (Personal).
+let useMode = localStorage.getItem("dusu_usemode") || "personal";
+function officeKeys(){
+  if(useMode !== "office") return {};
+  try{ return JSON.parse(localStorage.getItem("dusu_office_keys") || "{}") || {}; }catch(_){ return {}; }
+}
 // escape user/LLM text before putting it into innerHTML (defensive; self-data only)
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1731,7 +1786,7 @@ function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.r
 // ---- Bottom navigation: which tab lights up per screen; nav hidden only on login/onboarding ----
 const NAV_TAB = { home:"home", journey:"journey", daily:"daily", practice:"practice",
   learning:"practice", session:"practice", setup:"practice", lesson:"practice", report:"practice",
-  leaderboard:"leaderboard", profile:"more" };
+  leaderboard:"leaderboard", profile:"more", keys:"more", admin:"more" };
 function syncNav(id){
   const nav = $("bnav"); if(nav) nav.classList.toggle("hide", id === "login" || id === "assessment");
   const t = NAV_TAB[id];
@@ -1747,7 +1802,9 @@ document.querySelectorAll(".btab").forEach(b => b.onclick = () => {
   else if(t === "daily") startDaily("speak");
   else if(t === "practice") show("practice");
   else if(t === "leaderboard") openLeaderboard();
-  else if(t === "more"){ document.querySelectorAll(".btab").forEach(x=>x.classList.remove("active")); b.classList.add("active"); toggleSheet(true); }
+  else if(t === "more"){ document.querySelectorAll(".btab").forEach(x=>x.classList.remove("active")); b.classList.add("active");
+    const ad = $("mrowAdmin"); if(ad) ad.hidden = !(userState && userState.role === "owner");
+    toggleSheet(true); }
 });
 // More sheet rows
 document.querySelectorAll(".mrow").forEach(r => r.onclick = () => {
@@ -1755,9 +1812,67 @@ document.querySelectorAll(".mrow").forEach(r => r.onclick = () => {
   if(a === "leaderboard") openLeaderboard();
   else if(a === "profile") openJourney();      // reuse Journey/dashboard as Profile for now
   else if(a === "leveltest") startAssessment();
+  else if(a === "keys"){ show("keys"); loadKeysUI(); }
+  else if(a === "admin") openAdmin();
   else if(a === "signout") logout();
 });
 if($("msheetBg")) $("msheetBg").onclick = () => { toggleSheet(false); syncNav($("home").classList.contains("on") ? "home" : "practice"); };
+
+// ---- AI keys / Office mode ----
+function setModeUI(){
+  const off = useMode === "office";
+  if($("modePersonal")) $("modePersonal").classList.toggle("on", !off);
+  if($("modeOffice")) $("modeOffice").classList.toggle("on", off);
+  if($("keysForm")) $("keysForm").hidden = !off;
+}
+function loadKeysUI(){
+  const k = (function(){ try{ return JSON.parse(localStorage.getItem("dusu_office_keys")||"{}")||{}; }catch(_){ return {}; } })();
+  if($("kGemini")) $("kGemini").value = k.gemini || "";
+  if($("kOpenrouter")) $("kOpenrouter").value = k.openrouter || "";
+  if($("kGithub")) $("kGithub").value = k.github || "";
+  if($("kGroq")) $("kGroq").value = k.groq || "";
+  ["stGemini","stOpenrouter","stGithub","stGroq"].forEach(id=>{ if($(id)) $(id).textContent=""; });
+  if($("keysStatus")) $("keysStatus").textContent = "";
+  setModeUI();
+}
+if($("modePersonal")) $("modePersonal").onclick = () => { useMode="personal"; localStorage.setItem("dusu_usemode","personal"); setModeUI(); };
+if($("modeOffice")) $("modeOffice").onclick = () => { useMode="office"; localStorage.setItem("dusu_usemode","office"); setModeUI(); };
+if($("keysBack")) $("keysBack").onclick = () => show("home");
+if($("adminBack")) $("adminBack").onclick = () => show("home");
+if($("verifyKeys")) $("verifyKeys").onclick = async () => {
+  const keys = { gemini:$("kGemini").value.trim(), openrouter:$("kOpenrouter").value.trim(),
+                 github:$("kGithub").value.trim(), groq:$("kGroq").value.trim() };
+  $("keysStatus").textContent = "Verifying…";
+  const map = {gemini:"stGemini", openrouter:"stOpenrouter", github:"stGithub", groq:"stGroq"};
+  Object.keys(map).forEach(p=>{ if($(map[p])) $(map[p]).textContent = keys[p] ? "⏳" : ""; });
+  try{
+    const r = await fetch("/keys/verify", { method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify({ token:authToken, keys }) });
+    const d = await r.json(); const res = d.results || {};
+    let anyOk=false; const msgs=[];
+    Object.keys(map).forEach(p=>{ const st=$(map[p]); if(!keys[p]){ if(st) st.textContent=""; return; }
+      const ok = res[p] && res[p].ok; if(st) st.textContent = ok ? "✅" : "❌";
+      if(ok) anyOk=true; else if(res[p] && res[p].error) msgs.push(p+": "+res[p].error); });
+    localStorage.setItem("dusu_office_keys", JSON.stringify(keys));
+    if(anyOk){ useMode="office"; localStorage.setItem("dusu_usemode","office"); setModeUI();
+      $("keysStatus").innerHTML = "✅ Saved — Office mode on. DuSu now uses your keys." + (msgs.length?"<br>"+msgs.map(esc).join("<br>"):""); }
+    else { $("keysStatus").innerHTML = "❌ No working key yet.<br>" + msgs.map(esc).join("<br>"); }
+  }catch(e){ $("keysStatus").textContent = "Couldn't verify — try again."; }
+};
+async function openAdmin(){
+  show("admin"); const el=$("adminBody"); el.innerHTML='<div class="spin" style="margin:24px auto"></div>';
+  try{
+    const r = await fetch("/admin/overview?token="+encodeURIComponent(authToken));
+    if(!r.ok){ el.innerHTML = '<p class="keys-note" style="text-align:center">Owner only.</p>'; return; }
+    const d = await r.json();
+    let h = `<div class="admin-head">Owner · ${esc(d.you||"")}</div>`;
+    if(!d.db) h += '<p class="keys-note" style="text-align:center">Database is off locally — the full user list shows on the deployed app.</p>';
+    const top = d.top || [];
+    if(top.length){ h += '<div class="admin-head">Top learners &amp; activity</div>';
+      top.forEach((u,i)=>{ h += `<div class="admin-row"><b>#${u.rank||i+1}</b>&nbsp; ${esc(u.is_me?"You":(u.alias||"user"))}<span class="xp">${u.xp||0} XP</span></div>`; }); }
+    else if(d.db) h += '<p class="keys-note" style="text-align:center">No activity yet.</p>';
+    el.innerHTML = h;
+  }catch(e){ el.innerHTML='<p class="keys-note" style="text-align:center">Failed to load.</p>'; }
+}
 
 function orb(state, label, hint){
   $("orb").className = "orb-wrap " + state;
@@ -1884,7 +1999,7 @@ async function openMoment(){
   if(useHi){
     try{
       const r = await fetch("/greeting", { method:"POST", headers:{"Content-Type":"application/json"},
-        body: JSON.stringify({ token:authToken }) });
+        body: JSON.stringify({ token:authToken, keys:officeKeys() }) });
       if(r.ok) text = ((await r.json()).text || "").trim();
     }catch(_){}
   }
@@ -1975,7 +2090,7 @@ function startSession(mode){
   ws.onopen = () => {
     running = true; srFails = 0;
     usageInc(); refreshUsage();   // count the session now that it actually started
-    ws.send(JSON.stringify({ type:"start", mode, name:$("name").value, role:$("role").value, token:authToken, mood:todayMood, seed:_convSeed }));
+    ws.send(JSON.stringify({ type:"start", mode, name:$("name").value, role:$("role").value, token:authToken, mood:todayMood, seed:_convSeed, keys:officeKeys() }));
     _convSeed = "";   // one-shot: the Companion Moment's spoken answer seeds turn 1
     orb("connecting", "DuSu is getting ready to talk…", "warming up");
   };
@@ -2250,7 +2365,7 @@ function startLearning(){
   show("learning");
   ws = new WebSocket(WS_URL);
   ws.onopen = () => { running = true; usageInc(); refreshUsage();
-    ws.send(JSON.stringify({ type:"start", mode:"learning", token:authToken })); };
+    ws.send(JSON.stringify({ type:"start", mode:"learning", token:authToken, keys:officeKeys() })); };
   ws.onmessage = onMessage;
   ws.onclose = () => { running = false; stopLearn(); };
   ws.onerror = () => learnState("Connection error. Is the server running?");
@@ -2356,7 +2471,7 @@ function startDaily(from){
   ws.onopen = () => { running = true; usageInc(); refreshUsage();
     dailyTurns = loadDailyResume();   // continue the recent chat if there is one
     ws.send(JSON.stringify({ type:"start", mode:"daily", token:authToken, mood:todayMood,
-      hour:new Date().getHours(), resume: dailyTurns })); };
+      hour:new Date().getHours(), resume: dailyTurns, keys:officeKeys() })); };
   ws.onmessage = onMessage;
   ws.onclose = () => { running = false; stopDaily(); };
   ws.onerror = () => { if($("dailyLoader")) $("dailyLoader").hidden = true; dState("Connection error. Is the server running?"); };
@@ -2739,7 +2854,7 @@ async function aEvaluate(){
   say(L.evalSay, aVoiceProfile());
   try{
     const r = await fetch("/assessment", { method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ token: authToken, ...aData }) });
+      body: JSON.stringify({ token: authToken, keys:officeKeys(), ...aData }) });
     if(!r.ok) throw new Error("assess failed");
     aReveal(await r.json());
   }catch(_){
@@ -3233,7 +3348,7 @@ function openLevel(level){
 async function evaluateAnswer(payload){
   try{
     const r = await fetch("/lesson/evaluate", { method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ token:authToken, ...payload }) });
+      body: JSON.stringify({ token:authToken, keys:officeKeys(), ...payload }) });
     if(r.ok) return await r.json();
   }catch(_){}
   return { pass:true, correct_english:"", feedback:"", encouragement:"Good try!" };
@@ -3431,7 +3546,7 @@ async function submitLevelTest(){
   let result = null;
   try{
     const r = await fetch("/level/test/submit", { method:"POST", headers:{"Content-Type":"application/json"},
-      body: JSON.stringify({ token:authToken, level, lang:jJourney().lang, items }) });
+      body: JSON.stringify({ token:authToken, level, lang:jJourney().lang, items, keys:officeKeys() }) });
     if(r.ok) result = await r.json();
   }catch(_){}
   levelTestState = null;

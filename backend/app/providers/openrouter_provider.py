@@ -11,6 +11,7 @@ Speech is browser-side; the model only ever sees and emits text.
 import json
 import re
 import time
+from contextvars import ContextVar
 
 from openai import AsyncOpenAI
 
@@ -18,6 +19,17 @@ from ..config import settings
 
 _clients: dict[str, AsyncOpenAI] = {}
 _cooldown: dict[str, float] = {}   # provider name -> skip-until timestamp
+
+# BYOK / Office mode: a per-request provider chain. When set (via set_active_keys),
+# _complete uses these keys instead of the global default (env) chain. contextvars
+# are per-task, so each WS connection / HTTP request is isolated.
+_active_chain: ContextVar[list | None] = ContextVar("_active_chain", default=None)
+
+def set_active_keys(keys: dict | None) -> None:
+    """Office mode: route this request/connection's LLM calls through the user's keys.
+    Pass a falsy value / empty dict to use the default (Personal) chain."""
+    chain = settings.providers_from(keys) if keys else None
+    _active_chain.set(chain or None)
 
 
 def _client(p: dict) -> AsyncOpenAI:
@@ -43,10 +55,11 @@ async def _complete(messages: list[dict], max_tokens: int) -> str:
     Skips providers on cooldown; if every provider is cooling down, tries them
     anyway rather than failing."""
     last_err = None
+    chain = _active_chain.get() or settings.providers()   # Office keys if set, else default
     for ignore_cd in (False, True):
         now = time.time()
         attempted = False
-        for p in settings.providers():
+        for p in chain:
             if not ignore_cd and _cooldown.get(p["name"], 0) > now:
                 continue
             attempted = True
