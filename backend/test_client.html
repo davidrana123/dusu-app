@@ -948,6 +948,7 @@
     color:var(--ink-faint);font-size:10.5px;font-weight:600;border:none;background:none;font-family:inherit}
   .btab svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .btab.active{color:var(--gold-lt)}
+  .btab-hero{ color:var(--gold-lt); }   /* Daily Talk — accented but aligned with the others */
   .btab.center{position:relative}
   .btab.center .fab{position:absolute;top:-22px;width:56px;height:56px;border-radius:50%;background:var(--grad);display:grid;place-items:center;box-shadow:0 10px 26px -6px rgba(111,140,255,.7)}
   .btab.center .fab svg{width:26px;height:26px;stroke:#12141b}
@@ -1611,7 +1612,7 @@
 <nav class="bnav hide" id="bnav">
   <button class="btab active" data-tab="home"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg><span>Home</span></button>
   <button class="btab" data-tab="journey"><svg viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg><span>Journey</span></button>
-  <button class="btab center" data-tab="daily"><span class="fab"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5z"/></svg></span><span>Daily Talk</span></button>
+  <button class="btab btab-hero" data-tab="daily"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5z"/></svg><span>Daily</span></button>
   <button class="btab" data-tab="practice"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg><span>Practice</span></button>
   <button class="btab" data-tab="leaderboard"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M17 4h3v2a3 3 0 0 1-3 3M7 4H4v2a3 3 0 0 0 3 3"/></svg><span>Ranks</span></button>
   <button class="btab" data-tab="more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>More</span></button>
