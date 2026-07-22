@@ -42,14 +42,16 @@
       radial-gradient(1100px 700px at 82% -12%, #1a2033 0%, transparent 55%),
       radial-gradient(900px 600px at -12% 112%, #14161f 0%, transparent 55%),
       linear-gradient(165deg,var(--bg0),var(--bg1) 60%,var(--bg2));
-    min-height:100%; overflow-x:hidden; -webkit-font-smoothing:antialiased;
-    /* installed-app feel: no pull-to-refresh bounce, no blue tap flash */
+    overflow-x:hidden; -webkit-font-smoothing:antialiased;
+    /* app-shell: fixed viewport height; content scrolls between header and the bottom nav */
+    height:100vh; height:100dvh; display:flex; flex-direction:column;
     overscroll-behavior-y:none; -webkit-tap-highlight-color:transparent;
   }
   /* don't let taps select UI chrome text like a webpage */
   header.top, .brand, .tag, button, .mode-card h3, .mic-btn, .vbtn, .signout { user-select:none; -webkit-user-select:none; }
   button, .mode-card, .mic-btn, .back, a { touch-action:manipulation; }   /* snappy taps, no zoom */
-  .wrap { max-width:820px; margin:0 auto; position:relative; z-index:1;
+  /* ===== App shell: phone-width, bottom nav (mobile-first; desktop = same for now) ===== */
+  .wrap { max-width:440px; flex:1 1 auto; overflow-y:auto; -webkit-overflow-scrolling:touch; padding-bottom:24px; margin:0 auto; position:relative; z-index:1;
     /* keep content clear of the notch / status bar / gesture nav in standalone mode */
     padding:max(24px, env(safe-area-inset-top)) max(20px, env(safe-area-inset-right))
             max(48px, env(safe-area-inset-bottom)) max(20px, env(safe-area-inset-left)); }
@@ -162,9 +164,9 @@
   .hero p { color:var(--ink-dim); font-size:15px; max-width:520px; margin:0 auto 26px; line-height:1.6; }
 
   /* ===== "Meet DuSu" hero stage — one job: tap Start Speaking ===== */
-  .hstage { min-height:calc(100vh - 130px); display:flex; flex-direction:column;
-    align-items:center; justify-content:center; text-align:center; padding:10px 0 40px; gap:2px; }
-  .hchar { position:relative; width:230px; height:230px; display:grid; place-items:center; margin-bottom:6px; }
+  .hstage { display:flex; flex-direction:column;
+    align-items:center; justify-content:flex-start; text-align:center; padding:18px 0 16px; gap:2px; }
+  .hchar { position:relative; width:158px; height:158px; display:grid; place-items:center; margin-bottom:2px; }
   .hchar .wface { width:172px !important; height:172px !important; position:relative; z-index:2; }
   .hchar .wface-png { width:172px; height:172px; position:relative; z-index:2; }
   /* soft breathing glow halo behind the character */
@@ -188,11 +190,11 @@
     15%{ opacity:.8; } 85%{ opacity:.6; } 100%{ transform:translateY(-190px) scale(.4); opacity:0; } }
 
   .hbubble { font-family:var(--font-d); font-size:19px; color:var(--gold-lt); letter-spacing:.01em;
-    margin:6px 0 2px; opacity:0; animation:fadeUp .7s ease .15s forwards; }
+    margin:18px 0 8px; opacity:0; animation:fadeUp .7s ease .15s forwards; }
   .htitle { font-family:var(--font-d); font-weight:600; font-size:clamp(30px,6vw,46px); line-height:1.1;
     margin:6px 0 8px; color:var(--ink); opacity:0; animation:fadeUp .7s ease .3s forwards; }
   .htitle .g { background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
-  .hsub { color:var(--ink-dim); font-size:15.5px; margin:0 0 30px; opacity:0; animation:fadeUp .7s ease .45s forwards; }
+  .hsub { color:var(--ink-dim); font-size:15.5px; margin:0 0 14px; opacity:0; animation:fadeUp .7s ease .45s forwards; }
   @keyframes fadeUp { to { opacity:1; transform:none; } }
   .hbubble,.htitle,.hsub{ transform:translateY(10px); }
 
@@ -928,6 +930,50 @@
   /* sparkle particles on great scores */
   .spark { position:absolute; width:6px; height:6px; border-radius:50%;
     background:var(--gold-lt); pointer-events:none; }
+  /* ===== Bottom navigation (Instagram-style) ===== */
+  .bnav{flex:0 0 auto;width:100%;max-width:440px;height:76px;margin:0 auto;z-index:60;
+    display:flex;background:rgba(10,14,26,.94);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border-top:1px solid rgba(255,255,255,.07);
+    padding-bottom:env(safe-area-inset-bottom)}
+  .bnav.hide{display:none}
+  #logoutBtn{ display:none; }   /* Sign out lives in the More menu now */
+  /* subtle scrollbar that blends with the dark background (Firefox + WebKit) */
+  .wrap{ scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.12) transparent; }
+  .wrap::-webkit-scrollbar{ width:6px; }
+  .wrap::-webkit-scrollbar-track{ background:transparent; }
+  .wrap::-webkit-scrollbar-thumb{ background:rgba(255,255,255,.10); border-radius:3px; }
+  .wrap::-webkit-scrollbar-thumb:hover{ background:rgba(255,255,255,.20); }
+  /* keep bottom action buttons clear of the nav */
+  .assess-actions, .controls{ margin-bottom:20px }
+  .btab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;
+    color:var(--ink-faint);font-size:10.5px;font-weight:600;border:none;background:none;font-family:inherit}
+  .btab svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+  .btab.active{color:var(--gold-lt)}
+  .btab.center{position:relative}
+  .btab.center .fab{position:absolute;top:-22px;width:56px;height:56px;border-radius:50%;background:var(--grad);display:grid;place-items:center;box-shadow:0 10px 26px -6px rgba(111,140,255,.7)}
+  .btab.center .fab svg{width:26px;height:26px;stroke:#12141b}
+  .btab.center span{margin-top:34px}
+  /* More sheet */
+  .msheet-bg{position:fixed;inset:0;background:rgba(0,0,0,.5);opacity:0;pointer-events:none;transition:.25s;z-index:70}
+  .msheet-bg.on{opacity:1;pointer-events:auto}
+  .msheet{position:fixed;left:50%;transform:translate(-50%,130%);bottom:76px;width:100%;max-width:440px;transition:transform .3s cubic-bezier(.2,.7,.2,1);
+    background:#0c1120;border-top-left-radius:24px;border-top-right-radius:24px;border:1px solid var(--glass-brd);padding:14px 16px 22px;z-index:71}
+  .msheet.on{transform:translate(-50%,0)}
+  .msheet h3{font-family:var(--font-d);font-size:20px;text-align:center;margin:4px 0 12px}
+  .mrow{display:flex;align-items:center;gap:14px;padding:13px 12px;border-radius:14px;background:var(--glass);border:1px solid var(--glass-brd);margin-bottom:9px;cursor:pointer;width:100%;text-align:left;color:inherit;font:inherit}
+  .mrow .mi{font-size:22px}.mrow .mt{font-weight:600}.mrow .msub{font-size:11.5px;color:var(--ink-faint)}
+  /* ===== Home premium extras ===== */
+  .hstreak{position:absolute;top:0;right:0;display:inline-flex;align-items:center;gap:5px;font-size:14px;font-weight:700;color:#f0a952;background:rgba(240,169,82,.12);border:1px solid rgba(240,169,82,.35);padding:6px 12px;border-radius:999px;z-index:3}
+  .hchar-glow{position:absolute;top:50%;left:50%;width:200px;height:200px;transform:translate(-50%,-50%);border-radius:50%;pointer-events:none;z-index:0;
+    background:conic-gradient(from 0deg,#9db4ff,#7a5cf0,#56b39a,#c8a24a,#9db4ff);filter:blur(24px);opacity:.4;animation:hcSpin 9s linear infinite}
+  @keyframes hcSpin{to{transform:translate(-50%,-50%) rotate(360deg)}}
+  .hchips{display:flex;gap:8px;flex-wrap:wrap;justify-content:center;margin:14px 0 18px}
+  .hchips span{font-size:12px;color:var(--ink-dim);background:var(--glass);border:1px solid var(--glass-brd);padding:6px 11px;border-radius:999px}
+  .hgoal{width:min(340px,92vw);margin:28px auto 0;cursor:pointer;text-align:left;border-radius:16px;padding:14px 16px;
+    background:linear-gradient(135deg,color-mix(in srgb,var(--gold) 24%,#1b1f2b),color-mix(in srgb,var(--gold) 8%,#14161f));
+    border:1px solid color-mix(in srgb,var(--gold) 45%,transparent);box-shadow:0 14px 34px -20px color-mix(in srgb,var(--gold) 75%,transparent)}
+  .hgoal .gl{display:flex;justify-content:space-between;align-items:center;font-family:var(--font-d);font-size:18px;font-weight:600;color:var(--ink)}
+  .hgoal .gl .r{color:var(--gold-lt);font-size:20px}
+  .hgoal .gsub{font-size:12.5px;color:var(--ink-dim);margin-top:4px}
 </style>
 </head>
 <body>
@@ -1037,8 +1083,9 @@
       <div class="hbubble" id="welcomeMsg">Hi, I'm DuSu.</div>
       <h1 class="htitle" id="htitle">Speak English <span class="g">without fear.</span></h1>
       <p class="hsub" id="hsub">I'm ready when you are 🎤</p>
+      <div class="hchips" id="homeChips" hidden></div>
       <button class="hbtn" id="startSpeak">Start Speaking</button>
-      <button class="reveal-link" id="exploreBtn">More ▾</button>
+      <button class="hgoal" id="homeGoal" hidden></button>
 
       <!-- The Companion Moment: DuSu speaks + 3 curated recommendations -->
       <div class="moment" id="moment" hidden>
@@ -1094,8 +1141,43 @@
     </div>
     <div class="gtimeline" id="growthTimeline" hidden></div>
 
-    <div class="sec-label center" id="practiceLabel">Practice</div>
+    <div id="warn"></div>
 
+    <footer class="foot">
+      <div class="foot-cols">
+        <div class="foot-brand">
+          <div class="brand">DuSu</div>
+          <p>Speak with confidence.</p>
+          <p class="foot-blurb">Practice speaking with an AI partner — confidence talk and realistic interviews that build real confidence.</p>
+          <div class="foot-social">
+            <a title="LinkedIn"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.1c.5-.9 1.8-1.9 3.6-1.9 3.9 0 4.6 2.5 4.6 5.8V21h-4v-5.5c0-1.3 0-3-1.9-3s-2.2 1.4-2.2 2.9V21H9z"/></svg></a>
+            <a title="Instagram"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
+            <a title="X"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h3l-7 8 8 12h-6l-5-7-5 7H2l8-9L2 2h6l4 6z"/></svg></a>
+            <a title="YouTube"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M23 12s0-3.2-.4-4.7a2.5 2.5 0 0 0-1.8-1.8C19.3 5 12 5 12 5s-7.3 0-8.8.5A2.5 2.5 0 0 0 1.4 7.3C1 8.8 1 12 1 12s0 3.2.4 4.7a2.5 2.5 0 0 0 1.8 1.8C4.7 19 12 19 12 19s7.3 0 8.8-.5a2.5 2.5 0 0 0 1.8-1.8C23 15.2 23 12 23 12zM10 15.5v-7l6 3.5z"/></svg></a>
+          </div>
+        </div>
+        <div class="foot-col">
+          <h5>Product</h5>
+          <a data-mode="conversation">Confidence Talk</a>
+          <a data-mode="interview">Interview Prep</a>
+          <a>Modes (coming soon)</a>
+        </div>
+        <div class="foot-col">
+          <h5>Company</h5>
+          <a>About</a><a>Contact</a><a>Privacy</a><a>Terms</a>
+        </div>
+      </div>
+      <div class="foot-bottom">
+        <span>© 2026 DuSu · Made with ♥ in India · Speak with confidence.</span>
+        <button id="toTop">Back to top ↑</button>
+      </div>
+    </footer>
+    </div><!-- /moreHome -->
+  </section>
+
+  <!-- ===================== PRACTICE (hub) ===================== -->
+  <section id="practice" class="screen">
+    <div class="sec-label center" style="margin-top:14px">Practice</div>
     <div class="modes">
       <button class="mode-card learn" data-mode="learning">
         <span class="mc-badge">Start here</span>
@@ -1134,38 +1216,6 @@
       </button>
     </div>
     <div class="soon">More modes coming soon — <b>Group Discussion · IELTS Speaking · Sales Pitch</b></div>
-    <div id="warn"></div>
-
-    <footer class="foot">
-      <div class="foot-cols">
-        <div class="foot-brand">
-          <div class="brand">DuSu</div>
-          <p>Speak with confidence.</p>
-          <p class="foot-blurb">Practice speaking with an AI partner — confidence talk and realistic interviews that build real confidence.</p>
-          <div class="foot-social">
-            <a title="LinkedIn"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M4.98 3.5a2.5 2.5 0 1 1 0 5 2.5 2.5 0 0 1 0-5zM3 9h4v12H3zM9 9h3.8v1.7h.1c.5-.9 1.8-1.9 3.6-1.9 3.9 0 4.6 2.5 4.6 5.8V21h-4v-5.5c0-1.3 0-3-1.9-3s-2.2 1.4-2.2 2.9V21H9z"/></svg></a>
-            <a title="Instagram"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none"/></svg></a>
-            <a title="X"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path d="M18 2h3l-7 8 8 12h-6l-5-7-5 7H2l8-9L2 2h6l4 6z"/></svg></a>
-            <a title="YouTube"><svg width="17" height="17" viewBox="0 0 24 24" fill="currentColor"><path d="M23 12s0-3.2-.4-4.7a2.5 2.5 0 0 0-1.8-1.8C19.3 5 12 5 12 5s-7.3 0-8.8.5A2.5 2.5 0 0 0 1.4 7.3C1 8.8 1 12 1 12s0 3.2.4 4.7a2.5 2.5 0 0 0 1.8 1.8C4.7 19 12 19 12 19s7.3 0 8.8-.5a2.5 2.5 0 0 0 1.8-1.8C23 15.2 23 12 23 12zM10 15.5v-7l6 3.5z"/></svg></a>
-          </div>
-        </div>
-        <div class="foot-col">
-          <h5>Product</h5>
-          <a data-mode="conversation">Confidence Talk</a>
-          <a data-mode="interview">Interview Prep</a>
-          <a>Modes (coming soon)</a>
-        </div>
-        <div class="foot-col">
-          <h5>Company</h5>
-          <a>About</a><a>Contact</a><a>Privacy</a><a>Terms</a>
-        </div>
-      </div>
-      <div class="foot-bottom">
-        <span>© 2026 DuSu · Made with ♥ in India · Speak with confidence.</span>
-        <button id="toTop">Back to top ↑</button>
-      </div>
-    </footer>
-    </div><!-- /moreHome -->
   </section>
 
   <!-- ===================== INTERVIEW SETUP ===================== -->
@@ -1550,6 +1600,23 @@
   </section>
 </div>
 
+<!-- ===================== BOTTOM NAV + MORE SHEET ===================== -->
+<div class="msheet-bg" id="msheetBg"></div>
+<div class="msheet" id="msheet">
+  <h3>More</h3>
+  <button class="mrow" data-more="profile"><span class="mi">👤</span><span><span class="mt">Profile</span><br><span class="msub">Streaks, badges, memories</span></span></button>
+  <button class="mrow" data-more="leveltest"><span class="mi">🧪</span><span><span class="mt">Level check</span><br><span class="msub">Re-check your English level</span></span></button>
+  <button class="mrow" data-more="signout"><span class="mi">🚪</span><span><span class="mt">Sign out</span><br><span class="msub">See you soon 👋</span></span></button>
+</div>
+<nav class="bnav hide" id="bnav">
+  <button class="btab active" data-tab="home"><svg viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5"/><path d="M5 9.5V21h14V9.5"/></svg><span>Home</span></button>
+  <button class="btab" data-tab="journey"><svg viewBox="0 0 24 24"><path d="M3 6l6-3 6 3 6-3v15l-6 3-6-3-6 3z"/><path d="M9 3v15M15 6v15"/></svg><span>Journey</span></button>
+  <button class="btab center" data-tab="daily"><span class="fab"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.5 8.5 0 0 1-8.5 8.5 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7A8.5 8.5 0 1 1 21 11.5z"/></svg></span><span>Daily Talk</span></button>
+  <button class="btab" data-tab="practice"><svg viewBox="0 0 24 24"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg><span>Practice</span></button>
+  <button class="btab" data-tab="leaderboard"><svg viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0z"/><path d="M17 4h3v2a3 3 0 0 1-3 3M7 4H4v2a3 3 0 0 0 3 3"/></svg><span>Ranks</span></button>
+  <button class="btab" data-tab="more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>More</span></button>
+</nav>
+
 <script>
 // ---- Speech is 100% browser-side (Web Speech API). Server only sees text. ----
 const WS_URL = (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws/interview";
@@ -1653,11 +1720,43 @@ const Assistant = (function(){
 
 function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on")); $(id).classList.add("on");
   if(id === "home"){
-    // always land on a clean home: collapse the "More" reveal + reset its toggle
+    // always land on a clean home
     const mh = $("moreHome"); if(mh) mh.hidden = true;
-    const eb = $("exploreBtn"); if(eb){ eb.style.display = ""; eb.textContent = "More ▾"; }
     try{ renderHomeJourney(); }catch(_){}
-  } }
+    try{ renderHomeExtras2(); }catch(_){}   // paint chips + Today's-goal instantly from cached state
+  }
+  try{ syncNav(id); }catch(_){}
+}
+// ---- Bottom navigation: which tab lights up per screen; nav hidden only on login/onboarding ----
+const NAV_TAB = { home:"home", journey:"journey", daily:"daily", practice:"practice",
+  learning:"practice", session:"practice", setup:"practice", lesson:"practice", report:"practice",
+  leaderboard:"leaderboard", profile:"more" };
+function syncNav(id){
+  const nav = $("bnav"); if(nav) nav.classList.toggle("hide", id === "login" || id === "assessment");
+  const t = NAV_TAB[id];
+  document.querySelectorAll(".btab").forEach(b => b.classList.toggle("active", !!t && b.dataset.tab === t));
+}
+function toggleSheet(o){ const s=$("msheet"), bg=$("msheetBg"); if(s) s.classList.toggle("on",o); if(bg) bg.classList.toggle("on",o); }
+// wire the bottom tabs
+document.querySelectorAll(".btab").forEach(b => b.onclick = () => {
+  const t = b.dataset.tab;
+  if(t !== "more") toggleSheet(false);
+  if(t === "home") goHome();
+  else if(t === "journey") openJourney();
+  else if(t === "daily") startDaily("speak");
+  else if(t === "practice") show("practice");
+  else if(t === "leaderboard") openLeaderboard();
+  else if(t === "more"){ document.querySelectorAll(".btab").forEach(x=>x.classList.remove("active")); b.classList.add("active"); toggleSheet(true); }
+});
+// More sheet rows
+document.querySelectorAll(".mrow").forEach(r => r.onclick = () => {
+  const a = r.dataset.more; toggleSheet(false);
+  if(a === "leaderboard") openLeaderboard();
+  else if(a === "profile") openJourney();      // reuse Journey/dashboard as Profile for now
+  else if(a === "leveltest") startAssessment();
+  else if(a === "signout") logout();
+});
+if($("msheetBg")) $("msheetBg").onclick = () => { toggleSheet(false); syncNav($("home").classList.contains("on") ? "home" : "practice"); };
 
 function orb(state, label, hint){
   $("orb").className = "orb-wrap " + state;
@@ -1695,15 +1794,6 @@ document.querySelectorAll(".mode-card").forEach(c=>{
 // Hero: the one primary action → jump straight into "Talk about your day" (Daily Talk),
 // where DuSu opens the conversation about their day. (Companion Moment kept in code, unused.)
 $("startSpeak").onclick = () => startDaily("speak");
-// Progressive discovery: reveal the modes/journey below on demand
-// "More" is a toggle: open reveals options, tap again collapses back to a clean home.
-$("exploreBtn").onclick = () => {
-  const m = $("moreHome");
-  if(m.hidden){
-    m.hidden = false; $("exploreBtn").textContent = "Show less ▴";
-    requestAnimationFrame(() => m.scrollIntoView({ behavior:"smooth", block:"start" }));
-  } else { goHome(); }
-};
 // Tap the DuSu logo (or collapse) to return to a clean home, any time.
 function goHome(){
   // leave any live session cleanly, then land on a clean home from anywhere
@@ -3459,6 +3549,29 @@ function setWelcome(){
   renderToday();
   renderGrowth();
   renderTimeline();
+  renderHomeExtras2();
+}
+// Home hero: stat chips + Today's-goal card (real data; hidden when absent)
+function renderHomeExtras2(){
+  const g = userState && userState.growth;
+  const chips = $("homeChips");
+  if(chips){
+    const parts = [];
+    if(g && g.streak > 0) parts.push(`🔥 ${g.streak}-day`);
+    if(g && g.confidence && g.confidence.value) parts.push(`💪 ${g.confidence.value}%`);
+    if(g && g.vocabulary && g.vocabulary.total) parts.push(`📚 ${g.vocabulary.total} words`);
+    if(parts.length){ chips.innerHTML = parts.map(p => `<span>${p}</span>`).join(""); chips.hidden = false; }
+    else chips.hidden = true;
+  }
+  const goal = $("homeGoal"), t = userState && userState.today;
+  if(goal){
+    if(t && t.title){
+      goal.innerHTML = `<div class="gl"><span>${t.emoji || "🎯"} ${esc(t.title)}</span><span class="r">→</span></div>`
+        + (t.body ? `<div class="gsub">${esc(t.body)}</div>` : "");
+      goal.hidden = false;
+      goal.onclick = () => { const a = t.action || "daily"; if(a === "daily") startDaily("speak"); else chooseMode(a); };
+    } else goal.hidden = true;
+  }
 }
 
 // S4 — Today's Home: render the one dynamic card the server chose for today.
