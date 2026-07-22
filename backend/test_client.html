@@ -1649,8 +1649,9 @@ document.querySelectorAll(".mode-card").forEach(c=>{
     c.style.setProperty("--my", (e.clientY - r.top) + "px");
   });
 });
-// Hero: the one primary action → the Companion Moment (DuSu speaks + recommends)
-$("startSpeak").onclick = () => openMoment();
+// Hero: the one primary action → jump straight into "Talk about your day" (Daily Talk),
+// where DuSu opens the conversation about their day. (Companion Moment kept in code, unused.)
+$("startSpeak").onclick = () => startDaily();
 // Progressive discovery: reveal the modes/journey below on demand
 // "More" is a toggle: open reveals options, tap again collapses back to a clean home.
 $("exploreBtn").onclick = () => {
