@@ -402,8 +402,8 @@
   .daily-more-link:hover { color:var(--gold); border-color:var(--gold); }
   .moment-recs { display:flex; flex-direction:column; gap:12px; }
   /* match home mode-card look: accent-tinted gradient, colored border, soft shadow, hover lift */
-  .rec { --accent:#8b93b0; position:relative; display:flex; flex-direction:column; gap:4px; text-align:left; cursor:pointer;
-    padding:20px 20px 18px; border-radius:var(--r); color:var(--ink); overflow:hidden;
+  .rec { --accent:#8b93b0; position:relative; display:flex; flex-direction:column; text-align:left; cursor:pointer;
+    padding:22px 22px 20px; border-radius:var(--r); color:var(--ink); overflow:hidden;
     background:linear-gradient(165deg,
       color-mix(in srgb, var(--accent) 22%, #1c2030) 0%,
       color-mix(in srgb, var(--accent) 8%, #15171f) 100%);
@@ -425,11 +425,12 @@
   .rec-primary::after { content:""; position:absolute; inset:0; border-radius:inherit; pointer-events:none;
     box-shadow:0 0 0 1px color-mix(in srgb,var(--gold) 30%,transparent) inset; animation:recGlow 2.6s ease-in-out infinite; }
   @keyframes recGlow { 0%,100%{ opacity:.5; } 50%{ opacity:1; } }
-  .rec-star { font-size:10.5px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--gold-lt); }
-  .rec-head { display:flex; align-items:center; gap:11px; }
-  .rec-ic { font-size:22px; flex:none; line-height:1; }
+  .rec-star { display:block; font-size:10.5px; font-weight:800; letter-spacing:.07em; text-transform:uppercase; color:var(--gold-lt); margin-bottom:9px; }
+  .rec-head { display:flex; align-items:center; gap:12px; }
+  .rec-ic { font-size:24px; flex:none; line-height:1; }
   .rec-goal { font-family:var(--font-d); font-size:20px; font-weight:600; line-height:1.2; }
-  .rec-desc { font-size:12.5px; color:var(--ink-dim); line-height:1.45; }
+  .rec-desc { font-size:14.5px; color:var(--ink); line-height:1.5; margin-top:10px; }
+  .rec-context { font-size:12.5px; color:var(--ink-faint); line-height:1.5; margin-top:5px; }
   .rec-why { font-size:12.5px; color:var(--gold-lt); font-style:italic; }
   .moment-all { align-self:center; margin-top:8px; background:none; border:none; cursor:pointer;
     color:var(--gold-lt); font-size:13px; font-weight:600; }
@@ -475,6 +476,7 @@
     background:linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,.02));
     border:1px solid rgba(255,255,255,.09); }
   .gt-title { font-family:var(--font-d); font-size:20px; font-weight:600; margin-bottom:12px; }
+  .free-loader { display:flex; align-items:center; justify-content:center; min-height:56px; }
   .gt-row { display:flex; align-items:center; gap:12px; padding:7px 0; border-top:1px solid rgba(255,255,255,.05); }
   .gt-row:first-of-type { border-top:none; }
   .gt-day { font-size:11px; font-weight:700; letter-spacing:.05em; color:var(--gold-lt); min-width:52px; }
@@ -1068,8 +1070,8 @@
       <div class="jb-ic">💬</div>
       <div class="jb-main">
         <div class="jb-kicker">Continue</div>
-        <div class="jb-title">Talk about your day</div>
-        <div class="jb-sub">Speak Hindi — I'll reply in English</div>
+        <div class="jb-title">Where we left off</div>
+        <div class="jb-sub">You were doing really well.</div>
       </div>
       <div class="jb-go">→</div>
     </button>
@@ -1087,6 +1089,9 @@
 
     <div class="sec-label center" id="freeLabel" hidden>Free practice</div>
 
+    <div class="gtimeline free-loader" id="freeLoader" hidden>
+      <span class="mload"><i></i><i></i><i></i></span>
+    </div>
     <div class="gtimeline" id="growthTimeline" hidden></div>
 
     <div class="sec-label center" id="practiceLabel">Practice</div>
@@ -1801,12 +1806,13 @@ async function openMoment(){
 
 function _recCard(c, primary){
   if(!c) return "";
+  const ctx = c.context || c.why || "";   // small footer line (server recs use `why`)
   return `<button class="rec ${primary ? "rec-primary" : ""}" data-action="${c.action || "conversation"}">`
-    + (primary ? '<span class="rec-star">⭐ I recommend this</span>' : "")
+    + (primary ? '<span class="rec-star">⭐ DuSu recommends</span>' : "")
     + `<span class="rec-head"><span class="rec-ic">${c.icon || "💬"}</span><span class="rec-goal">${c.goal || "Talk with me"}</span></span>`
-    + `<span class="rec-desc">${c.desc || ""}</span>`
-    + (primary && c.why ? `<span class="rec-why">${c.why}</span>` : "")
-    + `<span class="rec-meta"><span>${c.meta || ""}</span><b>→</b></span></button>`;
+    + (c.desc ? `<span class="rec-desc">${c.desc}</span>` : "")
+    + (ctx ? `<span class="rec-context">${ctx}</span>` : "")
+    + `</button>`;
 }
 function showRecs(){
   clearTimeout(_momentTimer);
@@ -2268,9 +2274,12 @@ function startDaily(from){
 function dailyRecsData(){
   let rec = userState && userState.recommendations;
   if(!rec || !rec.primary){
-    rec = { primary:{icon:"📖", goal:"Continue your learning", action:"learning", why:"pick up where you left off", desc:"Say it in Hindi → I say it in English → you repeat.", meta:"~4 min"},
-            second:{icon:"💬", goal:"Free English chat", action:"conversation", desc:"Just talk — I'll keep it going.", meta:"~5 min"},
-            third:{icon:"🎯", goal:"Mock interview", action:"interview", desc:"Practice + a scored report.", meta:"~6 min"} };
+    rec = { primary:{ icon:"💬", goal:"Just talk with me", action:"conversation",
+                      desc:"Just talk naturally.", context:"I'll keep the conversation flowing." },
+            second:{  icon:"📚", goal:"Learn together", action:"learning",
+                      desc:"Speak in Hindi.", context:"I'll help you say it naturally in English." },
+            third:{   icon:"☀️", goal:"Your day", action:"daily",
+                      desc:"Tell me what's happening today.", context:"We'll learn while we talk." } };
   }
   return rec;
 }
@@ -2387,8 +2396,8 @@ if($("dailyMoreLink")) $("dailyMoreLink").onclick = () => {
   const ex = $("dailyMoreExtra"), lbl = $("dailyMoreLink").querySelector("span"); if(!ex) return;
   if(ex.hidden){
     if(!ex.dataset.built){
-      ex.innerHTML = _recCard({icon:"🗺️", goal:"Your Journey", action:"journey", desc:"Worlds & progress", meta:""}, false)
-                   + _recCard({icon:"🏆", goal:"Leaderboard", action:"leaderboard", desc:"Global ranks", meta:""}, false);
+      ex.innerHTML = _recCard({icon:"🗺️", goal:"Your progress", action:"journey", desc:"See how far you've come.", context:"Your worlds and streaks."}, false)
+                   + _recCard({icon:"🏆", goal:"Leaderboard", action:"leaderboard", desc:"See where you rank.", context:"Among learners worldwide."}, false);
       ex.querySelectorAll(".rec").forEach(b => b.onclick = () => pickDailyRec(b.dataset.action));
       ex.dataset.built = "1";
     }
@@ -2815,17 +2824,19 @@ function renderHomeJourney(){
   if(hj) hj.hidden = false;
   if(lb) lb.hidden = false;
   if(pl) pl.hidden = false;
-  const nick = memFacts().nickname || (authUser && (authUser.name||"").split(" ")[0]) || "";
+  const hook = (memFacts().next_hook || "").trim();
+  const ctx = hook ? ("Last time: " + hook) : "You were doing really well.";
   b.innerHTML = `
     <div class="jb-ic">💬</div>
     <div class="jb-main">
       <div class="jb-kicker">Continue</div>
-      <div class="jb-title">Talk about your day${nick ? ", " + nick : ""}</div>
-      <div class="jb-sub">Speak Hindi — I'll reply in English</div>
+      <div class="jb-title">Where we left off</div>
+      <div class="jb-sub">${esc(ctx)}</div>
     </div>
     <div class="jb-go">→</div>`;
-  b.hidden = false; if(fl) fl.hidden = false; if(rl) rl.hidden = false;
+  b.hidden = false; if(rl) rl.hidden = false;
   renderHomeExtras();
+  renderTimeline();   // owns "Free practice" label + timeline (shows a loader until growth loads)
 }
 $("journeyBanner").onclick = () => startDaily("banner");   // "Talk about your day" → pure Daily Talk, no options
 $("roadmapLink").onclick = openJourney;    // roadmap/dashboard/becoming
@@ -3516,9 +3527,15 @@ function renderGrowth(){
 
 // S6 — Transformation timeline: watching yourself become someone new.
 function renderTimeline(){
-  const el = $("growthTimeline"); if(!el) return;
+  const el = $("growthTimeline"), fl = $("freeLabel"), ld = $("freeLoader"); if(!el) return;
+  const onboarded = (userState && userState.onboarded) || (authToken && localStorage.getItem("dusu_onboarded") === "true");
+  if(!onboarded){ if(fl) fl.hidden = true; if(ld) ld.hidden = true; el.hidden = true; return; }
   const g = userState && userState.growth;
-  if(!g || !g.timeline || g.timeline.length < 2){ el.hidden = true; return; }
+  if(!g){   // logged in, growth still loading from /me → show label + loader
+    if(fl) fl.hidden = false; if(ld) ld.hidden = false; el.hidden = true; return;
+  }
+  if(ld) ld.hidden = true;
+  if(!g.timeline || g.timeline.length < 2){ if(fl) fl.hidden = true; el.hidden = true; return; }
   const rows = g.timeline.map(t =>
     `<div class="gt-row"><span class="gt-day">Day ${t.day}</span>` +
     `<span class="gt-ic">${t.icon || "✅"}</span><span class="gt-text">${t.text || ""}</span></div>`).join("");
@@ -3527,7 +3544,7 @@ function renderTimeline(){
       `<div class="gt-bar"><i style="width:${g.dream_pct}%"></i></div></div>`
     : "";
   el.innerHTML = `<div class="gt-title">Your transformation</div>${rows}${dream}`;
-  el.hidden = false;
+  if(fl) fl.hidden = false; el.hidden = false;
 }
 
 // DuSu speaks a welcome by name (home). Needs a recent user gesture, so we only
