@@ -306,7 +306,7 @@
     border-color:color-mix(in srgb, var(--accent) 50%, rgba(255,255,255,.1)); }
   .mode-card:hover .mc-orb::after { opacity:.5; }
   .mc-orb svg { width:26px; height:26px; position:relative; }
-  .mc-orb svg [stroke]{ stroke:#eef0f5 !important; }   /* soft-white icons */
+  .mc-orb svg, .mc-orb svg [stroke]{ stroke:#eef0f5 !important; }   /* soft-white icons (recolor svg too, not just children) */
 
   .mc-badge { position:absolute; top:15px; right:15px; z-index:3; display:inline-flex; align-items:center; gap:6px;
     font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase; color:#d7dae2;
@@ -392,6 +392,14 @@
   .dc-tip { margin-top:12px; padding:10px 13px; border-radius:12px; font-size:13px; line-height:1.5;
     color:var(--gold-lt); background:color-mix(in srgb,var(--gold) 12%, transparent);
     border:1px solid color-mix(in srgb,var(--gold) 30%, transparent); text-align:left; }
+  .daily-more { width:min(460px,92vw); margin:22px auto 4px; text-align:center; }
+  .daily-nudge { display:inline-block; font-family:var(--font-d); font-size:17px; font-weight:600; color:var(--ink);
+    margin-bottom:14px; }
+  .daily-more-link { display:inline-flex; align-items:center; gap:6px; margin:14px auto 0; padding:9px 16px;
+    border-radius:999px; background:var(--glass); border:1px solid var(--glass-brd); color:var(--ink-dim);
+    font:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:color .2s, border-color .2s; }
+  .daily-more-link svg { width:16px; height:16px; }
+  .daily-more-link:hover { color:var(--gold); border-color:var(--gold); }
   .moment-recs { display:flex; flex-direction:column; gap:12px; }
   /* match home mode-card look: accent-tinted gradient, colored border, soft shadow, hover lift */
   .rec { --accent:#8b93b0; position:relative; display:flex; flex-direction:column; gap:4px; text-align:left; cursor:pointer;
@@ -511,6 +519,20 @@
   .tc-eng { font-family:var(--font-d); font-size:22px; font-weight:600; color:var(--ink); margin-top:5px; line-height:1.4;
     background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
   .tc-actions { display:flex; gap:10px; margin-top:16px; flex-wrap:wrap; }
+  /* app-like Daily Talk actions: round replay icon + big Reply pill */
+  .dc-actions { display:flex; align-items:center; gap:12px; margin-top:18px; }
+  .icon-btn { flex:none; width:50px; height:50px; border-radius:50%; display:grid; place-items:center; cursor:pointer;
+    background:var(--glass); border:1px solid var(--glass-brd); color:var(--ink-dim); transition:transform .2s, color .2s, border-color .2s; }
+  .icon-btn svg { width:21px; height:21px; }
+  .icon-btn:hover:not(:disabled) { color:var(--gold); border-color:var(--gold); transform:translateY(-2px); }
+  .icon-btn:disabled { opacity:.4; cursor:default; }
+  .reply-btn { flex:1; display:inline-flex; align-items:center; justify-content:center; gap:9px; cursor:pointer;
+    padding:15px 22px; border:none; border-radius:16px; font:inherit; font-weight:700; font-size:16px;
+    background:var(--grad); color:#241a08; box-shadow:var(--gold-glow); position:relative; overflow:hidden;
+    transition:transform .2s, filter .2s; touch-action:manipulation; }
+  .reply-btn svg { width:20px; height:20px; }
+  .reply-btn:hover { filter:brightness(1.06); transform:translateY(-2px); }
+  .reply-btn:active { transform:scale(.98); }
 
   /* ASSESSMENT */
   .assess-head { display:flex; align-items:center; gap:14px; margin-bottom:30px; }
@@ -1296,10 +1318,26 @@
         <div class="tc-label tc-top">In English</div>
         <div class="tc-eng" id="dcEng"></div>
         <div class="dc-tip" id="dcTip" hidden></div>
-        <div class="tc-actions">
-          <button class="btn ghost" id="dcReplay">🔊 Replay (slow)</button>
-          <button class="btn primary" id="dcNext">🎤 Reply</button>
+        <div class="dc-actions">
+          <button class="icon-btn" id="dcReplay" title="Dobara suno" aria-label="Replay slowly">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 5 6 9H2v6h4l5 4z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M19 5a9 9 0 0 1 0 14"/></svg>
+          </button>
+          <button class="reply-btn" id="dcNext" aria-label="Reply">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8z"/></svg>
+            <span>Reply</span>
+          </button>
         </div>
+      </div>
+
+      <!-- Only for the "Start Speaking" entry: recommendations + More at the bottom -->
+      <div class="daily-more" id="dailyMore" hidden>
+        <div class="daily-nudge" id="dailyNudge" hidden>✨ Aage kya karein?</div>
+        <div class="moment-recs" id="dailyRecs"></div>
+        <button class="daily-more-link" id="dailyMoreLink">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
+          <span>More</span>
+        </button>
+        <div class="moment-recs" id="dailyMoreExtra" hidden style="margin-top:12px"></div>
       </div>
 
       <div class="assess-actions" style="margin-top:22px">
@@ -1638,7 +1676,7 @@ function addSys(text){ const d=document.createElement("div"); d.className="sysms
 function chooseMode(mode){
   if(mode === "interview"){ show("setup"); setTimeout(()=> $("role").focus(), 120); }
   else if(mode === "learning"){ startLearning(); }
-  else if(mode === "daily"){ startDaily(); }
+  else if(mode === "daily"){ startDaily("banner"); }
   else startSession("conversation");
 }
 document.querySelectorAll(".mode-card").forEach(c=>{
@@ -1651,7 +1689,7 @@ document.querySelectorAll(".mode-card").forEach(c=>{
 });
 // Hero: the one primary action → jump straight into "Talk about your day" (Daily Talk),
 // where DuSu opens the conversation about their day. (Companion Moment kept in code, unused.)
-$("startSpeak").onclick = () => startDaily();
+$("startSpeak").onclick = () => startDaily("speak");
 // Progressive discovery: reveal the modes/journey below on demand
 // "More" is a toggle: open reveals options, tap again collapses back to a clean home.
 $("exploreBtn").onclick = () => {
@@ -2169,7 +2207,7 @@ $("continueBtn").onclick = async () => {
 $("learnBack").onclick = () => { running = false; stopLearn(); try{ ws && ws.close(); }catch(_){} show("home"); };
 
 /* ================= Daily Talk (AI companion) ================= */
-let drec = null, dLastEng = "", dLastNext = "", dailyTurns = [];
+let drec = null, dLastEng = "", dLastNext = "", dailyTurns = [], dailyFrom = "", dailyInputs = 0;
 // Resume: keep the recent turns in localStorage so the chat can continue later.
 // (Full history/summaries still go to the DB on session end, as before.)
 function saveDailyResume(){
@@ -2199,15 +2237,23 @@ function dailyOrb(state){
 // speak with the face animating (used in Daily Talk)
 async function sayFace(text, opts){ dailyOrb("speaking"); await say(text, opts); dailyOrb("idle"); }
 
-function startDaily(){
+function startDaily(from){
   if(!SR){ $("warn").textContent = "Voice needs Chrome or Edge."; show("home"); return; }
   if(overLimit()){
     $("warn").textContent = `You've reached today's limit of ${MAX_SESSIONS} sessions. Come back tomorrow 🙂`; show("home"); return;
   }
+  dailyFrom = from || "";
+  dailyInputs = 0;   // count THIS session's inputs (resumed history must not trigger the reminder)
   currentMode = "daily"; dLastEng = ""; dLastNext = "";
   $("dailyCard").hidden = true; $("dcHindi").textContent = ""; $("dcEng").textContent = "";
   $("dailyQ").textContent = ""; if($("dailyLoader")) $("dailyLoader").hidden = false;   // show loader while connecting
   dState(""); dMic(false); dailyOrb("connecting");
+  // recommendations + More: Start Speaking path only — shown from the START.
+  const dm = $("dailyMore");
+  if(dm){
+    if(dailyFrom === "speak"){ renderDailyRecs(); if($("dailyNudge")) $("dailyNudge").hidden = false; dm.hidden = false; }
+    else dm.hidden = true;
+  }
   show("daily");
   ws = new WebSocket(WS_URL);
   ws.onopen = () => { running = true; usageInc(); refreshUsage();
@@ -2218,6 +2264,35 @@ function startDaily(){
   ws.onclose = () => { running = false; stopDaily(); };
   ws.onerror = () => { if($("dailyLoader")) $("dailyLoader").hidden = true; dState("Connection error. Is the server running?"); };
 }
+// The 3 options shown under Daily Talk (Start Speaking path). Reuses the Companion Moment recs.
+function dailyRecsData(){
+  let rec = userState && userState.recommendations;
+  if(!rec || !rec.primary){
+    rec = { primary:{icon:"📖", goal:"Continue your learning", action:"learning", why:"pick up where you left off", desc:"Say it in Hindi → I say it in English → you repeat.", meta:"~4 min"},
+            second:{icon:"💬", goal:"Free English chat", action:"conversation", desc:"Just talk — I'll keep it going.", meta:"~5 min"},
+            third:{icon:"🎯", goal:"Mock interview", action:"interview", desc:"Practice + a scored report.", meta:"~6 min"} };
+  }
+  return rec;
+}
+function renderDailyRecs(){
+  const el = $("dailyRecs"); if(!el) return;
+  const rec = dailyRecsData();
+  el.innerHTML = _recCard(rec.primary, true) + _recCard(rec.second, false) + _recCard(rec.third, false);
+  el.querySelectorAll(".rec").forEach(b => b.onclick = () => pickDailyRec(b.dataset.action));
+}
+function leaveDaily(){   // close the daily chat cleanly (used when jumping to another path)
+  running = false; stopDaily();
+  try{ if(ws && ws.readyState === 1) ws.send(JSON.stringify({ type:"end" })); }catch(_){}
+  try{ ws && ws.close(); }catch(_){}
+}
+function pickDailyRec(action){
+  if(action === "daily"){ return; }             // "keep talking" → just stay
+  leaveDaily();
+  if(action === "journey"){ openJourney(); return; }
+  if(action === "leaderboard"){ openLeaderboard(); return; }
+  chooseMode(action);                           // learning | conversation | interview
+}
+
 async function greetDaily(question){
   if($("dailyLoader")) $("dailyLoader").hidden = true;   // connected → hide loader
   dLastNext = question;
@@ -2262,7 +2337,16 @@ async function handleDailyTurn(hindi, english, reply, tip, nextQ){
   dailyTurns.push({ role:"user", content: hindi });
   dailyTurns.push({ role:"assistant", content: dusuReply });
   saveDailyResume();
-  dState("DuSu tumhaari baat sunne ke liye ready hai — jab chaaho bolo 💬");
+  // Start Speaking path only: options are already visible; after EVERY 3 inputs DuSu
+  // SPEAKS a short Hindi reminder about them (never forced — Reply keeps the chat going).
+  if(dailyFrom === "speak"){
+    dailyInputs++;   // only THIS session's inputs — not resumed history
+    if(dailyInputs % 3 === 0){
+      await sayFace("Waise, jab tum ready ho to niche apni learning aage badha sakte ho — ya yahin baat continue karo.", HI());
+      requestAnimationFrame(() => { const d = $("dailyMore"); if(d) d.scrollIntoView({ behavior:"smooth", block:"nearest" }); });
+    }
+  }
+  dState("💬 Reply jab tum ready ho");
 }
 function setDailyTip(tip){
   const el = $("dcTip"); if(!el) return;
@@ -2282,6 +2366,8 @@ async function dailyContinue(){
 }
 function finishDaily(){
   running = false; stopDaily();
+  if($("dailyMore")) $("dailyMore").hidden = true;
+  if($("dailyNudge")) $("dailyNudge").hidden = true;
   try{ if(ws && ws.readyState === 1) ws.send(JSON.stringify({ type:"end" })); }catch(_){}
   try{ ws && ws.close(); }catch(_){}
   const p = jProg();
@@ -2295,6 +2381,23 @@ $("dcReplay").onclick = () => { if(dLastEng){ if(window.speechSynthesis) window.
 $("dcNext").onclick = dailyContinue;
 $("dailyFinish").onclick = finishDaily;
 $("dailyBack").onclick = finishDaily;
+// "More" under Daily Talk → reveal extra options IN PLACE (Journey / Leaderboard).
+// Never navigates to home — the user stays in the conversation.
+if($("dailyMoreLink")) $("dailyMoreLink").onclick = () => {
+  const ex = $("dailyMoreExtra"), lbl = $("dailyMoreLink").querySelector("span"); if(!ex) return;
+  if(ex.hidden){
+    if(!ex.dataset.built){
+      ex.innerHTML = _recCard({icon:"🗺️", goal:"Your Journey", action:"journey", desc:"Worlds & progress", meta:""}, false)
+                   + _recCard({icon:"🏆", goal:"Leaderboard", action:"leaderboard", desc:"Global ranks", meta:""}, false);
+      ex.querySelectorAll(".rec").forEach(b => b.onclick = () => pickDailyRec(b.dataset.action));
+      ex.dataset.built = "1";
+    }
+    ex.hidden = false; if(lbl) lbl.textContent = "Less";
+    requestAnimationFrame(() => ex.scrollIntoView({ behavior:"smooth", block:"nearest" }));
+  } else {
+    ex.hidden = true; if(lbl) lbl.textContent = "More";
+  }
+};
 
 /* ================= AI Level Assessment (first-time, once) ================= */
 let aData = null;
@@ -2724,7 +2827,7 @@ function renderHomeJourney(){
   b.hidden = false; if(fl) fl.hidden = false; if(rl) rl.hidden = false;
   renderHomeExtras();
 }
-$("journeyBanner").onclick = startDaily;   // Continue your Journey → Daily Talk (in the reveal)
+$("journeyBanner").onclick = () => startDaily("banner");   // "Talk about your day" → pure Daily Talk, no options
 $("roadmapLink").onclick = openJourney;    // roadmap/dashboard/becoming
 $("leaderboardLink").onclick = openLeaderboard;
 $("lbBack").onclick = () => show("home");
