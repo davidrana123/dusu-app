@@ -2201,6 +2201,8 @@ function onMessage(ev){
 function speakable(t){
   return (t || "")
     .replace(/[\u{1F000}-\u{1FAFF}\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}\u{200D}\u{2000}-\u{206F}]/gu, "")
+    .replace(/_+/g, " ")                       // fill-in blanks "____" — don't read them
+    .replace(/[-–—=*~•#|>]{2,}/g, " ")          // rules / markdown runs "----", "====", "**"
     .replace(/\s{2,}/g, " ").trim();
 }
 
