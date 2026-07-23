@@ -219,22 +219,80 @@ async def keys_verify(inp: KeysIn, authorization: str | None = Header(None)):
     return {"results": out}
 
 
-@app.get("/admin/overview")
-async def admin_overview(token: str = "", authorization: str | None = Header(None)):
-    """Owner-only dashboard data: your role + (if DB) top learners/activity."""
+def _require_owner(token: str, authorization: str | None):
     claims = auth.read_session(_bearer(authorization, token))
     if not claims:
         raise HTTPException(401, "Not signed in")
     if role_for(claims.get("email", "")) != "owner":
         raise HTTPException(403, "Owner only")
-    out = {"you": claims.get("email", ""), "role": "owner", "db": db.db_enabled, "top": []}
+    return claims
+
+
+@app.get("/admin/overview")
+async def admin_overview(token: str = "", authorization: str | None = Header(None)):
+    """Owner-only dashboard: every user's full info + activity."""
+    claims = _require_owner(token, authorization)
+    out = {"you": claims.get("email", ""), "role": "owner", "db": db.db_enabled, "users": []}
     if db.db_enabled:
         try:
-            lb = await db.leaderboard(claims["sub"], limit=50)
-            out["top"] = lb.get("top", [])
+            users = await db.admin_list_users()
+            for u in users:                       # attach computed role
+                u["role"] = role_for(u.get("email", ""))
+            out["users"] = users
+            out["counts"] = {
+                "total": len(users),
+                "active": sum(1 for u in users if u["status"] == "active"),
+                "pending": sum(1 for u in users if u["status"] == "pending"),
+                "blocked": sum(1 for u in users if u["status"] == "blocked"),
+                "office": sum(1 for u in users if u["mode"] == "office"),
+            }
         except Exception as e:
-            print(f"[admin] failed: {type(e).__name__}: {e}")
+            print(f"[admin] list failed: {type(e).__name__}: {e}")
     return out
+
+
+class AdminActionIn(BaseModel):
+    token: str = ""
+    target_id: str
+    action: str        # approve | block | unblock
+
+
+@app.post("/admin/action")
+async def admin_action(inp: AdminActionIn, authorization: str | None = Header(None)):
+    """Owner-only: approve / block / unblock a user."""
+    _require_owner(inp.token, authorization)
+    if not db.db_enabled:
+        raise HTTPException(400, "Database required")
+    status = {"approve": "active", "unblock": "active", "block": "blocked"}.get(inp.action)
+    if not status:
+        raise HTTPException(400, "Unknown action")
+    ok = await db.set_user_status(inp.target_id, status)
+    return {"ok": ok, "status": status}
+
+
+class ModeIn(BaseModel):
+    token: str
+    mode: str          # personal | office
+
+
+@app.post("/mode")
+async def set_mode(inp: ModeIn):
+    """User picks Personal/Office. Office for a normal user → pending (needs owner
+    approval); owner/unlimited stay active. Personal → active."""
+    claims = auth.read_session(inp.token)
+    if not claims:
+        raise HTTPException(401, "Not signed in")
+    role = role_for(claims.get("email", ""))
+    if inp.mode == "office" and role == "user":
+        status = "pending"
+    else:
+        status = "active"
+    if db.db_enabled:
+        try:
+            await db.set_user_mode(claims["sub"], inp.mode if inp.mode in ("personal", "office") else "personal", status)
+        except Exception as e:
+            print(f"[mode] failed: {type(e).__name__}: {e}")
+    return {"mode": inp.mode, "status": status, "role": role}
 
 
 @app.post("/assessment")
@@ -651,9 +709,20 @@ async def interview_ws(ws: WebSocket):
                     await _send(ws, type="auth_error", msg="Please sign in again")
                     break
                 uid = claims["sub"] if claims else None
-                # Office/BYOK: route this connection's LLM calls through the user's own keys
-                # (empty/absent → default Personal chain).
-                set_active_keys(data.get("keys"))
+                # Access gate + Office/BYOK key routing.
+                _keys = data.get("keys")
+                if uid and db.db_enabled:
+                    try:
+                        flags = await db.get_user_flags(uid)
+                        if flags.get("status") == "blocked":
+                            await _send(ws, type="error", msg="Your access has been paused. Please contact the admin.")
+                            break
+                        # office keys only apply once approved; until then use our default (usable meanwhile)
+                        if _keys and flags.get("status") != "active":
+                            _keys = None
+                    except Exception as e:
+                        print(f"[gate] {type(e).__name__}: {e}")
+                set_active_keys(_keys)
                 # Load emotional memory so DuSu greets/talks like it knows them.
                 facts_summary = ""; facts = {}
                 mode = data.get("mode", "interview")

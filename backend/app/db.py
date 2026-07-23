@@ -89,6 +89,8 @@ class User(Base):
     picture: Mapped[str] = mapped_column(String(512), default="")
     created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=_now)
     last_seen: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=_now)
+    status: Mapped[str] = mapped_column(String(16), default="active")     # active | pending | blocked
+    mode: Mapped[str] = mapped_column(String(16), default="personal")    # personal | office
 
 
 class Profile(Base):
@@ -145,6 +147,9 @@ async def init_db() -> None:
         await conn.run_sync(Base.metadata.create_all)
         # create_all won't add an index to an already-existing table → do it explicitly
         await conn.execute(_text("CREATE INDEX IF NOT EXISTS ix_progress_xp ON progress (xp DESC)"))
+        # add new columns to an already-existing users table (create_all won't ALTER)
+        await conn.execute(_text("ALTER TABLE users ADD COLUMN IF NOT EXISTS status varchar(16) DEFAULT 'active'"))
+        await conn.execute(_text("ALTER TABLE users ADD COLUMN IF NOT EXISTS mode varchar(16) DEFAULT 'personal'"))
 
 
 def _state(user: User, prof: Profile, prog: Progress, mem: "Memory | None" = None) -> dict:
@@ -152,6 +157,8 @@ def _state(user: User, prof: Profile, prog: Progress, mem: "Memory | None" = Non
     return {
         "user": {"id": user.id, "email": user.email, "name": user.name, "picture": user.picture,
                  "created_at": user.created_at.isoformat() if user.created_at else None},
+        "status": getattr(user, "status", "active") or "active",
+        "mode": getattr(user, "mode", "personal") or "personal",
         "onboarded": prof.onboarded,
         "profile": {
             "goal": prof.goal, "comfort": prof.comfort, "practice_time": prof.practice_time,
@@ -988,3 +995,81 @@ async def save_future_me(user_id: str, text: str) -> dict:
         flag_modified(mem, "facts")
         await s.commit()
         return f
+
+
+# ===================== ADMIN (owner dashboard) =====================
+async def admin_list_users() -> list[dict]:
+    """Full per-user info for the owner dashboard: identity, status/mode, level,
+    xp/streak, today's + total activity, and recent per-day usage."""
+    if not db_enabled:
+        return []
+    async with _Session() as s:               # type: ignore[misc]
+        rows = (await s.execute(select(User).order_by(User.last_seen.desc()))).scalars().all()
+        out = []
+        for u in rows:
+            prof = await s.get(Profile, u.id)
+            prog = await s.get(Progress, u.id)
+            mem = await s.get(Memory, u.id)
+            f = (mem.facts if mem else {}) or {}
+            convos = (await s.execute(
+                select(func.count()).select_from(Conversation).where(Conversation.user_id == u.id))).scalar() or 0
+            out.append({
+                "id": u.id,
+                "email": u.email or "",
+                "name": u.name or f.get("nickname", "") or "",
+                "picture": u.picture or "",
+                "status": getattr(u, "status", "active") or "active",
+                "mode": getattr(u, "mode", "personal") or "personal",
+                "created_at": u.created_at.isoformat() if u.created_at else None,
+                "last_seen": u.last_seen.isoformat() if u.last_seen else None,
+                "onboarded": bool(prof.onboarded) if prof else False,
+                "level": (prof.level if prof else "") or "",
+                "goal": (prof.goal if prof else "") or "",
+                "xp": (prog.xp if prog else 0) or 0,
+                "streak_days": (prog.streak_days if prog else 0) or 0,
+                "sessions_today": (prog.sessions_today if prog else 0) or 0,
+                "daily_goal": (prog.daily_goal if prog else 0) or 0,
+                "total_sessions": int(convos),
+                "total_minutes": round(int(f.get("total_seconds", 0)) / 60),
+                "words": int((f.get("vocabulary") or {}).get("total", f.get("vocab_total", 0)) or 0),
+                "daily_stats": f.get("daily_stats") or {},   # {date: {sessions, seconds, sentences}}
+            })
+        return out
+
+
+async def set_user_status(user_id: str, status: str) -> bool:
+    if not db_enabled or status not in ("active", "pending", "blocked"):
+        return False
+    async with _Session() as s:               # type: ignore[misc]
+        u = await s.get(User, user_id)
+        if not u:
+            return False
+        u.status = status
+        await s.commit()
+        return True
+
+
+async def set_user_mode(user_id: str, mode: str, status: str | None = None) -> bool:
+    if not db_enabled or mode not in ("personal", "office"):
+        return False
+    async with _Session() as s:               # type: ignore[misc]
+        u = await s.get(User, user_id)
+        if not u:
+            return False
+        u.mode = mode
+        if status:
+            u.status = status
+        await s.commit()
+        return True
+
+
+async def get_user_flags(user_id: str) -> dict:
+    """Cheap status/mode lookup for the access gate."""
+    if not db_enabled:
+        return {"status": "active", "mode": "personal"}
+    async with _Session() as s:               # type: ignore[misc]
+        u = await s.get(User, user_id)
+        if not u:
+            return {"status": "active", "mode": "personal"}
+        return {"status": getattr(u, "status", "active") or "active",
+                "mode": getattr(u, "mode", "personal") or "personal"}

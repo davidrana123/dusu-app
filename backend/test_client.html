@@ -951,6 +951,22 @@
   .admin-head{ font-family:var(--font-d); font-size:15px; color:var(--ink-dim); margin:16px 0 10px; text-align:center }
   .admin-row{ display:flex; align-items:center; gap:12px; padding:11px 14px; border-radius:12px; background:var(--glass); border:1px solid var(--glass-brd); margin-bottom:8px; font-size:14px }
   .admin-row .xp{ margin-left:auto; color:var(--gold-lt); font-size:13px }
+  .admin-stats{ display:flex; gap:8px; margin:6px 0 14px }
+  .admin-stats > div{ flex:1; text-align:center; background:var(--glass); border:1px solid var(--glass-brd); border-radius:12px; padding:10px 4px }
+  .admin-stats b{ font-family:var(--font-d); font-size:22px; display:block }
+  .admin-stats span{ font-size:10px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em }
+  .uCard{ background:var(--glass); border:1px solid var(--glass-brd); border-radius:14px; padding:13px 15px; margin-bottom:10px }
+  .uTop{ display:flex; align-items:center; gap:8px; font-size:15px }
+  .uTop b{ font-family:var(--font-d); font-weight:600 }
+  .uRole{ font-size:10px; text-transform:uppercase; letter-spacing:.06em; padding:2px 7px; border-radius:999px; background:rgba(255,255,255,.08); color:var(--ink-dim) }
+  .uRole.owner{ color:#f0a952; background:rgba(240,169,82,.14) } .uRole.unlimited{ color:var(--gold-lt); background:rgba(111,140,255,.14) }
+  .uSt{ margin-left:auto; font-size:11.5px; color:var(--ink-dim) }
+  .uMail{ font-size:12px; color:var(--ink-faint); margin-top:2px }
+  .uMeta{ font-size:12px; color:var(--ink-dim); margin-top:5px; line-height:1.5 }
+  .uDays{ color:var(--ink-faint) }
+  .uActs{ display:flex; gap:8px; margin-top:10px }
+  .uBtn{ font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; padding:7px 14px; border-radius:10px; background:var(--glass); border:1px solid var(--glass-brd); color:var(--ink-dim) }
+  .uBtn.ok{ color:#4fd6a0; border-color:rgba(79,214,160,.4) } .uBtn.bad{ color:#e08a7a; border-color:rgba(224,138,122,.4) }
   /* subtle scrollbar that blends with the dark background (Firefox + WebKit) */
   .wrap{ scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.12) transparent; }
   .wrap::-webkit-scrollbar{ width:6px; }
@@ -1835,8 +1851,8 @@ function loadKeysUI(){
   if($("keysStatus")) $("keysStatus").textContent = "";
   setModeUI();
 }
-if($("modePersonal")) $("modePersonal").onclick = () => { useMode="personal"; localStorage.setItem("dusu_usemode","personal"); setModeUI(); };
-if($("modeOffice")) $("modeOffice").onclick = () => { useMode="office"; localStorage.setItem("dusu_usemode","office"); setModeUI(); };
+if($("modePersonal")) $("modePersonal").onclick = () => { useMode="personal"; localStorage.setItem("dusu_usemode","personal"); setModeUI(); postMode("personal"); };
+if($("modeOffice")) $("modeOffice").onclick = () => { useMode="office"; localStorage.setItem("dusu_usemode","office"); setModeUI(); postMode("office"); };
 if($("keysBack")) $("keysBack").onclick = () => show("home");
 if($("adminBack")) $("adminBack").onclick = () => show("home");
 if($("verifyKeys")) $("verifyKeys").onclick = async () => {
@@ -1858,6 +1874,12 @@ if($("verifyKeys")) $("verifyKeys").onclick = async () => {
     else { $("keysStatus").innerHTML = "❌ No working key yet.<br>" + msgs.map(esc).join("<br>"); }
   }catch(e){ $("keysStatus").textContent = "Couldn't verify — try again."; }
 };
+function postMode(m){ try{ fetch("/mode",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:authToken,mode:m})}); }catch(_){} }
+async function adminAction(id, action){
+  try{ await fetch("/admin/action",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({token:authToken,target_id:id,action})}); }catch(_){}
+  openAdmin();   // refresh
+}
 async function openAdmin(){
   show("admin"); const el=$("adminBody"); el.innerHTML='<div class="spin" style="margin:24px auto"></div>';
   try{
@@ -1865,12 +1887,26 @@ async function openAdmin(){
     if(!r.ok){ el.innerHTML = '<p class="keys-note" style="text-align:center">Owner only.</p>'; return; }
     const d = await r.json();
     let h = `<div class="admin-head">Owner · ${esc(d.you||"")}</div>`;
-    if(!d.db) h += '<p class="keys-note" style="text-align:center">Database is off locally — the full user list shows on the deployed app.</p>';
-    const top = d.top || [];
-    if(top.length){ h += '<div class="admin-head">Top learners &amp; activity</div>';
-      top.forEach((u,i)=>{ h += `<div class="admin-row"><b>#${u.rank||i+1}</b>&nbsp; ${esc(u.is_me?"You":(u.alias||"user"))}<span class="xp">${u.xp||0} XP</span></div>`; }); }
-    else if(d.db) h += '<p class="keys-note" style="text-align:center">No activity yet.</p>';
+    if(!d.db){ el.innerHTML = h + '<p class="keys-note" style="text-align:center">Database is off locally — the full user list shows on the deployed app.</p>'; return; }
+    const c = d.counts||{}, users = d.users||[];
+    h += `<div class="admin-stats"><div><b>${c.total||0}</b><span>Users</span></div><div><b>${c.active||0}</b><span>Active</span></div><div><b>${c.pending||0}</b><span>Pending</span></div><div><b>${c.blocked||0}</b><span>Blocked</span></div></div>`;
+    if(!users.length){ el.innerHTML = h + '<p class="keys-note" style="text-align:center">No users yet.</p>'; return; }
+    users.forEach(u=>{
+      const dot = u.status==='blocked'?'🚫':u.status==='pending'?'⏳':'🟢';
+      const days = Object.entries(u.daily_stats||{}).slice(-7).map(([dd,s])=>`${dd.slice(5)}·${Math.round((s.seconds||0)/60)}m`).join('  ');
+      h += `<div class="uCard">
+        <div class="uTop"><b>${esc(u.name||u.email||'user')}</b><span class="uRole ${u.role}">${u.role}</span><span class="uSt">${dot} ${u.status}</span></div>
+        <div class="uMail">${esc(u.email||'')}</div>
+        <div class="uMeta">${u.mode==='office'?'🏢 Office':'🏠 Personal'} · Lvl ${esc(u.level||'-')} · ${u.xp} XP · ${u.streak_days}🔥 · ${u.total_sessions} sessions · ${u.total_minutes} min · ${u.words} words</div>
+        <div class="uMeta">Joined ${(u.created_at||'').slice(0,10)} · Last seen ${(u.last_seen||'').slice(0,10)}</div>
+        ${days?`<div class="uMeta uDays">📅 ${esc(days)}</div>`:''}
+        <div class="uActs">
+          ${u.status!=='active'?`<button class="uBtn ok" data-act="approve" data-id="${u.id}">Approve</button>`:''}
+          ${u.status!=='blocked'?`<button class="uBtn bad" data-act="block" data-id="${u.id}">Block</button>`:`<button class="uBtn" data-act="unblock" data-id="${u.id}">Unblock</button>`}
+        </div></div>`;
+    });
     el.innerHTML = h;
+    el.querySelectorAll(".uBtn[data-act]").forEach(b=>b.onclick=()=>adminAction(b.dataset.id, b.dataset.act));
   }catch(e){ el.innerHTML='<p class="keys-note" style="text-align:center">Failed to load.</p>'; }
 }
 
@@ -3624,7 +3660,10 @@ function applyUser(u){
 const MAX_SESSIONS = Number("__MAX_SESSIONS__") || 20;
 // Owner account(s) get unlimited sessions (no daily cap).
 const OWNER_EMAILS = ["david123rana@gmail.com"];
-function isUnlimited(){ return !!(authUser && OWNER_EMAILS.includes((authUser.email||"").toLowerCase())); }
+function isUnlimited(){
+  if(userState && (userState.role === "owner" || userState.role === "unlimited")) return true;   // server-driven
+  return !!(authUser && OWNER_EMAILS.includes((authUser.email||"").toLowerCase()));
+}
 function overLimit(){ return !isUnlimited() && usageGet().n >= MAX_SESSIONS; }
 function usageGet(){
   const today = new Date().toISOString().slice(0, 10);
