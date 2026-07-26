@@ -1117,3 +1117,30 @@ async def office_remove(email: str) -> bool:
         if row:
             await s.delete(row); await s.commit()
         return True
+
+
+# ===================== APP SETTINGS (owner toggles) =====================
+class Setting(Base):
+    __tablename__ = "settings"
+    key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    value: Mapped[str] = mapped_column(String(255), default="")
+
+
+async def get_setting(key: str, default: str = "") -> str:
+    if not db_enabled:
+        return default
+    async with _Session() as s:               # type: ignore[misc]
+        r = await s.get(Setting, key)
+        return r.value if r else default
+
+
+async def set_setting(key: str, value: str) -> None:
+    if not db_enabled:
+        return
+    async with _Session() as s:               # type: ignore[misc]
+        r = await s.get(Setting, key)
+        if r:
+            r.value = value
+        else:
+            s.add(Setting(key=key, value=value))
+        await s.commit()

@@ -44,14 +44,37 @@ def role_for(email: str) -> str:
     if e in {x.lower() for x in UNLIMITED_EMAILS}: return "unlimited"
     return "user"
 
-async def office_allowed(email: str) -> bool:
-    """Who may use Office mode: owner, unlimited, or an owner-added office email."""
+async def free_access(email: str) -> bool:
+    """Who may use OUR default keys (normal mode): owner, unlimited allowlist,
+    or an owner-added free-access email (e.g. Surendri). Everyone else must BYOK
+    while the require_own_keys switch is ON."""
     if role_for(email) in ("owner", "unlimited"):
         return True
     try:
         return await db.office_has(email)
     except Exception:
         return False
+
+# backwards-compat alias (Office visibility == free vs must-bring-own)
+office_allowed = free_access
+
+async def require_own_keys_on() -> bool:
+    """Global switch (owner-controlled). ON = non-free users MUST use their own keys."""
+    try:
+        return (await db.get_setting("require_own_keys", "1")) == "1"
+    except Exception:
+        return True
+
+async def resolve_keys(email: str, keys: dict):
+    """Decide the effective key chain for a request.
+    Returns (ok, effective_keys_or_None, reason). effective None = use our default chain."""
+    ro = await require_own_keys_on()
+    free = await free_access(email)
+    if not ro or free:
+        return True, None, ""                 # normal mode → our default keys
+    if keys and any((str(v).strip() for v in (keys or {}).values())):
+        return True, keys, ""                 # BYOK → their keys only
+    return False, None, "keys_required"       # must add own keys first
 
 
 @app.on_event("startup")
@@ -157,15 +180,19 @@ async def me(token: str = "", authorization: str | None = Header(None)):
     if not claims:
         raise HTTPException(401, "Not signed in")
     _role = role_for(claims.get("email", ""))
-    _office = await office_allowed(claims.get("email", ""))
+    _free = await free_access(claims.get("email", ""))
+    _ro = await require_own_keys_on()
     if not db.db_enabled:
-        return {"onboarded": None, "role": _role, "email": claims.get("email", ""), "office_allowed": _office}
+        return {"onboarded": None, "role": _role, "email": claims.get("email", ""),
+                "office_allowed": _free, "free_access": _free, "require_own_keys": _ro}
     try:
         state = await db.login(claims)   # upsert row + return state (handles cached-token logins)
         if isinstance(state, dict):
             state["role"] = _role
             state["email"] = claims.get("email", "")
-            state["office_allowed"] = _office
+            state["office_allowed"] = _free
+            state["free_access"] = _free
+            state["require_own_keys"] = _ro
         if isinstance(state, dict) and state.get("onboarded"):
             try:
                 uid_ = claims["sub"]
@@ -260,7 +287,21 @@ async def admin_overview(token: str = "", authorization: str | None = Header(Non
             out["office_emails"] = await db.office_list()
         except Exception as e:
             print(f"[admin] list failed: {type(e).__name__}: {e}")
+    out["require_own_keys"] = await require_own_keys_on()
     return out
+
+
+class SettingsIn(BaseModel):
+    token: str = ""
+    require_own_keys: bool
+
+
+@app.post("/admin/settings")
+async def admin_settings(inp: SettingsIn, authorization: str | None = Header(None)):
+    """Owner-only: flip the global 'require own keys' switch."""
+    _require_owner(inp.token, authorization)
+    await db.set_setting("require_own_keys", "1" if inp.require_own_keys else "0")
+    return {"require_own_keys": inp.require_own_keys}
 
 
 class OfficeEmailIn(BaseModel):
@@ -331,10 +372,13 @@ async def set_mode(inp: ModeIn):
 @app.post("/assessment")
 async def assessment(inp: AssessIn):
     """Score the level assessment, save the profile, return it."""
-    set_active_keys(inp.keys)
     claims = auth.read_session(inp.token)
     if not claims:
         raise HTTPException(401, "Not signed in")
+    _ok, _eff, _r = await resolve_keys(claims.get("email", ""), inp.keys)
+    if not _ok:
+        raise HTTPException(402, "keys_required")
+    set_active_keys(_eff)
     payload = (
         f"goal: {inp.goal}\ncomfort: {inp.comfort}\npractice_time: {inp.practice_time}\n\n"
         f"TASK 1 (intro): {inp.intro or '(no answer)'}\n\n"
@@ -742,20 +786,22 @@ async def interview_ws(ws: WebSocket):
                     await _send(ws, type="auth_error", msg="Please sign in again")
                     break
                 uid = claims["sub"] if claims else None
-                # Access gate + Office/BYOK key routing.
+                # Access gate + BYOK key routing.
                 _keys = data.get("keys")
+                _email = claims.get("email", "") if claims else ""
                 if uid and db.db_enabled:
                     try:
                         flags = await db.get_user_flags(uid)
                         if flags.get("status") == "blocked":
                             await _send(ws, type="error", msg="Your access has been paused. Please contact the admin.")
                             break
-                        # office keys only apply if this email is on the owner's Office allowlist + active
-                        if _keys and (flags.get("status") != "active" or not await office_allowed(claims.get("email", ""))):
-                            _keys = None
                     except Exception as e:
                         print(f"[gate] {type(e).__name__}: {e}")
-                set_active_keys(_keys)
+                ok, effkeys, reason = await resolve_keys(_email, _keys)
+                if not ok:
+                    await _send(ws, type="keys_required", msg="Add your own API keys in Settings to use DuSu.")
+                    break
+                set_active_keys(effkeys)
                 # Load emotional memory so DuSu greets/talks like it knows them.
                 facts_summary = ""; facts = {}
                 mode = data.get("mode", "interview")

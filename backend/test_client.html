@@ -395,16 +395,17 @@
     color:var(--gold-lt); background:color-mix(in srgb,var(--gold) 12%, transparent);
     border:1px solid color-mix(in srgb,var(--gold) 30%, transparent); text-align:left; }
   .daily-more { width:min(460px,92vw); margin:22px auto 4px; text-align:center; }
-  .daily-nudge { display:block; font-family:var(--font-d); font-size:26px; font-weight:700; margin-bottom:18px;
+  .daily-nudge { display:block; font-family:var(--font-d); font-size:31px; font-weight:700; margin-bottom:20px; line-height:1.15;
     background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; letter-spacing:.01em; }
-  /* Daily quick actions: icon-only buttons in a row */
-  .daily-icons { display:flex; gap:14px; justify-content:center; }
-  .di-btn { width:68px; height:68px; border-radius:20px; display:grid; place-items:center; cursor:pointer;
-    background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+  /* Daily quick actions: icon + 1-word gradient label buttons in a row */
+  .daily-icons { display:flex; gap:12px; justify-content:center; }
+  .di-btn { flex:1; max-width:110px; padding:14px 8px 12px; border-radius:18px; display:flex; flex-direction:column; align-items:center; gap:8px; cursor:pointer;
+    background:linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.02));
     border:1px solid var(--glass-brd); transition:transform .18s, border-color .2s, box-shadow .2s; }
   .di-btn:hover { transform:translateY(-3px); border-color:var(--gold); box-shadow:0 12px 28px -14px rgba(111,140,255,.75); }
   .di-btn:active { transform:scale(.96); }
-  .di-ic { font-size:31px; line-height:1; }
+  .di-ic { font-size:30px; line-height:1; }
+  .di-lbl { font-family:var(--font-d); font-weight:700; font-size:16px; background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; }
   .daily-more-link { display:inline-flex; align-items:center; gap:6px; margin:14px auto 0; padding:9px 16px;
     border-radius:999px; background:var(--glass); border:1px solid var(--glass-brd); color:var(--ink-dim);
     font:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:color .2s, border-color .2s; }
@@ -977,6 +978,12 @@
   .uBtn.ok{ color:#4fd6a0; border-color:rgba(79,214,160,.4) } .uBtn.bad{ color:#e08a7a; border-color:rgba(224,138,122,.4) }
   .offAdd{ display:flex; gap:8px; margin-bottom:10px }
   .offAdd input{ flex:1; background:var(--glass); border:1px solid var(--glass-brd); border-radius:10px; padding:10px 12px; color:var(--ink); font:inherit; font-size:13px }
+  .swrow{ display:flex; align-items:center; gap:12px; padding:12px 14px; border-radius:12px; background:var(--glass); border:1px solid var(--glass-brd); font-size:13.5px; margin-bottom:6px }
+  .swrow > span:first-child{ flex:1 }
+  .swrow input[type=checkbox]{ appearance:none; width:46px; height:26px; border-radius:999px; background:rgba(255,255,255,.14); position:relative; cursor:pointer; transition:.2s; flex:none }
+  .swrow input[type=checkbox]::after{ content:""; position:absolute; top:3px; left:3px; width:20px; height:20px; border-radius:50%; background:#fff; transition:.2s }
+  .swrow input[type=checkbox]:checked{ background:var(--gold) }
+  .swrow input[type=checkbox]:checked::after{ left:23px }
   /* subtle scrollbar that blends with the dark background (Firefox + WebKit) */
   .wrap{ scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.12) transparent; }
   .wrap::-webkit-scrollbar{ width:6px; }
@@ -1699,8 +1706,23 @@ function officeKeys(){
   if(useMode !== "office") return {};
   try{ return JSON.parse(localStorage.getItem("dusu_office_keys") || "{}") || {}; }catch(_){ return {}; }
 }
-// Only owner-added emails (or owner/unlimited) may use Office mode.
-function officeAllowed(){ return !!(userState && (userState.office_allowed || userState.role === "owner" || userState.role === "unlimited")); }
+// Free access = uses OUR keys (owner / unlimited / owner-added). Others must BYOK while the switch is ON.
+function officeAllowed(){ return !!(userState && (userState.office_allowed || userState.free_access || userState.role === "owner" || userState.role === "unlimited")); }
+function savedKeys(){ try{ return JSON.parse(localStorage.getItem("dusu_office_keys") || "{}") || {}; }catch(_){ return {}; } }
+function hasOwnKeys(){ return Object.values(savedKeys()).some(v => v && (""+v).trim()); }
+// Must this user add their own keys? (global switch ON + not free-access)
+function needsKeys(){ return !!(userState && userState.require_own_keys && !officeAllowed()); }
+function mustAddKeys(){ return needsKeys() && !hasOwnKeys(); }
+// Block a session start until keys are added; returns true if blocked.
+function guardKeys(){
+  if(mustAddKeys()){
+    if(useMode !== "office"){ useMode = "office"; localStorage.setItem("dusu_usemode","office"); }
+    show("keys"); loadKeysUI();
+    if($("keysStatus")) $("keysStatus").innerHTML = "🔒 Add your own free API keys to start using DuSu.";
+    return true;
+  }
+  return false;
+}
 // escape user/LLM text before putting it into innerHTML (defensive; self-data only)
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1857,10 +1879,14 @@ function loadKeysUI(){
   if($("kGroq")) $("kGroq").value = k.groq || "";
   ["stGemini","stOpenrouter","stGithub","stGroq"].forEach(id=>{ if($(id)) $(id).textContent=""; });
   if($("keysStatus")) $("keysStatus").textContent = "";
-  const allowed = officeAllowed();
-  if($("modeOffice")) $("modeOffice").style.display = allowed ? "" : "none";
-  if($("officeNote")) $("officeNote").hidden = allowed;
-  if(!allowed && useMode === "office"){ useMode = "personal"; localStorage.setItem("dusu_usemode","personal"); }
+  const forceOffice = needsKeys();          // must bring own keys
+  if($("modePersonal")) $("modePersonal").style.display = forceOffice ? "none" : "";
+  if($("modeOffice")) $("modeOffice").style.display = "";     // anyone can add their own keys
+  if($("officeNote")){
+    $("officeNote").hidden = !forceOffice;
+    $("officeNote").innerHTML = "🔒 This app needs your own free API keys — add any below.";
+  }
+  if(forceOffice && useMode !== "office"){ useMode = "office"; localStorage.setItem("dusu_usemode","office"); }
   setModeUI();
 }
 if($("modePersonal")) $("modePersonal").onclick = () => { useMode="personal"; localStorage.setItem("dusu_usemode","personal"); setModeUI(); postMode("personal"); };
@@ -1902,11 +1928,15 @@ async function openAdmin(){
     if(!d.db){ el.innerHTML = h + '<p class="keys-note" style="text-align:center">Database is off locally — the full user list shows on the deployed app.</p>'; return; }
     const c = d.counts||{}, users = d.users||[];
     h += `<div class="admin-stats"><div><b>${c.total||0}</b><span>Users</span></div><div><b>${c.active||0}</b><span>Active</span></div><div><b>${c.pending||0}</b><span>Pending</span></div><div><b>${c.blocked||0}</b><span>Blocked</span></div></div>`;
-    // Office email allowlist manager
+    // Global access switch
+    h += `<div class="admin-head">Access</div>
+      <label class="swrow"><span><b>Require own keys</b><br><span class="msub">Everyone must add their own keys (except free-access)</span></span>
+      <input type="checkbox" id="reqKeysSw" ${d.require_own_keys ? "checked" : ""}></label>`;
+    // Free-access emails (use OUR keys) — owner adds e.g. Surendri here
     const oe = d.office_emails || [];
-    h += `<div class="admin-head">Office emails</div>
-      <div class="offAdd"><input id="offEmail" type="email" placeholder="employee@email.com"/><button class="uBtn ok" id="offAddBtn">Add</button></div>
-      <div id="offList">` + (oe.length ? oe.map(e=>`<div class="admin-row">${esc(e)}<button class="uBtn bad" data-off="${esc(e)}" style="margin-left:auto">Remove</button></div>`).join("") : '<p class="keys-note">No office emails yet.</p>') + `</div>`;
+    h += `<div class="admin-head">Free access (our keys)</div>
+      <div class="offAdd"><input id="offEmail" type="email" placeholder="person@email.com"/><button class="uBtn ok" id="offAddBtn">Add</button></div>
+      <div id="offList">` + (oe.length ? oe.map(e=>`<div class="admin-row">${esc(e)}<button class="uBtn bad" data-off="${esc(e)}" style="margin-left:auto">Remove</button></div>`).join("") : '<p class="keys-note">No extra free emails.</p>') + `</div>`;
     h += `<div class="admin-head">Users</div>`;
     if(!users.length){ el.innerHTML = h + '<p class="keys-note" style="text-align:center">No users yet.</p>';
       wireOffice(); return; }
@@ -1932,6 +1962,10 @@ async function openAdmin(){
 function wireOffice(){
   if($("offAddBtn")) $("offAddBtn").onclick = () => officeEmail(($("offEmail").value||"").trim(), "add");
   document.querySelectorAll("[data-off]").forEach(b=>b.onclick=()=>officeEmail(b.dataset.off, "remove"));
+  if($("reqKeysSw")) $("reqKeysSw").onchange = async (e) => {
+    try{ await fetch("/admin/settings",{method:"POST",headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({token:authToken, require_own_keys: e.target.checked})}); }catch(_){}
+  };
 }
 async function officeEmail(email, action){
   if(!email) return;
@@ -1960,6 +1994,7 @@ function addSys(text){ const d=document.createElement("div"); d.className="sysms
 
 // Interview needs a role first → show setup; conversation starts immediately.
 function chooseMode(mode){
+  if(guardKeys()) return;
   if(mode === "interview"){ show("setup"); setTimeout(()=> $("role").focus(), 120); }
   else if(mode === "learning"){ startLearning(); }
   else if(mode === "daily"){ startDaily("banner"); }
@@ -2222,6 +2257,9 @@ function onMessage(ev){
       break;
     case "ended": leave(); break;
     case "limit": running=false; stopListening(); addSys("⏸ " + m.msg); orb("idle","Session limit", m.msg); break;
+    case "keys_required": running=false; try{ws.close();}catch(_){};
+      if(useMode!=="office"){ useMode="office"; localStorage.setItem("dusu_usemode","office"); }
+      show("keys"); loadKeysUI(); if($("keysStatus")) $("keysStatus").innerHTML = "🔒 " + (m.msg||"Add your own API keys to use DuSu."); break;
     case "auth_error": running=false; try{ws.close();}catch(_){}; logout(); break;
     case "error": orb("idle", "Error", m.msg); break;
   }
@@ -2516,6 +2554,7 @@ function dailyOrb(state){
 async function sayFace(text, opts){ dailyOrb("speaking"); await say(text, opts); dailyOrb("idle"); }
 
 function startDaily(from){
+  if(guardKeys()) return;
   if(!SR){ $("warn").textContent = "Voice needs Chrome or Edge."; show("home"); return; }
   if(overLimit()){
     $("warn").textContent = `You've reached today's limit of ${MAX_SESSIONS} sessions. Come back tomorrow 🙂`; show("home"); return;
@@ -2558,13 +2597,13 @@ function dailyRecsData(){
 function renderDailyRecs(){
   const el = $("dailyRecs"); if(!el) return;
   const items = [
-    { a:"conversation", ic:"💬", label:"Talk" },     // face-to-face chat
-    { a:"learning",     ic:"🎓", label:"Learn" },    // grad cap
-    { a:"daily",        ic:"🗣️", label:"Your day" }, // talk about your day
+    { a:"conversation", ic:"💬", label:"Talk" },   // face-to-face chat
+    { a:"learning",     ic:"🎓", label:"Learn" },  // grad cap
+    { a:"daily",        ic:"🗣️", label:"Day" },    // talk about your day
   ];
   el.className = "daily-icons";
   el.innerHTML = items.map(it =>
-    `<button class="di-btn" data-action="${it.a}" title="${it.label}" aria-label="${it.label}"><span class="di-ic">${it.ic}</span></button>`
+    `<button class="di-btn" data-action="${it.a}" title="${it.label}"><span class="di-ic">${it.ic}</span><span class="di-lbl">${it.label}</span></button>`
   ).join("");
   el.querySelectorAll(".di-btn").forEach(b => b.onclick = () => pickDailyRec(b.dataset.action));
 }
@@ -2778,6 +2817,7 @@ function listenOnce(lang){
 }
 
 function startAssessment(){
+  if(guardKeys()) return;
   if(!SR){ show("home"); return; }   // voice assessment needs Web Speech; skip if unavailable
   aData = { lang:"en", about:{ interests:{} }, goal:"", comfort:"", practice_time:"", intro:"", repeat_said:"", think_said:"", open_said:"",
             repeat_target:"My name is Sarah.", think_hindi:"Kal mujhe market jaana hai." };
