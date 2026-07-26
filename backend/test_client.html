@@ -395,8 +395,16 @@
     color:var(--gold-lt); background:color-mix(in srgb,var(--gold) 12%, transparent);
     border:1px solid color-mix(in srgb,var(--gold) 30%, transparent); text-align:left; }
   .daily-more { width:min(460px,92vw); margin:22px auto 4px; text-align:center; }
-  .daily-nudge { display:inline-block; font-family:var(--font-d); font-size:17px; font-weight:600; color:var(--ink);
-    margin-bottom:14px; }
+  .daily-nudge { display:block; font-family:var(--font-d); font-size:26px; font-weight:700; margin-bottom:18px;
+    background:var(--grad); -webkit-background-clip:text; background-clip:text; color:transparent; letter-spacing:.01em; }
+  /* Daily quick actions: icon-only buttons in a row */
+  .daily-icons { display:flex; gap:14px; justify-content:center; }
+  .di-btn { width:68px; height:68px; border-radius:20px; display:grid; place-items:center; cursor:pointer;
+    background:linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.02));
+    border:1px solid var(--glass-brd); transition:transform .18s, border-color .2s, box-shadow .2s; }
+  .di-btn:hover { transform:translateY(-3px); border-color:var(--gold); box-shadow:0 12px 28px -14px rgba(111,140,255,.75); }
+  .di-btn:active { transform:scale(.96); }
+  .di-ic { font-size:31px; line-height:1; }
   .daily-more-link { display:inline-flex; align-items:center; gap:6px; margin:14px auto 0; padding:9px 16px;
     border-radius:999px; background:var(--glass); border:1px solid var(--glass-brd); color:var(--ink-dim);
     font:inherit; font-size:13px; font-weight:600; cursor:pointer; transition:color .2s, border-color .2s; }
@@ -1451,15 +1459,10 @@
         </div>
       </div>
 
-      <!-- Only for the "Start Speaking" entry: recommendations + More at the bottom -->
+      <!-- Only for the "Start Speaking" entry: quick icon actions -->
       <div class="daily-more" id="dailyMore" hidden>
         <div class="daily-nudge" id="dailyNudge" hidden>✨ Aage kya karein?</div>
         <div class="moment-recs" id="dailyRecs"></div>
-        <button class="daily-more-link" id="dailyMoreLink">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg>
-          <span>More</span>
-        </button>
-        <div class="moment-recs" id="dailyMoreExtra" hidden style="margin-top:12px"></div>
       </div>
 
       <div class="assess-actions" style="margin-top:22px">
@@ -2463,8 +2466,7 @@ async function handleTranslation(hindi, english){
   $("tcHindi").textContent = hindi; $("tcEng").textContent = english;
   $("transCard").hidden = false; $("replayBtn").disabled = true; learnState("");
   await say(HINDI.intro, HI());          // "English mein aise bolte hain."
-  await say(HINDI.repeat, HI());         // "Ab mere baad dohraiye." FIRST
-  await say(english, ENG_SLOW());        // then the English, said ONCE
+  await say(english, ENG_SLOW());        // then the English, said ONCE (no "repeat after me")
   learnState("Ab aap boliye — 🔊 dobara sunne ke liye, ya mic naye vaakya ke liye.");
   $("replayBtn").disabled = false; micEnable(true);
 }
@@ -2478,8 +2480,7 @@ $("replayBtn").onclick = () => { if(lastEnglish){ if(window.speechSynthesis) win
 $("continueBtn").onclick = async () => {
   if(window.speechSynthesis) window.speechSynthesis.cancel();
   $("transCard").hidden = true; $("tcHindi").textContent = ""; $("tcEng").textContent = ""; lastEnglish = "";
-  await say(HINDI.next, HI());   // DuSu asks "Next, aapke liye kya translate karun?"
-  startHindiListen();            // then listen for the fresh sentence
+  startHindiListen();            // just listen for the next sentence (no spoken prompt)
 };
 $("learnBack").onclick = () => { running = false; stopLearn(); try{ ws && ws.close(); }catch(_){} show("home"); };
 
@@ -2556,9 +2557,16 @@ function dailyRecsData(){
 }
 function renderDailyRecs(){
   const el = $("dailyRecs"); if(!el) return;
-  const rec = dailyRecsData();
-  el.innerHTML = _recCard(rec.primary, true) + _recCard(rec.second, false) + _recCard(rec.third, false);
-  el.querySelectorAll(".rec").forEach(b => b.onclick = () => pickDailyRec(b.dataset.action));
+  const items = [
+    { a:"conversation", ic:"💬", label:"Talk" },     // face-to-face chat
+    { a:"learning",     ic:"🎓", label:"Learn" },    // grad cap
+    { a:"daily",        ic:"🗣️", label:"Your day" }, // talk about your day
+  ];
+  el.className = "daily-icons";
+  el.innerHTML = items.map(it =>
+    `<button class="di-btn" data-action="${it.a}" title="${it.label}" aria-label="${it.label}"><span class="di-ic">${it.ic}</span></button>`
+  ).join("");
+  el.querySelectorAll(".di-btn").forEach(b => b.onclick = () => pickDailyRec(b.dataset.action));
 }
 function leaveDaily(){   // close the daily chat cleanly (used when jumping to another path)
   running = false; stopDaily();
