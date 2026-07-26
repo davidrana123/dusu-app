@@ -76,6 +76,11 @@ async def resolve_keys(email: str, keys: dict):
         return True, keys, ""                 # BYOK → their keys only
     return False, None, "keys_required"       # must add own keys first
 
+def _is_quota(e) -> bool:
+    """Does this error look like the user's keys hit their limit / all exhausted?"""
+    s = str(e).lower()
+    return any(k in s for k in ("429", "quota", "exhaust", "rate limit", "unavailable", "insufficient", "402"))
+
 
 @app.on_event("startup")
 async def _startup():
@@ -383,6 +388,39 @@ async def set_mode(inp: ModeIn):
         except Exception as e:
             print(f"[mode] failed: {type(e).__name__}: {e}")
     return {"mode": inp.mode, "status": status, "role": role}
+
+
+class GenIn(BaseModel):
+    token: str = ""
+    keys: dict = {}
+
+
+@app.post("/leveltest/gen")
+async def leveltest_gen(inp: GenIn):
+    """Dynamic level-check: the model (the user's keys) makes fresh questions each
+    time — which also verifies their keys actually work."""
+    claims = auth.read_session(inp.token)
+    if not claims:
+        raise HTTPException(401, "Not signed in")
+    ok, eff, _r = await resolve_keys(claims.get("email", ""), inp.keys)
+    if not ok:
+        raise HTTPException(402, "keys_required")
+    set_active_keys(eff)
+    sys = ("You design a SHORT, fresh spoken-English level check for a learner whose first "
+           "language is Hindi. Vary the content EVERY time; use different everyday topics. "
+           'Return ONLY JSON: {"repeat":"<one natural English sentence, 6-10 words, for them to repeat>",'
+           '"think_hindi":"<one everyday Hindi sentence in Latin script they must say in English>",'
+           '"open":"<one warm, open English question inviting them to speak freely>"}')
+    try:
+        d = await llm.assess(sys, "Generate a fresh level check now.")
+        if not isinstance(d, dict) or d.get("error"):
+            raise RuntimeError("gen parse failed")
+        return {"repeat": d.get("repeat", ""), "think_hindi": d.get("think_hindi", ""), "open": d.get("open", "")}
+    except Exception as e:
+        if _is_quota(e):
+            raise HTTPException(429, "quota")
+        print(f"[leveltest gen] {type(e).__name__}: {e}")
+        raise HTTPException(502, "gen_failed")
 
 
 @app.post("/assessment")
@@ -889,8 +927,9 @@ async def interview_ws(ws: WebSocket):
                     await _send(ws, type="status", msg="translating")
                     try:
                         english = await session.translate(text)
-                    except Exception:
-                        await _send(ws, type="translate_error")
+                    except Exception as e:
+                        if _is_quota(e): await _send(ws, type="quota", msg="Your API keys hit their limit. Add or replace a key in Settings.")
+                        else: await _send(ws, type="translate_error")
                         continue
                     await _send(ws, type="translation", hindi=text, text=english)
                     continue
@@ -898,8 +937,9 @@ async def interview_ws(ws: WebSocket):
                     await _send(ws, type="status", msg="thinking")
                     try:
                         d = await session.daily_turn(text)
-                    except Exception:
-                        await _send(ws, type="translate_error")
+                    except Exception as e:
+                        if _is_quota(e): await _send(ws, type="quota", msg="Your API keys hit their limit. Add or replace a key in Settings.")
+                        else: await _send(ws, type="translate_error")
                         continue
                     await _send(ws, type="daily_turn", hindi=text,
                                 english=d.get("english", ""), reply=d.get("reply_hindi", ""),
@@ -942,7 +982,10 @@ async def interview_ws(ws: WebSocket):
         pass
     except Exception as e:  # keep the socket honest about failures
         try:
-            await _send(ws, type="error", msg=str(e))
+            if _is_quota(e):
+                await _send(ws, type="quota", msg="Your API keys hit their limit. Add or replace a key in Settings.")
+            else:
+                await _send(ws, type="error", msg=str(e))
         except Exception:
             pass
     finally:

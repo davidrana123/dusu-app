@@ -1004,6 +1004,12 @@
   .wrap::-webkit-scrollbar-thumb:hover{ background:rgba(255,255,255,.20); }
   /* keep bottom action buttons clear of the nav */
   .assess-actions, .controls{ margin-bottom:20px }
+  /* token-limit / status notification bar */
+  .notif{ position:fixed; top:0; left:50%; transform:translateX(-50%); width:100%; max-width:440px; z-index:90;
+    display:flex; align-items:center; gap:10px; padding:12px 16px; font-size:13px; line-height:1.4;
+    background:linear-gradient(180deg,#4a3416,#2a1f10); border-bottom:1px solid rgba(240,169,82,.45); color:#f0c489;
+    box-shadow:0 8px 24px -10px rgba(0,0,0,.7); }
+  .notif button{ margin-left:auto; background:none; border:none; color:#f0c489; font-size:15px; cursor:pointer; flex:none }
   .btab{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;cursor:pointer;
     color:var(--ink-faint);font-size:10.5px;font-weight:600;border:none;background:none;font-family:inherit}
   .btab svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
@@ -1708,6 +1714,8 @@
   <button class="btab" data-tab="more"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg><span>More</span></button>
 </nav>
 
+<div class="notif" id="notifBar" hidden><span id="notifTxt"></span><button id="notifX" aria-label="Dismiss">✕</button></div>
+
 <script>
 // ---- Speech is 100% browser-side (Web Speech API). Server only sees text. ----
 const WS_URL = (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws/interview";
@@ -1721,7 +1729,12 @@ function officeKeys(){
 // Free access = uses OUR keys (owner / unlimited / owner-added). Others must BYOK while the switch is ON.
 function officeAllowed(){ return !!(userState && (userState.office_allowed || userState.free_access || userState.role === "owner" || userState.role === "unlimited")); }
 function savedKeys(){ try{ return JSON.parse(localStorage.getItem("dusu_office_keys") || "{}") || {}; }catch(_){ return {}; } }
-function hasOwnKeys(){ return Object.values(savedKeys()).some(v => v && (""+v).trim()); }
+function keyCount(){ return Object.values(savedKeys()).filter(v => v && (""+v).trim()).length; }
+function hasOwnKeys(){ return keyCount() >= 2; }   // at least 2 keys mandatory
+// top notification bar (e.g. token/quota limit reached)
+let _notifT = null;
+function showNotif(msg){ const b = $("notifBar"); if(!b) return; $("notifTxt").textContent = msg || ""; b.hidden = false;
+  clearTimeout(_notifT); _notifT = setTimeout(() => { b.hidden = true; }, 10000); }
 // Must this user add their own keys? (global switch ON + not free-access)
 function needsKeys(){ return !!(userState && userState.require_own_keys && !officeAllowed()); }
 function mustAddKeys(){ return needsKeys() && !hasOwnKeys(); }
@@ -1875,6 +1888,7 @@ document.querySelectorAll(".mrow").forEach(r => r.onclick = () => {
   else if(a === "signout") logout();
 });
 if($("msheetBg")) $("msheetBg").onclick = () => { toggleSheet(false); syncNav($("home").classList.contains("on") ? "home" : "practice"); };
+if($("notifX")) $("notifX").onclick = () => { const b = $("notifBar"); if(b) b.hidden = true; };
 
 // ---- AI keys / Office mode ----
 function setModeUI(){
@@ -1918,10 +1932,13 @@ if($("verifyKeys")) $("verifyKeys").onclick = async () => {
     Object.keys(map).forEach(p=>{ const st=$(map[p]); if(!keys[p]){ if(st) st.textContent=""; return; }
       const ok = res[p] && res[p].ok; if(st) st.textContent = ok ? "✅" : "❌";
       if(ok) anyOk=true; else if(res[p] && res[p].error) msgs.push(p+": "+res[p].error); });
+    const okCount = Object.keys(map).filter(p => res[p] && res[p].ok).length;
     localStorage.setItem("dusu_office_keys", JSON.stringify(keys));
-    if(anyOk){ useMode="office"; localStorage.setItem("dusu_usemode","office"); setModeUI();
-      $("keysStatus").innerHTML = "✅ Saved — Office mode on. DuSu now uses your keys." + (msgs.length?"<br>"+msgs.map(esc).join("<br>"):""); }
-    else { $("keysStatus").innerHTML = "❌ No working key yet.<br>" + msgs.map(esc).join("<br>"); }
+    useMode = "office"; localStorage.setItem("dusu_usemode","office"); setModeUI();
+    if(okCount >= 2){
+      $("keysStatus").innerHTML = "✅ Saved — " + okCount + " keys working. You're ready." + (msgs.length?"<br>"+msgs.map(esc).join("<br>"):""); }
+    else {
+      $("keysStatus").innerHTML = "🔑 Add at least <b>2 working keys</b> to continue." + (msgs.length?"<br>"+msgs.map(esc).join("<br>"):""); }
   }catch(e){ $("keysStatus").textContent = "Couldn't verify — try again."; }
 };
 function postMode(m){ try{ fetch("/mode",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:authToken,mode:m})}); }catch(_){} }
@@ -2276,6 +2293,7 @@ function onMessage(ev){
       break;
     case "ended": leave(); break;
     case "limit": running=false; stopListening(); addSys("⏸ " + m.msg); orb("idle","Session limit", m.msg); break;
+    case "quota": running=false; try{stopListening();}catch(_){}; showNotif(m.msg || "Your API keys hit their limit — add or replace a key in Settings."); break;
     case "keys_required": running=false; try{ws.close();}catch(_){};
       if(useMode!=="office"){ useMode="office"; localStorage.setItem("dusu_usemode","office"); }
       show("keys"); loadKeysUI(); if($("keysStatus")) $("keysStatus").innerHTML = "🔒 " + (m.msg||"Add your own API keys to use DuSu."); break;
@@ -2944,7 +2962,24 @@ function aChoice(pct, title, opts, field, next){
 }
 function aGoal(){     const L = aL(); aChoice(16, L.qGoal,     L.goal,     "goal",          aComfort); }
 function aComfort(){  const L = aL(); aChoice(28, L.qComfort,  L.comfort,  "comfort",       aPractice); }
-function aPractice(){ const L = aL(); aChoice(40, L.qPractice, L.practice, "practice_time", () => aVoice(0)); }
+function aPractice(){ const L = aL(); aChoice(40, L.qPractice, L.practice, "practice_time", aStartVoice); }
+
+// Dynamic level check: the model (user's keys) makes fresh questions each time.
+async function aStartVoice(){
+  const L = aL(); aBar(44);
+  aRender(`<div class="assess-face">🧠</div><h2>${AL2("Getting your test ready…","Aapka test ready ho raha hai…")}</h2><div class="spin" style="margin:18px auto"></div>`);
+  try{
+    const r = await fetch("/leveltest/gen", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ token:authToken, keys:officeKeys() }) });
+    if(r.ok){ const d = await r.json();
+      if(d.repeat) aData.repeat_target = d.repeat;
+      if(d.think_hindi) aData.think_hindi = d.think_hindi;
+      if(d.open) aData._open = d.open; }
+    else if(r.status === 402){ show("keys"); loadKeysUI(); if($("keysStatus")) $("keysStatus").innerHTML = "🔒 Add your keys to start the test."; return; }
+    else if(r.status === 429){ showNotif("Your API keys hit their limit — add or replace a key."); }
+  }catch(_){}   // fall back to the built-in prompts on any failure
+  aVoice(0);
+}
 
 async function aVoice(n){
   const L = aL(), t = A_VTASKS[n], v = L.voice[n];
@@ -2975,7 +3010,7 @@ async function aVoice(n){
   // speak the instruction in the chosen language; English targets always spoken in English
   if(t.kind === "repeat"){ await say(v.intro, aVoiceProfile()); await pause(300); await say(aData.repeat_target, ENG_SLOW()); }
   else if(t.kind === "think"){ await say(v.instr, aVoiceProfile()); await pause(200); await say(aData.think_hindi, HI()); }
-  else { await say(v.say, aVoiceProfile()); }
+  else { await say(aData._open || v.say, aVoiceProfile()); }
   mic.disabled = false;
 }
 
