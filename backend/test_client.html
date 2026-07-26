@@ -1936,7 +1936,10 @@ if($("verifyKeys")) $("verifyKeys").onclick = async () => {
     localStorage.setItem("dusu_office_keys", JSON.stringify(keys));
     useMode = "office"; localStorage.setItem("dusu_usemode","office"); setModeUI();
     if(okCount >= 2){
-      $("keysStatus").innerHTML = "✅ Saved — " + okCount + " keys working. You're ready." + (msgs.length?"<br>"+msgs.map(esc).join("<br>"):""); }
+      const newUser = userState && userState.onboarded === false;
+      $("keysStatus").innerHTML = "✅ Saved — " + okCount + " keys working. " + (newUser ? "Starting your test…" : "You're ready.");
+      if(newUser) setTimeout(() => startAssessment(), 900);   // now proceed to the (talking) test
+    }
     else {
       $("keysStatus").innerHTML = "🔑 Add at least <b>2 working keys</b> to continue." + (msgs.length?"<br>"+msgs.map(esc).join("<br>"):""); }
   }catch(e){ $("keysStatus").textContent = "Couldn't verify — try again."; }
@@ -4006,8 +4009,9 @@ function onGoogle(resp){
       userState = { onboarded: d.onboarded, profile: d.profile || null, progress: d.progress || null, memory: d.memory || {} };
       applyUser(d.user);
       $("loginNote").textContent = "";
-      if(d.onboarded === false){   // brand-new user (DB on) → first-time level check
-        startAssessment();
+      if(d.onboarded === false){   // brand-new user → load /me first (require_own_keys) then the guarded test
+        show("home");
+        refreshMe();               // refreshMe() routes to startAssessment (which now knows if keys are needed)
       } else {
         show("home");
         speakWelcome();   // DuSu greets by name (gesture: the sign-in click)
@@ -4030,8 +4034,7 @@ function initAuth(){
     try{ userState = JSON.parse(localStorage.getItem("dusu_state") || "null") || userState; }catch(_){}
     // OPTIMISTIC: show the right screen INSTANTLY from the cached flag — never wait on
     // a slow/cold network. Then refresh state in the background (401 = real logout).
-    const cachedOnb = localStorage.getItem("dusu_onboarded");
-    if(cachedOnb === "false") startAssessment(); else show("home");
+    show("home");     // refreshMe() below routes a not-onboarded user into the guarded test
     refreshMe();
   }
   else { show("login"); }
