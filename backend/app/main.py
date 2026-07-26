@@ -44,6 +44,15 @@ def role_for(email: str) -> str:
     if e in {x.lower() for x in UNLIMITED_EMAILS}: return "unlimited"
     return "user"
 
+async def office_allowed(email: str) -> bool:
+    """Who may use Office mode: owner, unlimited, or an owner-added office email."""
+    if role_for(email) in ("owner", "unlimited"):
+        return True
+    try:
+        return await db.office_has(email)
+    except Exception:
+        return False
+
 
 @app.on_event("startup")
 async def _startup():
@@ -148,13 +157,15 @@ async def me(token: str = "", authorization: str | None = Header(None)):
     if not claims:
         raise HTTPException(401, "Not signed in")
     _role = role_for(claims.get("email", ""))
+    _office = await office_allowed(claims.get("email", ""))
     if not db.db_enabled:
-        return {"onboarded": None, "role": _role, "email": claims.get("email", "")}
+        return {"onboarded": None, "role": _role, "email": claims.get("email", ""), "office_allowed": _office}
     try:
         state = await db.login(claims)   # upsert row + return state (handles cached-token logins)
         if isinstance(state, dict):
             state["role"] = _role
             state["email"] = claims.get("email", "")
+            state["office_allowed"] = _office
         if isinstance(state, dict) and state.get("onboarded"):
             try:
                 uid_ = claims["sub"]
@@ -246,9 +257,31 @@ async def admin_overview(token: str = "", authorization: str | None = Header(Non
                 "blocked": sum(1 for u in users if u["status"] == "blocked"),
                 "office": sum(1 for u in users if u["mode"] == "office"),
             }
+            out["office_emails"] = await db.office_list()
         except Exception as e:
             print(f"[admin] list failed: {type(e).__name__}: {e}")
     return out
+
+
+class OfficeEmailIn(BaseModel):
+    token: str = ""
+    email: str
+    action: str        # add | remove
+
+
+@app.post("/admin/office")
+async def admin_office(inp: OfficeEmailIn, authorization: str | None = Header(None)):
+    """Owner-only: add / remove an email from the Office allowlist."""
+    _require_owner(inp.token, authorization)
+    if not db.db_enabled:
+        raise HTTPException(400, "Database required")
+    if inp.action == "add":
+        ok = await db.office_add(inp.email)
+    elif inp.action == "remove":
+        ok = await db.office_remove(inp.email)
+    else:
+        raise HTTPException(400, "Unknown action")
+    return {"ok": ok, "office_emails": await db.office_list()}
 
 
 class AdminActionIn(BaseModel):
@@ -717,8 +750,8 @@ async def interview_ws(ws: WebSocket):
                         if flags.get("status") == "blocked":
                             await _send(ws, type="error", msg="Your access has been paused. Please contact the admin.")
                             break
-                        # office keys only apply once approved; until then use our default (usable meanwhile)
-                        if _keys and flags.get("status") != "active":
+                        # office keys only apply if this email is on the owner's Office allowlist + active
+                        if _keys and (flags.get("status") != "active" or not await office_allowed(claims.get("email", ""))):
                             _keys = None
                     except Exception as e:
                         print(f"[gate] {type(e).__name__}: {e}")

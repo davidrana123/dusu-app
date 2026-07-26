@@ -1073,3 +1073,47 @@ async def get_user_flags(user_id: str) -> dict:
             return {"status": "active", "mode": "personal"}
         return {"status": getattr(u, "status", "active") or "active",
                 "mode": getattr(u, "mode", "personal") or "personal"}
+
+
+# ===================== OFFICE EMAIL ALLOWLIST (owner-managed) =====================
+class OfficeEmail(Base):
+    __tablename__ = "office_emails"
+    email: Mapped[str] = mapped_column(String(255), primary_key=True)   # lowercased
+    added_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+async def office_list() -> list[str]:
+    if not db_enabled:
+        return []
+    async with _Session() as s:               # type: ignore[misc]
+        rows = (await s.execute(select(OfficeEmail.email).order_by(OfficeEmail.added_at.desc()))).scalars().all()
+        return list(rows)
+
+
+async def office_has(email: str) -> bool:
+    e = (email or "").strip().lower()
+    if not e or not db_enabled:
+        return False
+    async with _Session() as s:               # type: ignore[misc]
+        return (await s.get(OfficeEmail, e)) is not None
+
+
+async def office_add(email: str) -> bool:
+    e = (email or "").strip().lower()
+    if not e or "@" not in e or not db_enabled:
+        return False
+    async with _Session() as s:               # type: ignore[misc]
+        if await s.get(OfficeEmail, e) is None:
+            s.add(OfficeEmail(email=e)); await s.commit()
+        return True
+
+
+async def office_remove(email: str) -> bool:
+    e = (email or "").strip().lower()
+    if not e or not db_enabled:
+        return False
+    async with _Session() as s:               # type: ignore[misc]
+        row = await s.get(OfficeEmail, e)
+        if row:
+            await s.delete(row); await s.commit()
+        return True

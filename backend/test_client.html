@@ -967,6 +967,8 @@
   .uActs{ display:flex; gap:8px; margin-top:10px }
   .uBtn{ font:inherit; font-size:12.5px; font-weight:600; cursor:pointer; padding:7px 14px; border-radius:10px; background:var(--glass); border:1px solid var(--glass-brd); color:var(--ink-dim) }
   .uBtn.ok{ color:#4fd6a0; border-color:rgba(79,214,160,.4) } .uBtn.bad{ color:#e08a7a; border-color:rgba(224,138,122,.4) }
+  .offAdd{ display:flex; gap:8px; margin-bottom:10px }
+  .offAdd input{ flex:1; background:var(--glass); border:1px solid var(--glass-brd); border-radius:10px; padding:10px 12px; color:var(--ink); font:inherit; font-size:13px }
   /* subtle scrollbar that blends with the dark background (Firefox + WebKit) */
   .wrap{ scrollbar-width:thin; scrollbar-color:rgba(255,255,255,.12) transparent; }
   .wrap::-webkit-scrollbar{ width:6px; }
@@ -1216,10 +1218,11 @@
     <div class="keys-wrap">
       <div class="mode-pick">
         <button class="mode-opt" id="modePersonal"><b>🏠 Personal</b><span>Use DuSu's shared keys</span></button>
-        <button class="mode-opt" id="modeOffice"><b>🏢 Office</b><span>Use your own free AI keys</span></button>
+        <button class="mode-opt" id="modeOffice"><b>🏢 Office</b><span>Use your own AI keys</span></button>
       </div>
+      <p class="keys-note" id="officeNote" hidden>🏢 Office access is added by your admin.</p>
       <div id="keysForm" hidden>
-        <p class="keys-note">Add any/all — DuSu tries them in order. GitHub token needs the <b>models</b> permission.</p>
+        <p class="keys-note">Add any key. GitHub needs <b>models</b> scope.</p>
         <label class="keyrow">Gemini<input id="kGemini" type="password" autocomplete="off" placeholder="AIza…"><i class="kst" id="stGemini"></i></label>
         <label class="keyrow">OpenRouter<input id="kOpenrouter" type="password" autocomplete="off" placeholder="sk-or-…"><i class="kst" id="stOpenrouter"></i></label>
         <label class="keyrow">GitHub token<input id="kGithub" type="password" autocomplete="off" placeholder="github_pat_…"><i class="kst" id="stGithub"></i></label>
@@ -1279,7 +1282,7 @@
         <span class="mc-wm">🎯</span>
       </button>
     </div>
-    <div class="soon">More modes coming soon — <b>Group Discussion · IELTS Speaking · Sales Pitch</b></div>
+    <div class="soon">More modes coming soon 🔜</div>
   </section>
 
   <!-- ===================== INTERVIEW SETUP ===================== -->
@@ -1693,6 +1696,8 @@ function officeKeys(){
   if(useMode !== "office") return {};
   try{ return JSON.parse(localStorage.getItem("dusu_office_keys") || "{}") || {}; }catch(_){ return {}; }
 }
+// Only owner-added emails (or owner/unlimited) may use Office mode.
+function officeAllowed(){ return !!(userState && (userState.office_allowed || userState.role === "owner" || userState.role === "unlimited")); }
 // escape user/LLM text before putting it into innerHTML (defensive; self-data only)
 function esc(s){ return String(s==null?"":s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c])); }
 const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -1849,6 +1854,10 @@ function loadKeysUI(){
   if($("kGroq")) $("kGroq").value = k.groq || "";
   ["stGemini","stOpenrouter","stGithub","stGroq"].forEach(id=>{ if($(id)) $(id).textContent=""; });
   if($("keysStatus")) $("keysStatus").textContent = "";
+  const allowed = officeAllowed();
+  if($("modeOffice")) $("modeOffice").style.display = allowed ? "" : "none";
+  if($("officeNote")) $("officeNote").hidden = allowed;
+  if(!allowed && useMode === "office"){ useMode = "personal"; localStorage.setItem("dusu_usemode","personal"); }
   setModeUI();
 }
 if($("modePersonal")) $("modePersonal").onclick = () => { useMode="personal"; localStorage.setItem("dusu_usemode","personal"); setModeUI(); postMode("personal"); };
@@ -1890,7 +1899,14 @@ async function openAdmin(){
     if(!d.db){ el.innerHTML = h + '<p class="keys-note" style="text-align:center">Database is off locally — the full user list shows on the deployed app.</p>'; return; }
     const c = d.counts||{}, users = d.users||[];
     h += `<div class="admin-stats"><div><b>${c.total||0}</b><span>Users</span></div><div><b>${c.active||0}</b><span>Active</span></div><div><b>${c.pending||0}</b><span>Pending</span></div><div><b>${c.blocked||0}</b><span>Blocked</span></div></div>`;
-    if(!users.length){ el.innerHTML = h + '<p class="keys-note" style="text-align:center">No users yet.</p>'; return; }
+    // Office email allowlist manager
+    const oe = d.office_emails || [];
+    h += `<div class="admin-head">Office emails</div>
+      <div class="offAdd"><input id="offEmail" type="email" placeholder="employee@email.com"/><button class="uBtn ok" id="offAddBtn">Add</button></div>
+      <div id="offList">` + (oe.length ? oe.map(e=>`<div class="admin-row">${esc(e)}<button class="uBtn bad" data-off="${esc(e)}" style="margin-left:auto">Remove</button></div>`).join("") : '<p class="keys-note">No office emails yet.</p>') + `</div>`;
+    h += `<div class="admin-head">Users</div>`;
+    if(!users.length){ el.innerHTML = h + '<p class="keys-note" style="text-align:center">No users yet.</p>';
+      wireOffice(); return; }
     users.forEach(u=>{
       const dot = u.status==='blocked'?'🚫':u.status==='pending'?'⏳':'🟢';
       const days = Object.entries(u.daily_stats||{}).slice(-7).map(([dd,s])=>`${dd.slice(5)}·${Math.round((s.seconds||0)/60)}m`).join('  ');
@@ -1907,7 +1923,18 @@ async function openAdmin(){
     });
     el.innerHTML = h;
     el.querySelectorAll(".uBtn[data-act]").forEach(b=>b.onclick=()=>adminAction(b.dataset.id, b.dataset.act));
+    wireOffice();
   }catch(e){ el.innerHTML='<p class="keys-note" style="text-align:center">Failed to load.</p>'; }
+}
+function wireOffice(){
+  if($("offAddBtn")) $("offAddBtn").onclick = () => officeEmail(($("offEmail").value||"").trim(), "add");
+  document.querySelectorAll("[data-off]").forEach(b=>b.onclick=()=>officeEmail(b.dataset.off, "remove"));
+}
+async function officeEmail(email, action){
+  if(!email) return;
+  try{ await fetch("/admin/office",{method:"POST",headers:{"Content-Type":"application/json"},
+    body:JSON.stringify({token:authToken,email,action})}); }catch(_){}
+  openAdmin();
 }
 
 function orb(state, label, hint){
@@ -2521,7 +2548,7 @@ function dailyRecsData(){
     rec = { primary:{ icon:"💬", goal:"Just talk with me", action:"conversation",
                       desc:"Just talk naturally.", context:"I'll keep the conversation flowing." },
             second:{  icon:"📚", goal:"Learn together", action:"learning",
-                      desc:"Speak in Hindi.", context:"I'll help you say it naturally in English." },
+                      desc:"Speak in Hindi.", context:"I'll make it natural English." },
             third:{   icon:"☀️", goal:"Your day", action:"daily",
                       desc:"Tell me what's happening today.", context:"We'll learn while we talk." } };
   }
