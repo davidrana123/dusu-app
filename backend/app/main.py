@@ -304,6 +304,22 @@ async def admin_settings(inp: SettingsIn, authorization: str | None = Header(Non
     return {"require_own_keys": inp.require_own_keys}
 
 
+@app.post("/admin/wipe")
+async def admin_wipe(inp: TokenIn, authorization: str | None = Header(None)):
+    """Owner-only: delete all users EXCEPT owner + unlimited + free-access emails.
+    (Testing reset.)"""
+    _require_owner(inp.token, authorization)
+    if not db.db_enabled:
+        raise HTTPException(400, "Database required")
+    keep = {e.lower() for e in OWNER_EMAILS} | {e.lower() for e in UNLIMITED_EMAILS}
+    try:
+        keep |= set(await db.office_list())
+    except Exception:
+        pass
+    n = await db.admin_wipe_users(keep)
+    return {"deleted": n, "kept": sorted(keep)}
+
+
 class OfficeEmailIn(BaseModel):
     token: str = ""
     email: str

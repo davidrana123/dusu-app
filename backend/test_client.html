@@ -1943,7 +1943,8 @@ async function openAdmin(){
     // Global access switch
     h += `<div class="admin-head">Access</div>
       <label class="swrow"><span><b>Require own keys</b><br><span class="msub">Everyone must add their own keys (except free-access)</span></span>
-      <input type="checkbox" id="reqKeysSw" ${d.require_own_keys ? "checked" : ""}></label>`;
+      <input type="checkbox" id="reqKeysSw" ${d.require_own_keys ? "checked" : ""}></label>
+      <button class="uBtn bad" id="wipeBtn" style="width:100%;margin:2px 0 4px">🗑 Reset test users</button>`;
     // Free-access emails (use OUR keys) — owner adds e.g. Surendri here
     const oe = d.office_emails || [];
     h += `<div class="admin-head">Free access (our keys)</div>
@@ -1977,6 +1978,12 @@ function wireOffice(){
   if($("reqKeysSw")) $("reqKeysSw").onchange = async (e) => {
     try{ await fetch("/admin/settings",{method:"POST",headers:{"Content-Type":"application/json"},
       body:JSON.stringify({token:authToken, require_own_keys: e.target.checked})}); }catch(_){}
+  };
+  if($("wipeBtn")) $("wipeBtn").onclick = async () => {
+    if(!confirm("Delete ALL users except david, shuhani & free-access emails? This cannot be undone.")) return;
+    try{ const r = await fetch("/admin/wipe",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:authToken})});
+      const d = await r.json(); alert("Deleted " + (d.deleted||0) + " users."); }catch(_){ alert("Failed."); }
+    openAdmin();
   };
 }
 async function officeEmail(email, action){

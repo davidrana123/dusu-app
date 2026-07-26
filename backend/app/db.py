@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import datetime as dt
 
-from sqlalchemy import String, Integer, Boolean, DateTime, Date, Text, ForeignKey, select, desc, func
+from sqlalchemy import String, Integer, Boolean, DateTime, Date, Text, ForeignKey, select, desc, func, delete
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
@@ -1144,3 +1144,21 @@ async def set_setting(key: str, value: str) -> None:
         else:
             s.add(Setting(key=key, value=value))
         await s.commit()
+
+
+async def admin_wipe_users(keep_emails: set[str]) -> int:
+    """Delete every user (+ their profile/progress/memory/conversations) whose
+    email is NOT in keep_emails. Owner-triggered reset for testing. Returns count."""
+    if not db_enabled:
+        return 0
+    keep = {(e or "").strip().lower() for e in keep_emails}
+    async with _Session() as s:               # type: ignore[misc]
+        users = (await s.execute(select(User))).scalars().all()
+        del_ids = [u.id for u in users if (u.email or "").strip().lower() not in keep]
+        if not del_ids:
+            return 0
+        for tbl in (Conversation, Memory, Progress, Profile):
+            await s.execute(delete(tbl).where(tbl.user_id.in_(del_ids)))
+        await s.execute(delete(User).where(User.id.in_(del_ids)))
+        await s.commit()
+        return len(del_ids)
