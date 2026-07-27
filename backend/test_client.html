@@ -1868,7 +1868,27 @@ const Assistant = (function(){
   };
 })();
 
-function show(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on")); $(id).classList.add("on");
+// Screens that run a live voice loop (speak ↔ listen ↔ reply). Leaving one MUST tear it down.
+const VOICE_SCREENS = new Set(["session","daily","learning"]);
+function currentScreen(){ const el = document.querySelector(".screen.on"); return el ? el.id : ""; }
+// Kill BOTH voice loops (conversation + daily): stop mic, cancel speech, drop the socket.
+function stopAllVoice(){
+  running = false; aiSpeaking = false;
+  try{ stopListening(); }catch(_){}                                   // conversation STT (recog)
+  try{ if(typeof drec !== "undefined" && drec){ drec.onend = null; drec.stop(); drec = null; } }catch(_){}  // daily STT
+  try{ if(window.speechSynthesis) window.speechSynthesis.cancel(); }catch(_){}
+  try{ if(typeof FACE !== "undefined" && FACE.stopTalking) FACE.stopTalking(); }catch(_){}
+  try{ if(typeof Assistant !== "undefined" && Assistant.stopTalking) Assistant.stopTalking(); }catch(_){}
+  try{ if(typeof dMicActive === "function") dMicActive(false); }catch(_){}
+  try{ if(ws){ ws.onclose = null; if(ws.readyState <= 1) ws.close(); } }catch(_){}   // server persists on disconnect
+  ws = null;
+}
+
+function show(id){
+  // Leaving a live voice screen → stop the AI immediately (no talking on other tabs/sections).
+  const cur = currentScreen();
+  if(VOICE_SCREENS.has(cur) && cur !== id){ try{ stopAllVoice(); }catch(_){} }
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("on")); $(id).classList.add("on");
   if(id === "home"){
     // always land on a clean home
     const mh = $("moreHome"); if(mh) mh.hidden = true;
@@ -1886,6 +1906,10 @@ function syncNav(id){
   const t = NAV_TAB[id];
   document.querySelectorAll(".btab").forEach(b => b.classList.toggle("active", !!t && b.dataset.tab === t));
 }
+// Switching browser tab / minimizing → stop the AI (don't keep talking + looping in the background).
+document.addEventListener("visibilitychange", () => {
+  if(document.hidden && (running || VOICE_SCREENS.has(currentScreen()))){ try{ stopAllVoice(); }catch(_){} }
+});
 function toggleSheet(o){ const s=$("msheet"), bg=$("msheetBg"); if(s) s.classList.toggle("on",o); if(bg) bg.classList.toggle("on",o); }
 // wire the bottom tabs
 document.querySelectorAll(".btab").forEach(b => b.onclick = () => {
