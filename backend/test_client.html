@@ -2664,8 +2664,7 @@ function renderDailyRecs(){
   const items = [
     { a:"conversation", ic:"💬", label:"Talk" },   // face-to-face chat
     { a:"learning",     ic:"🎓", label:"Learn" },  // grad cap
-    { a:"daily",        ic:"🗣️", label:"Day" },    // talk about your day
-  ];
+  ];   // "Day" removed — redundant on this same daily-talk page
   el.className = "daily-icons";
   el.innerHTML = items.map(it =>
     `<button class="di-btn" data-action="${it.a}" title="${it.label}"><span class="di-ic">${it.ic}</span><span class="di-lbl">${it.label}</span></button>`
