@@ -259,20 +259,26 @@
   .modes-sub { text-align:center; font-size:13px; color:var(--ink-faint); margin-bottom:18px; }
   .modes { display:flex; flex-direction:column; gap:26px; margin-top:8px; }
   /* Each practice option is its own headed block: big heading + its icon-card button. */
-  .prac-block { display:flex; flex-direction:column; gap:12px; }
-  .prac-h { font-family:var(--font-d); font-size:20px; line-height:1.25; font-weight:600; letter-spacing:-.01em;
-    color:var(--ink); margin:0; display:flex; align-items:center; gap:9px; overflow-wrap:anywhere; }
-  .prac-h::before { content:""; flex:none; width:4px; height:20px; border-radius:3px;
-    background:linear-gradient(180deg, var(--accent), color-mix(in srgb, var(--accent) 40%, transparent)); }
-  .prac-block.learn     { --accent:#7c86c9; }
-  .prac-block.talk      { --accent:#56b39a; }
-  .prac-block.interview { --accent:#cf9a8f; }
+  .prac-block { display:flex; flex-direction:column; gap:13px; align-items:stretch; }
+  /* Centered, highlighted, "creative" heading: gradient ink + accent glow + underline flourish. */
+  .prac-h { font-family:var(--font-d); font-size:20px; line-height:1.25; font-weight:700; letter-spacing:-.015em;
+    text-align:center; margin:0 auto; padding-bottom:9px; position:relative; overflow-wrap:anywhere;
+    background:linear-gradient(135deg,#ffffff 0%, color-mix(in srgb, var(--accent) 70%, #ffffff) 100%);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+    filter:drop-shadow(0 2px 12px color-mix(in srgb, var(--accent) 40%, transparent)); }
+  .prac-h::after { content:""; position:absolute; left:50%; bottom:0; transform:translateX(-50%);
+    width:52px; height:3px; border-radius:3px;
+    background:linear-gradient(90deg, transparent, var(--accent), transparent);
+    box-shadow:0 0 10px color-mix(in srgb, var(--accent) 70%, transparent); }
+  .prac-block.learn     { --accent:#8f97e0; }
+  .prac-block.talk      { --accent:#5fd0b0; }
+  .prac-block.interview { --accent:#e6a99b; }
   @media (max-width:400px){ .prac-h{ font-size:18px; } }
 
   .mode-card {
     --accent:#8b93b0;
-    position:relative; display:flex; flex-direction:column; text-align:left; cursor:pointer;
-    padding:24px 22px 20px; border-radius:var(--r); min-height:274px; overflow:hidden;
+    position:relative; display:flex; flex-direction:row; align-items:center; gap:14px; text-align:left; cursor:pointer;
+    padding:13px 16px; border-radius:16px; min-height:0; overflow:hidden;
     background:linear-gradient(165deg,
       color-mix(in srgb, var(--accent) 22%, #1c2030) 0%,
       color-mix(in srgb, var(--accent) 8%, #15171f) 100%);
@@ -301,13 +307,13 @@
     background:linear-gradient(105deg, transparent, rgba(255,255,255,.10), transparent);
     transform:skewX(-18deg); transition:left .6s ease; pointer-events:none; }
   .mode-card:hover::after { left:120%; }
-  .mode-card:hover { transform:translateY(-6px); border-color:rgba(255,255,255,.22);
-    box-shadow:0 26px 50px -22px rgba(0,0,0,.92),
+  .mode-card:hover { transform:translateY(-3px); border-color:rgba(255,255,255,.22);
+    box-shadow:0 16px 34px -20px rgba(0,0,0,.9),
       0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent) inset,
-      0 12px 40px -20px color-mix(in srgb, var(--accent) 45%, transparent); }
+      0 10px 30px -18px color-mix(in srgb, var(--accent) 50%, transparent); }
 
-  .mc-orb { position:relative; width:56px; height:56px; border-radius:16px; display:grid; place-items:center;
-    margin-bottom:16px; background:linear-gradient(145deg,#262a36,#12141b);
+  .mc-orb { position:relative; width:46px; height:46px; border-radius:13px; display:grid; place-items:center; flex:none;
+    margin:0; background:linear-gradient(145deg,#262a36,#12141b);
     border:1px solid rgba(255,255,255,.10);
     box-shadow:0 8px 20px -10px rgba(0,0,0,.8), 0 1px 0 rgba(255,255,255,.06) inset;
     transition:transform .25s, border-color .25s; }
@@ -316,7 +322,7 @@
   .mode-card:hover .mc-orb { transform:translateY(-2px) scale(1.05);
     border-color:color-mix(in srgb, var(--accent) 50%, rgba(255,255,255,.1)); }
   .mode-card:hover .mc-orb::after { opacity:.5; }
-  .mc-orb svg { width:26px; height:26px; position:relative; }
+  .mc-orb svg { width:23px; height:23px; position:relative; }
   .mc-orb svg, .mc-orb svg [stroke]{ stroke:#eef0f5 !important; }   /* soft-white icons (recolor svg too, not just children) */
 
   .mc-badge { position:absolute; top:15px; right:15px; z-index:3; display:inline-flex; align-items:center; gap:6px;
@@ -326,18 +332,17 @@
   .mc-badge::before { content:""; width:6px; height:6px; border-radius:50%; background:var(--accent);
     box-shadow:0 0 8px var(--accent); }
 
-  .mode-card h3 { font-family:var(--font-d); font-size:25px; font-weight:600; margin-bottom:6px; color:#f3f4f8; }
-  .mode-card p  { font-size:13.5px; color:#9ea3b2; line-height:1.55; }
+  .mode-card h3 { font-family:var(--font-d); font-size:18px; font-weight:600; margin:0; flex:1; min-width:0; color:#f3f4f8; }
+  .mode-card p, .mc-chips, .mc-badge, .mc-wm { display:none; }   /* compact button — label + icon + arrow only */
 
   .mc-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; }
   .mc-chips span { font-size:11px; color:#b7bcc9; padding:4px 9px; border-radius:999px;
     background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); white-space:nowrap; }
 
-  .mc-cta { margin-top:auto; padding-top:18px; display:flex; align-items:center; gap:9px;
-    font-weight:600; font-size:14px; color:#e7e9ef; }
-  .mc-cta b { display:inline-grid; place-items:center; width:26px; height:26px; border-radius:50%;
+  .mc-cta { margin:0; padding:0; display:flex; align-items:center; flex:none; font-size:0; }   /* hide label text, keep arrow */
+  .mc-cta b { display:inline-grid; place-items:center; width:30px; height:30px; border-radius:50%;
     background:rgba(255,255,255,.08); border:1px solid rgba(255,255,255,.14); color:#e7e9ef;
-    font-size:14px; transition:transform .2s, background .2s, color .2s; }
+    font-size:15px; transition:transform .2s, background .2s, color .2s; }
   .mode-card:hover .mc-cta b { transform:translateX(4px); background:#f2f3f7; color:#12141b; border-color:transparent; }
 
   .mc-wm { position:absolute; right:-4px; bottom:-16px; font-size:92px; line-height:1;
@@ -698,14 +703,12 @@
     .sec-label.center { font-size:21px; }
     .sec-label.center::before, .sec-label.center::after { width:26px; }
     .nav-sub { display:none; }
-    /* practice → headed vertical blocks: each a clear icon + tappable button */
-    .modes { gap:22px; }
-    .mode-card { min-height:auto; padding:18px 18px 16px; }
-    .mc-chips, .mc-badge, .mc-wm { display:none; }   /* keep it clean; keep desc + CTA */
-    .mode-card h3 { font-size:20px; margin-bottom:3px; }
-    .mode-card p { font-size:13px; }
-    .mc-orb { width:46px; height:46px; margin:0 0 10px; }
-    .mc-orb svg { width:23px; height:23px; }
+    /* practice → headed vertical blocks: each a small icon + label + arrow button */
+    .modes { gap:20px; }
+    .mode-card { padding:12px 14px; gap:12px; }
+    .mode-card h3 { font-size:16.5px; }
+    .mc-orb { width:42px; height:42px; }
+    .mc-orb svg { width:21px; height:21px; }
     /* Today card → tidy app tile: drop the long sentence, keep kicker + short title */
     .today-card { margin:6px 0 12px; padding:13px 14px; gap:11px; }
     .tc-emoji { font-size:24px; }
