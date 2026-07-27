@@ -1,0 +1,13 @@
+name = "dusu-failover"
+main = "worker.js"
+compatibility_date = "2024-11-01"
+
+# The single public hostname the app + users hit. Requires a (proxied) DNS record for
+# `dusu` on ranabrothers.online — see README.
+routes = [
+  { pattern = "dusu.ranabrothers.online/*", zone_name = "ranabrothers.online" }
+]
+
+[vars]
+PC_ORIGIN = "https://pc.ranabrothers.online"
+CLOUD_ORIGIN = "https://dusu-app-1.onrender.com"

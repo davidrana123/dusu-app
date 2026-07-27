@@ -3,9 +3,32 @@
 Status: **plan / not yet built** (except App items 1 & 2, which ARE implemented — see bottom).
 Date: 2026-07-27.
 
-The goal in your words: run DuSu on **your own machine for free** (frontend + DB via
-Cloudflare), and **fall back to Render** when your machine is offline. Below is the
-honest, workable version of that — including the traps to avoid.
+The goal in your words: run DuSu on **your own machine for free** (frontend + backend +
+DB, local-first via Cloudflare), and **fall back to the cloud (Render + Neon)** when your
+machine is off. Below is the honest, workable version — including the trap to avoid.
+
+## DECISIONS (finalized 2026-07-27)
+
+- **Domain:** `ranabrothers.online` (on Cloudflare ✅).
+- **Product URL:** `https://dusu.ranabrothers.online` (a **subdomain** — recommended for a
+  TWA/PWA: whole origin is the app, scope `/`, and `/.well-known/assetlinks.json` sits at
+  the host root). You asked for `ranabrothers.online/dusu-talk` (a path) — that also works
+  via the Worker but needs path-rewriting + the PWA served under `/dusu-talk/`; messier.
+  **Going with the subdomain unless you say otherwise.**
+- **DB = Option A (single Neon), FINAL.** Compute (frontend+backend) is local-first; the
+  DB is always Neon so nothing splits. Local SQLite is intentionally NOT used (see §3).
+- **Fallback:** Render (`dusu-app-1.onrender.com`) stays the cloud standby.
+- **Failover front door:** a **Cloudflare Worker** at `dusu.ranabrothers.online` that tries
+  your PC first, falls back to Render. Code: `cloudflare/worker.js`; setup: `cloudflare/README.md`.
+
+Concrete hostnames:
+
+| Host                          | What                                            |
+|-------------------------------|-------------------------------------------------|
+| `dusu.ranabrothers.online`    | Worker — the ONE URL the app + users hit        |
+| `pc.ranabrothers.online`      | Cloudflare Tunnel → your PC's `localhost:8000`  |
+| `dusu-app-1.onrender.com`     | Render — cloud fallback                         |
+| Neon Postgres                 | the single DB (both PC and Render use it)       |
 
 ---
 
@@ -127,14 +150,14 @@ checks. Cleaner but not free. Skip for now.
 
 ---
 
-## 6. Open questions for you
+## 6. Open questions — RESOLVED
 
-1. **DB: Option A / B / C?** (Recommend A.)
-2. Do you own a **domain on Cloudflare** yet? (Worker + tunnel DNS need one; a
-   `*.trycloudflare.com` quick tunnel works for testing but the URL changes each run, so
-   it can't host a stable TWA.)
-3. Keep Render as the fallback, or a different cloud (Vercel is static-only — it can host
-   the frontend but NOT the FastAPI WebSocket backend, so backend fallback stays Render).
+1. DB → **Option A** (single Neon). ✅
+2. Domain → **ranabrothers.online** on Cloudflare. ✅
+3. Fallback → **Render** (Vercel can't host the FastAPI WebSocket backend). ✅
+
+Only remaining input: confirm **subdomain** `dusu.ranabrothers.online` vs the path
+`ranabrothers.online/dusu-talk`. Plan assumes the subdomain.
 
 ---
 
