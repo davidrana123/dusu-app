@@ -2774,6 +2774,7 @@ if($("dailyMoreLink")) $("dailyMoreLink").onclick = () => {
 
 /* ================= AI Level Assessment (first-time, once) ================= */
 let aData = null;
+let aActive = false;   // guard: assessment is running — block a second (double routeAfterLogin) start
 const A_METRIC_LABELS = { confidence:"Confidence", pronunciation:"Pronunciation", listening:"Listening",
                           vocabulary:"Vocabulary", grammar:"Grammar", thinking:"Thinking in English" };
 
@@ -2781,7 +2782,7 @@ const A_METRIC_LABELS = { confidence:"Confidence", pronunciation:"Pronunciation"
 const A_VTASKS = [
   { pct:52, field:"intro",       kind:"open" },
   { pct:66, field:"repeat_said", kind:"repeat" },
-  { pct:80, field:"think_said",  kind:"think",  show:"“Kal mujhe market jaana hai.”" },
+  { pct:80, field:"think_said",  kind:"think" },
   { pct:92, field:"open_said",   kind:"open" },
 ];
 
@@ -2863,8 +2864,10 @@ function listenOnce(lang){
 }
 
 function startAssessment(){
+  if(aActive) return;                // already running — ignore the 2nd boot call (Bug: repeating speech)
   if(guardKeys()) return;
   if(!SR){ show("home"); return; }   // voice assessment needs Web Speech; skip if unavailable
+  aActive = true;
   aData = { lang:"en", about:{ interests:{} }, goal:"", comfort:"", practice_time:"", intro:"", repeat_said:"", think_said:"", open_said:"",
             repeat_target:"My name is Sarah.", think_hindi:"Kal mujhe market jaana hai." };
   show("assessment");
@@ -2993,9 +2996,15 @@ async function aStartVoice(){
 async function aVoice(n){
   const L = aL(), t = A_VTASKS[n], v = L.voice[n];
   aBar(t.pct);
+  // Show the SAME sentence we speak — driven by the dynamic (model-made) prompts,
+  // never a hardcoded old string. (Bug: screen used to show a fixed sentence.)
+  let showLine = "";
+  if(t.kind === "repeat") showLine = aData.repeat_target;
+  else if(t.kind === "think") showLine = aData.think_hindi;
+  else if(t.field === "open_said" && aData._open) showLine = aData._open;
   aRender(`
     <h2>${v.title}</h2>
-    ${t.show ? `<div class="say-line">${t.show}</div>` : ""}
+    ${showLine ? `<div class="say-line">${esc(showLine)}</div>` : ""}
     <p class="sub">${v.hint}</p>
     <button class="mic-btn" id="aMic" disabled><span class="mic-ring"></span>
       <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
@@ -3019,7 +3028,8 @@ async function aVoice(n){
   // speak the instruction in the chosen language; English targets always spoken in English
   if(t.kind === "repeat"){ await say(v.intro, aVoiceProfile()); await pause(300); await say(aData.repeat_target, ENG_SLOW()); }
   else if(t.kind === "think"){ await say(v.instr, aVoiceProfile()); await pause(200); await say(aData.think_hindi, HI()); }
-  else { await say(aData._open || v.say, aVoiceProfile()); }
+  else if(t.field === "open_said"){ await say(aData._open || v.say, aVoiceProfile()); }  // the generated open question
+  else { await say(v.say, aVoiceProfile()); }   // intro — always the fixed "introduce yourself"
   mic.disabled = false;
 }
 
@@ -3046,6 +3056,8 @@ function aReveal(d){
   const L = aL(); aBar(100);
   const p = d.profile || {}, s = p.scores || {};
   if(userState){ userState.onboarded = true; userState.profile = p; if(d.progress) userState.progress = d.progress; }
+  // Persist so Home/Journey show the NEW level immediately AND after a reload (Bug: report not synced).
+  try{ localStorage.setItem("dusu_state", JSON.stringify(userState)); localStorage.setItem("dusu_onboarded","true"); }catch(_){}
   const bars = Object.keys(A_METRIC_LABELS).map(k => {
     const v = s[k] ?? 0;
     return `<div class="metric"><div class="m-top"><b>${A_METRIC_LABELS[k]}</b><span>${v}</span></div><div class="bar"><i data-w="${v}"></i></div></div>`;
@@ -3065,7 +3077,7 @@ function aReveal(d){
   $("aDone").onclick = goHomeAfterAssess;
   say(msg, aVoiceProfile());
 }
-function goHomeAfterAssess(){ stopAssessSpeech(); show("home"); setWelcome(); }
+function goHomeAfterAssess(){ aActive = false; stopAssessSpeech(); show("home"); try{ setWelcome(); renderHomeJourney(); }catch(_){} refreshMe(); }
 
 /* ================= My Journey (roadmap + lessons) ================= */
 const LEVEL_ICONS = ["🧠","🗣️","💬","💪","🎯","💼","🚀"];
@@ -3975,7 +3987,7 @@ function speakWelcome(){
 }
 
 function logout(){
-  authToken = ""; authUser = null;
+  authToken = ""; authUser = null; aActive = false;
   localStorage.removeItem("dusu_token"); localStorage.removeItem("dusu_user"); localStorage.removeItem("dusu_state"); localStorage.removeItem("dusu_letter"); localStorage.removeItem("dusu_daily_resume"); localStorage.removeItem("dusu_keys_ok");
   $("hdrRight").hidden = true; $("tagline").style.display = "";
   try{ ws && ws.close(); }catch(_){}
