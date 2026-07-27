@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Platform theme (API 21+), no AppCompat dependency needed. Dark window background
+         prevents a white flash before the splash/site paints. -->
+    <style name="Theme.DuSuTWA" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@color/twaBackground</item>
+        <item name="android:statusBarColor">@color/twaBackground</item>
+        <item name="android:navigationBarColor">@color/twaBackground</item>
+    </style>
+</resources>

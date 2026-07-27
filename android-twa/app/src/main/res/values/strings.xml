@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">DuSu</string>
+
+    <!-- The live DuSu web app. Change here (and hostName) if you move to a custom domain. -->
+    <string name="launchUrl" translatable="false">https://dusu-app-1.onrender.com/</string>
+    <string name="hostName" translatable="false">dusu-app-1.onrender.com</string>
+
+    <!-- Digital Asset Links: this app trusts the DuSu web origin. Must match the
+         android_app statement served at https://<host>/.well-known/assetlinks.json -->
+    <string name="asset_statements" translatable="false">
+        [{\"relation\": [\"delegate_permission/common.handle_all_urls\"], \"target\": {\"namespace\": \"web\", \"site\": \"https://dusu-app-1.onrender.com\"}}]
+    </string>
+</resources>

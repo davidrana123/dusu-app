@@ -17,11 +17,12 @@ the Web Speech API, so the wire only ever carries text — Claude is the brain.
 """
 
 import json
+import os
 import time
 from pathlib import Path
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException, Header
-from fastapi.responses import HTMLResponse, FileResponse
+from fastapi.responses import HTMLResponse, FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
@@ -113,6 +114,29 @@ async def service_worker():
     # Served from root so its scope covers the whole app.
     return FileResponse(_SW, media_type="application/javascript",
                         headers={"Cache-Control": "no-cache", "Service-Worker-Allowed": "/"})
+
+
+# Android TWA package name + its signing-cert SHA-256(s). The APK's cert fingerprint
+# must be listed here for Chrome to trust the app and drop the address bar (full-screen).
+_TWA_PACKAGE = os.getenv("ANDROID_TWA_PACKAGE", "com.dusu.app")
+
+
+@app.get("/.well-known/assetlinks.json")
+async def assetlinks():
+    """Digital Asset Links — proves the DuSu site trusts the TWA app so it runs
+    full-screen (no browser chrome). Set ANDROID_CERT_SHA256 to the app's signing
+    SHA-256 (comma-separated for multiple, e.g. upload + Play App Signing keys)."""
+    raw = os.getenv("ANDROID_CERT_SHA256", "")
+    fps = [f.strip().upper() for f in raw.replace("\n", ",").split(",") if f.strip()]
+    statements = [{
+        "relation": ["delegate_permission/common.handle_all_urls"],
+        "target": {
+            "namespace": "android_app",
+            "package_name": _TWA_PACKAGE,
+            "sha256_cert_fingerprints": fps,
+        },
+    }]
+    return JSONResponse(statements, headers={"Cache-Control": "public, max-age=3600"})
 
 
 @app.get("/health")

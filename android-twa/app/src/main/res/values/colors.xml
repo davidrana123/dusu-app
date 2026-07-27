@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches the DuSu web app background so status/nav bars + splash blend in -->
+    <color name="twaBackground">#070A14</color>
+</resources>
