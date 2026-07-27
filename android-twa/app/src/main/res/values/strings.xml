@@ -8,7 +8,5 @@
 
     <!-- Digital Asset Links: this app trusts the DuSu web origin. Must match the
          android_app statement served at https://<host>/.well-known/assetlinks.json -->
-    <string name="asset_statements" translatable="false">
-        [{\"relation\": [\"delegate_permission/common.handle_all_urls\"], \"target\": {\"namespace\": \"web\", \"site\": \"https://dusu-app-1.onrender.com\"}}]
-    </string>
+    <string name="asset_statements" translatable="false">[{\"relation\": [\"delegate_permission/common.handle_all_urls\"], \"target\": {\"namespace\": \"web\", \"site\": \"https://dusu-app-1.onrender.com\"}}]</string>
 </resources>

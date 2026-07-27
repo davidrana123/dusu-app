@@ -20,7 +20,7 @@
 
         <!-- Digital Asset Links statement: declares this app trusts the DuSu web origin.
              The site must serve the matching /.well-known/assetlinks.json for full-screen
-             (no address bar). Until verified it still opens, but inside a Custom Tab bar. -->
+             (no address bar). Until verified it still opens, inside a Custom Tab bar. -->
         <meta-data
             android:name="asset_statements"
             android:resource="@string/asset_statements" />
@@ -49,26 +49,12 @@
                 android:name="android.support.customtabs.trusted.NAVIGATION_BAR_COLOR"
                 android:resource="@color/twaBackground" />
 
-            <!-- Splash screen shown while Chrome warms up -->
-            <meta-data
-                android:name="android.support.customtabs.trusted.SPLASH_IMAGE_DRAWABLE"
-                android:resource="@drawable/dusu_logo" />
-            <meta-data
-                android:name="android.support.customtabs.trusted.SPLASH_SCREEN_BACKGROUND_COLOR"
-                android:resource="@color/twaBackground" />
-            <meta-data
-                android:name="android.support.customtabs.trusted.SPLASH_SCREEN_FADE_OUT_DURATION"
-                android:value="300" />
-            <meta-data
-                android:name="android.support.customtabs.trusted.FILE_PROVIDER_AUTHORITY"
-                android:value="com.dusu.app.fileprovider" />
-
             <!-- If Chrome / a TWA-capable browser is missing, fall back to a Custom Tab -->
             <meta-data
                 android:name="android.support.customtabs.trusted.FALLBACK_STRATEGY"
                 android:value="customtabs" />
 
-            <!-- Auto-verify the DuSu origin so links open in-app -->
+            <!-- Open the DuSu origin in-app -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
@@ -78,16 +64,5 @@
                     android:host="@string/hostName" />
             </intent-filter>
         </activity>
-
-        <!-- Required by the library for share-target file handling -->
-        <provider
-            android:name="androidx.core.content.FileProvider"
-            android:authorities="com.dusu.app.fileprovider"
-            android:exported="false"
-            android:grantUriPermissions="true">
-            <meta-data
-                android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/filepaths" />
-        </provider>
     </application>
 </manifest>
