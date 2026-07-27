@@ -2,6 +2,9 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- Android 11+ package visibility: needed to bind to Chrome's Custom Tabs service -->
     <queries>
@@ -25,16 +28,24 @@
             android:name="asset_statements"
             android:resource="@string/asset_statements" />
 
+        <!-- Entry point: checks connectivity, shows an offline screen if needed, then
+             launches the TWA. Also (re)schedules the 4-hour reminder. -->
         <activity
-            android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
+            android:name=".MainActivity"
             android:exported="true"
-            android:screenOrientation="portrait">
-
-            <!-- App launcher icon -->
+            android:screenOrientation="portrait"
+            android:theme="@style/Theme.DuSuTWA">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+        </activity>
+
+        <!-- The Trusted Web Activity itself (started by MainActivity). Not the launcher. -->
+        <activity
+            android:name="com.google.androidbrowserhelper.trusted.LauncherActivity"
+            android:exported="true"
+            android:screenOrientation="portrait">
 
             <!-- The site DuSu opens full-screen -->
             <meta-data
@@ -64,5 +75,15 @@
                     android:host="@string/hostName" />
             </intent-filter>
         </activity>
+
+        <!-- 4-hourly reminder alarm receiver -->
+        <receiver android:name=".ReminderReceiver" android:exported="false" />
+
+        <!-- Re-arm the alarm after reboot -->
+        <receiver android:name=".BootReceiver" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

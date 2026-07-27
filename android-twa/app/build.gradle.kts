@@ -2,6 +2,7 @@ import java.util.Properties
 
 plugins {
     id("com.android.application")
+    id("org.jetbrains.kotlin.android")
 }
 
 // Optional release signing: create android-twa/keystore.properties (git-ignored) with
@@ -43,6 +44,9 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+    kotlinOptions {
+        jvmTarget = "17"
+    }
 }
 
 dependencies {
@@ -52,4 +56,5 @@ dependencies {
     // demand AGP 8.9.1 + compileSdk 36. 2.5.0 (browser 1.4, core 1.7) builds cleanly
     // on AGP 8.5.2 / SDK 34 and has all the TWA features we use.
     implementation("com.google.androidbrowserhelper:androidbrowserhelper:2.5.0")
+    implementation("androidx.core:core-ktx:1.13.1")   // NotificationCompat for reminders
 }

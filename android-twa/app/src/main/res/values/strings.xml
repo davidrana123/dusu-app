@@ -1,6 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">DuSu</string>
+    <string name="tagline">Speak with Confidence</string>
+
+    <!-- Offline gate -->
+    <string name="offline_title">No Internet Connection</string>
+    <string name="offline_msg">DuSu needs the internet. Please turn on Wi-Fi or mobile data, then tap Retry.</string>
+    <string name="retry">Retry</string>
+
+    <!-- 4-hourly reminder -->
+    <string name="notif_channel_name">Practice reminders</string>
+    <string-array name="notif_messages">
+        <item>🔥 Don\'t break your streak!||DuSu is waiting to talk with you.</item>
+        <item>🤔 How\'s it going?||Tell DuSu in English — just 5 minutes.</item>
+        <item>🚀 One step closer to fluent||A quick chat keeps you sharp.</item>
+        <item>💬 DuSu remembers your dream||Let\'s get closer to it today.</item>
+        <item>🎯 Quick practice?||5 minutes with DuSu right now.</item>
+        <item>⭐ Ready to level up?||Finish a session and earn XP.</item>
+    </string-array>
 
     <!-- The live DuSu web app. Change here (and hostName) if you move to a custom domain. -->
     <string name="launchUrl" translatable="false">https://dusu-app-1.onrender.com/</string>
