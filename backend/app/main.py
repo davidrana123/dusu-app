@@ -309,8 +309,12 @@ async def admin_settings(inp: SettingsIn, authorization: str | None = Header(Non
     return {"require_own_keys": inp.require_own_keys}
 
 
+class WipeIn(BaseModel):
+    token: str = ""
+
+
 @app.post("/admin/wipe")
-async def admin_wipe(inp: TokenIn, authorization: str | None = Header(None)):
+async def admin_wipe(inp: WipeIn, authorization: str | None = Header(None)):
     """Owner-only: delete all users EXCEPT owner + unlimited + free-access emails.
     (Testing reset.)"""
     _require_owner(inp.token, authorization)
