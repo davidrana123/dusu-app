@@ -1730,7 +1730,8 @@ function officeKeys(){
 function officeAllowed(){ return !!(userState && (userState.office_allowed || userState.free_access || userState.role === "owner" || userState.role === "unlimited")); }
 function savedKeys(){ try{ return JSON.parse(localStorage.getItem("dusu_office_keys") || "{}") || {}; }catch(_){ return {}; } }
 function keyCount(){ return Object.values(savedKeys()).filter(v => v && (""+v).trim()).length; }
-function hasOwnKeys(){ return keyCount() >= 2; }   // at least 2 keys mandatory
+function keysVerified(){ return localStorage.getItem("dusu_keys_ok") === "1"; }   // passed /keys/verify
+function hasOwnKeys(){ return keyCount() >= 2 && keysVerified(); }   // ≥2 keys AND verified valid
 // top notification bar (e.g. token/quota limit reached)
 let _notifT = null;
 function showNotif(msg){ const b = $("notifBar"); if(!b) return; $("notifTxt").textContent = msg || ""; b.hidden = false;
@@ -1917,6 +1918,8 @@ function loadKeysUI(){
 }
 if($("modePersonal")) $("modePersonal").onclick = () => { useMode="personal"; localStorage.setItem("dusu_usemode","personal"); setModeUI(); postMode("personal"); };
 if($("modeOffice")) $("modeOffice").onclick = () => { useMode="office"; localStorage.setItem("dusu_usemode","office"); setModeUI(); postMode("office"); };
+// editing any key invalidates the "verified" flag → must re-verify
+["kGemini","kOpenrouter","kGithub","kGroq"].forEach(id => { const el = $(id); if(el) el.oninput = () => localStorage.removeItem("dusu_keys_ok"); });
 if($("keysBack")) $("keysBack").onclick = () => show("home");
 if($("adminBack")) $("adminBack").onclick = () => show("home");
 if($("verifyKeys")) $("verifyKeys").onclick = async () => {
@@ -1936,11 +1939,12 @@ if($("verifyKeys")) $("verifyKeys").onclick = async () => {
     localStorage.setItem("dusu_office_keys", JSON.stringify(keys));
     useMode = "office"; localStorage.setItem("dusu_usemode","office"); setModeUI();
     if(okCount >= 2){
-      const newUser = userState && userState.onboarded === false;
-      $("keysStatus").innerHTML = "✅ Saved — " + okCount + " keys working. " + (newUser ? "Starting your test…" : "You're ready.");
-      if(newUser) setTimeout(() => startAssessment(), 900);   // now proceed to the (talking) test
+      localStorage.setItem("dusu_keys_ok", "1");   // verified valid
+      $("keysStatus").innerHTML = "✅ Saved — " + okCount + " keys working. Continuing…";
+      setTimeout(() => routeAfterLogin(), 900);     // → test if not done, else home
     }
     else {
+      localStorage.removeItem("dusu_keys_ok");       // not verified → still locked
       $("keysStatus").innerHTML = "🔑 Add at least <b>2 working keys</b> to continue." + (msgs.length?"<br>"+msgs.map(esc).join("<br>"):""); }
   }catch(e){ $("keysStatus").textContent = "Couldn't verify — try again."; }
 };
@@ -3972,13 +3976,28 @@ function speakWelcome(){
 
 function logout(){
   authToken = ""; authUser = null;
-  localStorage.removeItem("dusu_token"); localStorage.removeItem("dusu_user"); localStorage.removeItem("dusu_state"); localStorage.removeItem("dusu_letter"); localStorage.removeItem("dusu_daily_resume");
+  localStorage.removeItem("dusu_token"); localStorage.removeItem("dusu_user"); localStorage.removeItem("dusu_state"); localStorage.removeItem("dusu_letter"); localStorage.removeItem("dusu_daily_resume"); localStorage.removeItem("dusu_keys_ok");
   $("hdrRight").hidden = true; $("tagline").style.display = "";
   try{ ws && ws.close(); }catch(_){}
   if(window.google && google.accounts) google.accounts.id.disableAutoSelect();
   show("login");
 }
 $("logoutBtn").onclick = logout;
+
+// Deterministic login gate — decides the screen after /me: keys → test → home.
+function routeAfterLogin(){
+  // 1) non-free user must have their own VERIFIED keys
+  if(needsKeys() && !hasOwnKeys()){
+    if(useMode !== "office"){ useMode = "office"; localStorage.setItem("dusu_usemode","office"); }
+    show("keys"); loadKeysUI();
+    if($("keysStatus")) $("keysStatus").innerHTML = "🔒 Add your own free API keys (at least 2) to start.";
+    return;
+  }
+  // 2) test (level check) not done yet
+  if(userState && userState.onboarded === false){ startAssessment(); return; }
+  // 3) all good → home
+  show("home"); try{ setWelcome(); renderHomeJourney(); }catch(_){}
+}
 
 // Background state refresh (also handles real logout on 401). Never blocks the UI.
 function refreshMe(){
@@ -3990,8 +4009,7 @@ function refreshMe(){
       localStorage.setItem("dusu_onboarded", st.onboarded ? "true" : "false");
       // cache the whole state so the next boot paints mood/note/Continue instantly (no /me wait)
       try{ localStorage.setItem("dusu_state", JSON.stringify(st)); }catch(_){}
-      if(st.onboarded === false){ startAssessment(); }
-      else if($("home").classList.contains("on")){ try{ setWelcome(); renderHomeJourney(); }catch(_){} }
+      try{ routeAfterLogin(); }catch(_){}   // one deterministic gate: keys → test → home
       return st;
     })
     .catch(() => null);   // offline/slow → keep the cached home, don't strand the user
@@ -4036,7 +4054,7 @@ function initAuth(){
     try{ userState = JSON.parse(localStorage.getItem("dusu_state") || "null") || userState; }catch(_){}
     // OPTIMISTIC: show the right screen INSTANTLY from the cached flag — never wait on
     // a slow/cold network. Then refresh state in the background (401 = real logout).
-    show("home");     // refreshMe() below routes a not-onboarded user into the guarded test
+    try{ routeAfterLogin(); }catch(_){ show("home"); }   // route from cached state; refreshMe re-confirms
     refreshMe();
   }
   else { show("login"); }
