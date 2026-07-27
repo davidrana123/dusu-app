@@ -767,6 +767,20 @@ def _facts_summary(facts: dict, summaries: list[str]) -> str:
         lines.append(f"- Last time you promised to: {facts['next_hook']} — pick up on it early.")
     if summaries:
         lines.append("- Recent chats: " + " | ".join(summaries))
+    # Cross-mode continuity: the tail of the LAST conversation (any mode — Daily Talk in
+    # Hindi, English Talk, or Interview). Lets DuSu pick up the exact thread instead of
+    # restarting, so all three practice modes feel like ONE ongoing relationship.
+    rturns = facts.get("recent_turns") or []
+    if rturns:
+        who = {"user": "them", "assistant": "you"}
+        tail = "; ".join(f"{who.get(t.get('role'), t.get('role'))}: {t.get('content','')}"
+                         for t in rturns[-6:] if t.get("content"))
+        if tail:
+            last_mode = rturns[-1].get("mode") or ""
+            label = {"daily": "Daily Talk (Hindi)", "conversation": "English Talk",
+                     "interview": "Interview"}.get(last_mode, "your last chat")
+            lines.append(f"- Where you left off last time (during {label}) — continue THIS thread "
+                         f"naturally, do NOT restart with a fresh greeting: {tail}")
     if lines:
         lines.append("- Show you remember and care; you may gently ask about ONE recent moment. "
                      "Never invent memories you don't actually have.")
@@ -814,6 +828,14 @@ async def interview_ws(ws: WebSocket):
                 await db.add_conversation(uid, session.mode, mem.get("summary", ""))
                 await db.merge_facts(uid, mem.get("facts", {}) or {}, mem.get("events", []) or [])
                 await db.set_next_hook(uid, mem.get("next_hook", ""))   # S5 story continuity
+            # Cross-mode thread continuity: keep the raw tail of THIS chat so the next
+            # session (any mode) picks up where we left off, not with a cold greeting.
+            try:
+                tail = [{"role": m.get("role"), "content": m.get("content"), "mode": session.mode}
+                        for m in session.transcript[-10:]]
+                await db.save_recent_turns(uid, tail)
+            except Exception as e:
+                print(f"[memory] recent_turns save failed: {type(e).__name__}: {e}")
             secs = int(time.monotonic() - started_at)
             if session.mode == "daily":
                 await db.record_practice(uid, seconds=secs, sentences=session.turns, xp=20)
@@ -869,7 +891,7 @@ async def interview_ws(ws: WebSocket):
                 if uid and db.db_enabled and mode in ("conversation", "interview", "daily"):
                     try:
                         facts = await db.get_memory(uid)
-                        summaries = await db.recent_summaries(uid, 3)
+                        summaries = await db.recent_summaries(uid, 6)   # richer "story so far" across ALL modes
                         facts_summary = _facts_summary(facts, summaries)
                         # S3 — prepend the Relationship Journey tone so DuSu behaves per stage.
                         st = await db.relationship_stage(uid)

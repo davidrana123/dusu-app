@@ -832,6 +832,27 @@ async def set_next_hook(user_id: str, hook: str) -> None:
         await s.commit()
 
 
+async def save_recent_turns(user_id: str, turns: list) -> None:
+    """Store the tail of the last conversation (raw turns, any mode) so DuSu can
+    pick up the exact thread next time — even across modes (Daily/Talk/Interview)."""
+    clean = []
+    for t in (turns or []):
+        if not isinstance(t, dict):
+            continue
+        role = t.get("role"); content = (t.get("content") or "").strip()
+        if role in ("user", "assistant") and content:
+            clean.append({"role": role, "content": content[:400], "mode": t.get("mode", "")})
+    clean = clean[-10:]
+    async with _Session() as s:               # type: ignore[misc]
+        mem = await _get_or_make_memory(s, user_id)
+        f = dict(mem.facts or {})
+        if clean:
+            f["recent_turns"] = clean
+        mem.facts = f
+        flag_modified(mem, "facts")
+        await s.commit()
+
+
 async def add_conversation(user_id: str, mode: str, summary: str) -> None:
     if not (summary or "").strip():
         return
