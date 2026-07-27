@@ -1946,6 +1946,7 @@ if($("verifyKeys")) $("verifyKeys").onclick = async () => {
 };
 function postMode(m){ try{ fetch("/mode",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token:authToken,mode:m})}); }catch(_){} }
 async function adminAction(id, action){
+  if(action === "delete" && !confirm("Delete this user and all their data?")) return;
   try{ await fetch("/admin/action",{method:"POST",headers:{"Content-Type":"application/json"},
     body:JSON.stringify({token:authToken,target_id:id,action})}); }catch(_){}
   openAdmin();   // refresh
@@ -1985,6 +1986,7 @@ async function openAdmin(){
         <div class="uActs">
           ${u.status!=='active'?`<button class="uBtn ok" data-act="approve" data-id="${u.id}">Approve</button>`:''}
           ${u.status!=='blocked'?`<button class="uBtn bad" data-act="block" data-id="${u.id}">Block</button>`:`<button class="uBtn" data-act="unblock" data-id="${u.id}">Unblock</button>`}
+          ${u.role!=='owner'?`<button class="uBtn bad" data-act="delete" data-id="${u.id}">Delete</button>`:''}
         </div></div>`;
     });
     el.innerHTML = h;

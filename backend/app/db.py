@@ -1162,3 +1162,17 @@ async def admin_wipe_users(keep_emails: set[str]) -> int:
         await s.execute(delete(User).where(User.id.in_(del_ids)))
         await s.commit()
         return len(del_ids)
+
+
+async def delete_user(user_id: str) -> bool:
+    """Delete a single user + all their data (owner action)."""
+    if not db_enabled:
+        return False
+    async with _Session() as s:               # type: ignore[misc]
+        for tbl in (Conversation, Memory, Progress, Profile):
+            await s.execute(delete(tbl).where(tbl.user_id == user_id))
+        u = await s.get(User, user_id)
+        if u:
+            await s.delete(u)
+        await s.commit()
+        return True

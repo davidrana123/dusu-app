@@ -362,6 +362,9 @@ async def admin_action(inp: AdminActionIn, authorization: str | None = Header(No
     _require_owner(inp.token, authorization)
     if not db.db_enabled:
         raise HTTPException(400, "Database required")
+    if inp.action == "delete":
+        ok = await db.delete_user(inp.target_id)
+        return {"ok": ok, "deleted": True}
     status = {"approve": "active", "unblock": "active", "block": "blocked"}.get(inp.action)
     if not status:
         raise HTTPException(400, "Unknown action")
