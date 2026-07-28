@@ -66,15 +66,24 @@ async def require_own_keys_on() -> bool:
     except Exception:
         return True
 
-async def resolve_keys(email: str, keys: dict):
+async def resolve_keys(email: str, keys: dict, uid: str | None = None):
     """Decide the effective key chain for a request.
-    Returns (ok, effective_keys_or_None, reason). effective None = use our default chain."""
+    Returns (ok, effective_keys_or_None, reason). effective None = use our default chain.
+    Non-free users: use client-sent keys if present, else load their stored (DB) keys —
+    so a returning user on any device works without re-entering keys."""
     ro = await require_own_keys_on()
     free = await free_access(email)
     if not ro or free:
         return True, None, ""                 # normal mode → our default keys
     if keys and any((str(v).strip() for v in (keys or {}).values())):
-        return True, keys, ""                 # BYOK → their keys only
+        return True, keys, ""                 # BYOK → client-sent keys
+    if uid and db.db_enabled:
+        try:
+            stored = await db.get_user_keys(uid)
+            if stored and any(str(v).strip() for v in stored.values()):
+                return True, stored, ""       # BYOK → their saved keys
+        except Exception as e:
+            print(f"[keys] load stored failed: {type(e).__name__}: {e}")
     return False, None, "keys_required"       # must add own keys first
 
 def _is_quota(e) -> bool:
@@ -211,9 +220,18 @@ async def me(token: str = "", authorization: str | None = Header(None)):
     _role = role_for(claims.get("email", ""))
     _free = await free_access(claims.get("email", ""))
     _ro = await require_own_keys_on()
+    # has_keys = this account already has verified keys stored server-side (free users
+    # implicitly "have keys" = our chain) → the client can skip the keys gate on return.
+    _has_keys = _free
+    if not _free and db.db_enabled and claims.get("sub"):
+        try:
+            _has_keys = await db.has_user_keys(claims["sub"])
+        except Exception:
+            _has_keys = False
     if not db.db_enabled:
         return {"onboarded": None, "role": _role, "email": claims.get("email", ""),
-                "office_allowed": _free, "free_access": _free, "require_own_keys": _ro}
+                "office_allowed": _free, "free_access": _free, "require_own_keys": _ro,
+                "has_keys": _has_keys}
     try:
         state = await db.login(claims)   # upsert row + return state (handles cached-token logins)
         if isinstance(state, dict):
@@ -222,6 +240,7 @@ async def me(token: str = "", authorization: str | None = Header(None)):
             state["office_allowed"] = _free
             state["free_access"] = _free
             state["require_own_keys"] = _ro
+            state["has_keys"] = _has_keys
         if isinstance(state, dict) and state.get("onboarded"):
             try:
                 uid_ = claims["sub"]
@@ -259,8 +278,10 @@ class KeysIn(BaseModel):
 
 @app.post("/keys/verify")
 async def keys_verify(inp: KeysIn, authorization: str | None = Header(None)):
-    """Office/BYOK: test each supplied key with a tiny call → per-provider ok/error."""
-    if not auth.read_session(_bearer(authorization, inp.token)):
+    """Office/BYOK: test each supplied key with a tiny call → per-provider ok/error.
+    On >=2 working keys, persist them (sealed) so the user never re-enters on return."""
+    claims = auth.read_session(_bearer(authorization, inp.token))
+    if not claims:
         raise HTTPException(401, "Not signed in")
     from openai import AsyncOpenAI
     out = {}
@@ -283,7 +304,36 @@ async def keys_verify(inp: KeysIn, authorization: str | None = Header(None)):
             else:
                 err = s[:120]
         out[p["name"]] = {"ok": ok, "error": err}
-    return {"results": out}
+    # Persist the keys server-side when >=2 verified (so returning users skip re-entry).
+    ok_count = sum(1 for r in out.values() if r.get("ok"))
+    if db.db_enabled and claims.get("sub"):
+        try:
+            await db.login(claims)   # ensure the user row exists (FK)
+            await db.save_user_keys(claims["sub"], inp.keys, verified=(ok_count >= 2))
+        except Exception as e:
+            print(f"[keys] save failed: {type(e).__name__}: {e}")
+    return {"results": out, "saved": ok_count >= 2}
+
+
+class KeysGetIn(BaseModel):
+    token: str = ""
+
+
+@app.post("/keys/get")
+async def keys_get(inp: KeysGetIn, authorization: str | None = Header(None)):
+    """Return the signed-in user's own stored BYOK keys (so a returning device can
+    reuse them without re-entry). Only ever returns the caller's OWN keys."""
+    claims = auth.read_session(_bearer(authorization, inp.token))
+    if not claims:
+        raise HTTPException(401, "Not signed in")
+    keys, verified = {}, False
+    if db.db_enabled and claims.get("sub"):
+        try:
+            keys = await db.get_user_keys(claims["sub"])
+            verified = await db.has_user_keys(claims["sub"])
+        except Exception as e:
+            print(f"[keys] get failed: {type(e).__name__}: {e}")
+    return {"keys": keys, "verified": verified}
 
 
 def _require_owner(token: str, authorization: str | None):
@@ -433,7 +483,7 @@ async def leveltest_gen(inp: GenIn):
     claims = auth.read_session(inp.token)
     if not claims:
         raise HTTPException(401, "Not signed in")
-    ok, eff, _r = await resolve_keys(claims.get("email", ""), inp.keys)
+    ok, eff, _r = await resolve_keys(claims.get("email", ""), inp.keys, claims.get("sub"))
     if not ok:
         raise HTTPException(402, "keys_required")
     set_active_keys(eff)
@@ -491,7 +541,7 @@ async def assessment(inp: AssessIn):
     claims = auth.read_session(inp.token)
     if not claims:
         raise HTTPException(401, "Not signed in")
-    _ok, _eff, _r = await resolve_keys(claims.get("email", ""), inp.keys)
+    _ok, _eff, _r = await resolve_keys(claims.get("email", ""), inp.keys, claims.get("sub"))
     if not _ok:
         raise HTTPException(402, "keys_required")
     set_active_keys(_eff)
@@ -578,7 +628,7 @@ async def greeting(inp: TokenIn):
     claims = auth.read_session(inp.token)
     if not claims:
         raise HTTPException(401, "Not signed in")
-    ok, eff, _r = await resolve_keys(claims.get("email", ""), inp.keys)
+    ok, eff, _r = await resolve_keys(claims.get("email", ""), inp.keys, claims.get("sub"))
     if not ok:
         raise HTTPException(402, "keys_required")
     set_active_keys(eff)
@@ -629,7 +679,7 @@ async def letter(inp: TokenIn):
     claims = auth.read_session(inp.token)
     if not claims:
         raise HTTPException(401, "Not signed in")
-    ok, eff, _r = await resolve_keys(claims.get("email", ""), inp.keys)
+    ok, eff, _r = await resolve_keys(claims.get("email", ""), inp.keys, claims.get("sub"))
     if not ok:
         raise HTTPException(402, "keys_required")
     set_active_keys(eff)
@@ -694,7 +744,7 @@ async def lesson_evaluate(inp: LessonEvalIn):
     claims = auth.read_session(inp.token)
     if not claims:
         raise HTTPException(401, "Not signed in")
-    ok, eff, _r = await resolve_keys(claims.get("email", ""), inp.keys)
+    ok, eff, _r = await resolve_keys(claims.get("email", ""), inp.keys, claims.get("sub"))
     if not ok:
         raise HTTPException(402, "keys_required")
     set_active_keys(eff)
@@ -747,7 +797,7 @@ async def level_test_submit(inp: LevelTestIn):
     claims = auth.read_session(inp.token)
     if not claims:
         raise HTTPException(401, "Not signed in")
-    ok, eff, _r = await resolve_keys(claims.get("email", ""), inp.keys)
+    ok, eff, _r = await resolve_keys(claims.get("email", ""), inp.keys, claims.get("sub"))
     if not ok:
         raise HTTPException(402, "keys_required")
     set_active_keys(eff)
@@ -956,7 +1006,7 @@ async def interview_ws(ws: WebSocket):
                             break
                     except Exception as e:
                         print(f"[gate] {type(e).__name__}: {e}")
-                ok, effkeys, reason = await resolve_keys(_email, _keys)
+                ok, effkeys, reason = await resolve_keys(_email, _keys, uid)
                 if not ok:
                     await _send(ws, type="keys_required", msg="Add your own API keys in Settings to use DuSu.")
                     break

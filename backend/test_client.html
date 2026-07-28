@@ -1756,10 +1756,29 @@ function keyCount(){ return Object.values(savedKeys()).filter(v => v && (""+v).t
 function keysVerified(){ return localStorage.getItem("dusu_keys_ok") === "1"; }   // passed /keys/verify
 function keysOwner(){ return localStorage.getItem("dusu_keys_owner") || ""; }      // which account these keys belong to
 function curEmail(){ return (authUser && authUser.email) || (userState && userState.email) || ""; }
-// ≥2 keys AND verified AND owned by THIS signed-in account. The owner check is the hard
-// gate: keys live in localStorage (per-browser), so without it a NEW user on the same
-// browser would inherit a previous user's verified keys and skip adding their own.
-function hasOwnKeys(){ return keyCount() >= 2 && keysVerified() && !!curEmail() && keysOwner() === curEmail(); }
+// Keys are considered present if the SERVER has verified keys stored for this account
+// (userState.has_keys) — so a returning user on any device is not asked again — OR this
+// browser holds ≥2 verified keys owned by the current account. The owner check keeps a
+// new user on a shared browser from inheriting a previous user's local keys.
+function hasOwnKeys(){
+  if(userState && userState.has_keys) return true;                 // stored server-side
+  return keyCount() >= 2 && keysVerified() && !!curEmail() && keysOwner() === curEmail();
+}
+// Pull the account's saved keys from the server into this browser (with a loader message)
+// so the form is prefilled and the session can send them.
+async function loadStoredKeys(){
+  try{
+    const r = await fetch("/keys/get", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ token: authToken }) });
+    if(!r.ok) return;
+    const d = await r.json();
+    if(d.keys && Object.keys(d.keys).length){
+      localStorage.setItem("dusu_office_keys", JSON.stringify(d.keys));
+      useMode = "office"; localStorage.setItem("dusu_usemode","office");
+      if(d.verified){ localStorage.setItem("dusu_keys_ok","1"); localStorage.setItem("dusu_keys_owner", curEmail()); }
+    }
+  }catch(_){}
+}
 // top notification bar (e.g. token/quota limit reached)
 let _notifT = null;
 function showNotif(msg){ const b = $("notifBar"); if(!b) return; $("notifTxt").textContent = msg || ""; b.hidden = false;
@@ -4122,7 +4141,14 @@ function refreshMe(){
       localStorage.setItem("dusu_onboarded", st.onboarded ? "true" : "false");
       // cache the whole state so the next boot paints mood/note/Continue instantly (no /me wait)
       try{ localStorage.setItem("dusu_state", JSON.stringify(st)); }catch(_){}
-      try{ routeAfterLogin(true); }catch(_){}   // background re-confirm — never yanks the user off their screen
+      // Returning account whose keys are saved server-side but not on THIS browser →
+      // fetch them (with a loader) before routing, so the session reuses them silently.
+      if(!officeAllowed() && st.has_keys && !(keyCount() >= 2 && keysVerified() && keysOwner() === curEmail())){
+        showNotif("🔑 Fetching your keys…");
+        loadStoredKeys().then(() => { try{ routeAfterLogin(true); }catch(_){} });
+      } else {
+        try{ routeAfterLogin(true); }catch(_){}   // background re-confirm — never yanks the user off their screen
+      }
       return st;
     })
     .catch(() => null);   // offline/slow → keep the cached home, don't strand the user

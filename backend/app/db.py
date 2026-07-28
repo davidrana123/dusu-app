@@ -11,7 +11,11 @@ Tables (v1):
 
 from __future__ import annotations
 
+import base64
 import datetime as dt
+import hashlib
+import json
+import os
 
 from sqlalchemy import String, Integer, Boolean, DateTime, Date, Text, ForeignKey, select, desc, func, delete
 from sqlalchemy.dialects.postgresql import JSONB
@@ -20,6 +24,30 @@ from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.orm.attributes import flag_modified
 
 from .config import settings
+
+# --- BYOK key at-rest sealing (zero-dep obfuscation, NOT strong crypto) ---------------
+# Keys are XORed with a SHA-256 keystream derived from a server secret + per-record salt,
+# so they aren't stored/readable as plaintext in the DB. Set KEYS_SECRET (or SESSION_SECRET)
+# in the environment. For stronger protection, swap in Fernet (cryptography) later.
+_KEYS_SECRET = (os.getenv("KEYS_SECRET") or os.getenv("SESSION_SECRET") or "dusu-local-dev-key-secret").encode()
+
+def _keystream(salt: bytes, n: int) -> bytes:
+    out, i = b"", 0
+    while len(out) < n:
+        out += hashlib.sha256(_KEYS_SECRET + salt + i.to_bytes(4, "big")).digest()
+        i += 1
+    return out[:n]
+
+def _seal(text: str) -> str:
+    salt = os.urandom(8)
+    data = text.encode("utf-8")
+    ct = bytes(a ^ b for a, b in zip(data, _keystream(salt, len(data))))
+    return base64.b64encode(salt + ct).decode("ascii")
+
+def _unseal(blob: str) -> str:
+    raw = base64.b64decode(blob)
+    salt, ct = raw[:8], raw[8:]
+    return bytes(a ^ b for a, b in zip(ct, _keystream(salt, len(ct)))).decode("utf-8")
 
 # Roadmap constants (mirror the client CURRICULUM so the server can detect
 # level completion). One entry per level → number of lessons in it.
@@ -126,6 +154,16 @@ class Memory(Base):
     __tablename__ = "memory"
     user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), primary_key=True)
     facts: Mapped[dict] = mapped_column(JSONB, default=dict)
+
+
+class UserKey(Base):
+    """BYOK: a user's own provider API keys, sealed at rest. Loaded server-side so a
+    returning user (any device/browser) never has to re-enter them."""
+    __tablename__ = "user_keys"
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    blob: Mapped[str] = mapped_column(Text, default="")     # sealed JSON {provider: key}
+    verified: Mapped[bool] = mapped_column(Boolean, default=False)
+    updated_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
 class Conversation(Base):
@@ -832,6 +870,41 @@ async def set_next_hook(user_id: str, hook: str) -> None:
         await s.commit()
 
 
+async def save_user_keys(user_id: str, keys: dict, verified: bool) -> None:
+    """Persist the user's BYOK provider keys (sealed). Only non-empty values kept."""
+    clean = {k: str(v).strip() for k, v in (keys or {}).items() if v and str(v).strip()}
+    blob = _seal(json.dumps(clean)) if clean else ""
+    async with _Session() as s:               # type: ignore[misc]
+        row = await s.get(UserKey, user_id)
+        if row:
+            row.blob = blob; row.verified = bool(verified); row.updated_at = _now()
+        else:
+            s.add(UserKey(user_id=user_id, blob=blob, verified=bool(verified)))
+        await s.commit()
+
+
+async def get_user_keys(user_id: str) -> dict:
+    """Return the user's stored BYOK keys (unsealed), or {} if none."""
+    async with _Session() as s:               # type: ignore[misc]
+        row = await s.get(UserKey, user_id)
+        if not row or not row.blob:
+            return {}
+        try:
+            return json.loads(_unseal(row.blob)) or {}
+        except Exception:
+            return {}
+
+
+async def has_user_keys(user_id: str) -> bool:
+    """True if the user has >=2 stored keys AND they were verified working."""
+    async with _Session() as s:               # type: ignore[misc]
+        row = await s.get(UserKey, user_id)
+        if not row or not row.verified or not row.blob:
+            return False
+    d = await get_user_keys(user_id)
+    return sum(1 for v in d.values() if str(v).strip()) >= 2
+
+
 async def save_recent_turns(user_id: str, turns: list) -> None:
     """Store the tail of the last conversation (raw turns, any mode) so DuSu can
     pick up the exact thread next time — even across modes (Daily/Talk/Interview)."""
@@ -1178,7 +1251,7 @@ async def admin_wipe_users(keep_emails: set[str]) -> int:
         del_ids = [u.id for u in users if (u.email or "").strip().lower() not in keep]
         if not del_ids:
             return 0
-        for tbl in (Conversation, Memory, Progress, Profile):
+        for tbl in (Conversation, Memory, Progress, Profile, UserKey):
             await s.execute(delete(tbl).where(tbl.user_id.in_(del_ids)))
         await s.execute(delete(User).where(User.id.in_(del_ids)))
         await s.commit()
@@ -1190,7 +1263,7 @@ async def delete_user(user_id: str) -> bool:
     if not db_enabled:
         return False
     async with _Session() as s:               # type: ignore[misc]
-        for tbl in (Conversation, Memory, Progress, Profile):
+        for tbl in (Conversation, Memory, Progress, Profile, UserKey):
             await s.execute(delete(tbl).where(tbl.user_id == user_id))
         u = await s.get(User, user_id)
         if u:
