@@ -437,16 +437,47 @@ async def leveltest_gen(inp: GenIn):
     if not ok:
         raise HTTPException(402, "keys_required")
     set_active_keys(eff)
-    sys = ("You design a SHORT, fresh spoken-English level check for a learner whose first "
-           "language is Hindi. Vary the content EVERY time; use different everyday topics. "
-           'Return ONLY JSON: {"repeat":"<one natural English sentence, 6-10 words, for them to repeat>",'
-           '"think_hindi":"<one everyday Hindi sentence in Latin script they must say in English>",'
-           '"open":"<one warm, open English question inviting them to speak freely>"}')
+    sys = (
+        "You design a SHORT, FRESH, fully-dynamic spoken-English level check for a Hindi-first "
+        "learner. Vary ALL content every time (different everyday topics and phrasings) so it can "
+        "never be memorized and repeated.\n"
+        "Fill these values:\n"
+        "- repeat: one natural English sentence, 6-10 words, for them to repeat.\n"
+        "- think_hindi: one everyday Hindi sentence in Latin script for them to say in English.\n"
+        "- open: one warm, open English question on an UNUSUAL everyday topic (not weekends/Sundays).\n"
+        "- mcqs: exactly 3 questions. goal = why they want to learn English (4-6 short options). "
+        "comfort = how comfortable they are speaking English (exactly 5 options, ordered from "
+        "'cannot speak at all' up to 'fairly fluent'). practice_time = how much time daily (exactly "
+        "4 options, ordered least-to-most).\n"
+        "Return ONLY this JSON, filling every value (no comments, no markdown):\n"
+        '{"repeat":"","think_hindi":"","open":"",'
+        '"mcqs":[{"field":"goal","q":"","options":[]},'
+        '{"field":"comfort","q":"","options":[]},'
+        '{"field":"practice_time","q":"","options":[]}]}'
+    )
     try:
-        d = await llm.assess(sys, "Generate a fresh level check now.")
+        # bigger budget — the full JSON (voice tasks + 3 MCQs) must fit or it truncates → parse fail.
+        # The model is occasionally chatty/truncates → retry a couple times before giving up
+        # (the frontend still has a static fallback if all attempts fail).
+        d = None
+        for _ in range(3):
+            d = await llm.assess(sys, "Generate a fresh level check now.", max_tokens=1200)
+            if isinstance(d, dict) and not d.get("error") and isinstance(d.get("mcqs"), list) and d.get("repeat"):
+                break
         if not isinstance(d, dict) or d.get("error"):
             raise RuntimeError("gen parse failed")
-        return {"repeat": d.get("repeat", ""), "think_hindi": d.get("think_hindi", ""), "open": d.get("open", "")}
+        mcqs = d.get("mcqs")
+        if not isinstance(mcqs, list):
+            mcqs = []
+        # keep only well-formed MCQs (field + >=2 string options)
+        clean = []
+        for m in mcqs:
+            if isinstance(m, dict) and m.get("field") in ("goal", "comfort", "practice_time"):
+                opts = [str(o) for o in (m.get("options") or []) if str(o).strip()]
+                if len(opts) >= 2:
+                    clean.append({"field": m["field"], "q": str(m.get("q", "")).strip(), "options": opts})
+        return {"repeat": d.get("repeat", ""), "think_hindi": d.get("think_hindi", ""),
+                "open": d.get("open", ""), "mcqs": clean}
     except Exception as e:
         if _is_quota(e):
             raise HTTPException(429, "quota")

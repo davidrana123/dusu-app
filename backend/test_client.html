@@ -2915,7 +2915,7 @@ function startAssessment(){
   if(!SR){ show("home"); return; }   // voice assessment needs Web Speech; skip if unavailable
   aActive = true;
   aData = { lang:"en", about:{ interests:{} }, goal:"", comfort:"", practice_time:"", intro:"", repeat_said:"", think_said:"", open_said:"",
-            repeat_target:"My name is Sarah.", think_hindi:"Kal mujhe market jaana hai." };
+            repeat_target:"My name is Sarah.", think_hindi:"Kal mujhe market jaana hai.", _gen:null };
   show("assessment");
   aLangPick();
 }
@@ -3005,8 +3005,34 @@ function aInterests(){
     b.onclick = () => { const v = b.dataset.v;
       if(sel.has(v)){ sel.delete(v); b.classList.remove("sel"); } else { sel.add(v); b.classList.add("sel"); } };
   });
-  $("aIntNext").onclick = () => { if(sel.size) aData.about.interests = { likes: [...sel].join(", ") }; aGoal(); };
+  $("aIntNext").onclick = () => { if(sel.size) aData.about.interests = { likes: [...sel].join(", ") }; aLoadTest(); };
   say(AL2("What do you enjoy?","Aapko kya pasand hai?"), aVoiceProfile());
+}
+
+// ONE dynamic fetch up front → fresh MCQs + voice tasks, so the whole test is
+// model-generated and never memorizable. Falls back to the built-in questions on failure.
+async function aLoadTest(){
+  aBar(15);
+  aRender(`<div class="assess-face">🧠</div><h2>${AL2("Getting your test ready…","Aapka test taiyaar ho raha hai…")}</h2><div class="spin" style="margin:18px auto"></div>`);
+  try{
+    const r = await fetch("/leveltest/gen", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ token:authToken, keys:officeKeys() }) });
+    if(r.ok){ const d = await r.json();
+      aData._gen = d;
+      if(d.repeat) aData.repeat_target = d.repeat;
+      if(d.think_hindi) aData.think_hindi = d.think_hindi;
+      if(d.open) aData._open = d.open;
+    }
+    else if(r.status === 402){ aActive = false; show("keys"); loadKeysUI();
+      if($("keysStatus")) $("keysStatus").innerHTML = "🔒 Add your own keys (at least 2) to start the test."; return; }
+    else if(r.status === 429){ showNotif("Your API keys hit their limit — add or replace a key in Settings."); }
+  }catch(_){}   // any failure → static fallback questions below
+  aGoal();
+}
+// Return the model-made MCQ for a field (goal|comfort|practice_time), or null → static fallback.
+function genMcq(field){
+  const g = aData._gen && aData._gen.mcqs;
+  return Array.isArray(g) ? (g.find(m => m && m.field === field) || null) : null;
 }
 
 function aChoice(pct, title, opts, field, next){
@@ -3018,13 +3044,17 @@ function aChoice(pct, title, opts, field, next){
   });
   say(title, aVoiceProfile());
 }
-function aGoal(){     const L = aL(); aChoice(16, L.qGoal,     L.goal,     "goal",          aComfort); }
-function aComfort(){  const L = aL(); aChoice(28, L.qComfort,  L.comfort,  "comfort",       aPractice); }
-function aPractice(){ const L = aL(); aChoice(40, L.qPractice, L.practice, "practice_time", aStartVoice); }
+// MCQs render from the model-made spec when available (mcq.q + mcq.options), else the
+// built-in static set. Options carry their own label as the stored value.
+function aGoal(){     const L = aL(), m = genMcq("goal");          aChoice(16, (m&&m.q)||L.qGoal,     m?m.options.map(o=>[o,o]):L.goal,     "goal",          aComfort);    }
+function aComfort(){  const L = aL(), m = genMcq("comfort");       aChoice(28, (m&&m.q)||L.qComfort,  m?m.options.map(o=>[o,o]):L.comfort,  "comfort",       aPractice);   }
+function aPractice(){ const L = aL(), m = genMcq("practice_time"); aChoice(40, (m&&m.q)||L.qPractice, m?m.options.map(o=>[o,o]):L.practice, "practice_time", aStartVoice); }
 
-// Dynamic level check: the model (user's keys) makes fresh questions each time.
+// Voice tasks — the dynamic questions were already fetched up front by aLoadTest().
+// If that fetch was skipped/failed, fetch once here as a fallback; else go straight in.
 async function aStartVoice(){
   const L = aL(); aBar(44);
+  if(aData._gen){ aVoice(0); return; }   // already have the fresh test
   aRender(`<div class="assess-face">🧠</div><h2>${AL2("Getting your test ready…","Aapka test ready ho raha hai…")}</h2><div class="spin" style="margin:18px auto"></div>`);
   try{
     const r = await fetch("/leveltest/gen", { method:"POST", headers:{"Content-Type":"application/json"},
@@ -3033,7 +3063,7 @@ async function aStartVoice(){
       if(d.repeat) aData.repeat_target = d.repeat;
       if(d.think_hindi) aData.think_hindi = d.think_hindi;
       if(d.open) aData._open = d.open; }
-    else if(r.status === 402){ show("keys"); loadKeysUI(); if($("keysStatus")) $("keysStatus").innerHTML = "🔒 Add your keys to start the test."; return; }
+    else if(r.status === 402){ aActive = false; show("keys"); loadKeysUI(); if($("keysStatus")) $("keysStatus").innerHTML = "🔒 Add your keys to start the test."; return; }
     else if(r.status === 429){ showNotif("Your API keys hit their limit — add or replace a key."); }
   }catch(_){}   // fall back to the built-in prompts on any failure
   aVoice(0);
