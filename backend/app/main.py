@@ -507,7 +507,15 @@ async def assessment(inp: AssessIn):
                     "simple, warm Hindi written in Latin/Roman script (e.g. 'Aap bahut acche kar rahe hain'). "
                     "Keep all JSON keys and level/score values exactly as specified.")
     try:
-        result = await llm.assess(ASSESS_SYSTEM, payload)
+        # bigger budget + retry — the model occasionally adds commentary/truncates,
+        # which parse-fails → empty scores → all-zero report. Retry a few times.
+        result = None
+        for _ in range(3):
+            result = await llm.assess(ASSESS_SYSTEM, payload, max_tokens=900)
+            if isinstance(result, dict) and not result.get("error") and isinstance(result.get("scores"), dict) and result["scores"]:
+                break
+        if not (isinstance(result, dict) and isinstance(result.get("scores"), dict) and result["scores"]):
+            raise RuntimeError("assess parse failed / empty scores")
     except Exception as e:
         print(f"[assess] llm failed: {type(e).__name__}: {e}")
         raise HTTPException(502, "Assessment scoring failed, please try again")

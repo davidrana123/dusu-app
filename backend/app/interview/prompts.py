@@ -244,20 +244,11 @@ Then pick a CEFR level: A0 (cannot form sentences), A1 (basic words/phrases),
 A2 (simple sentences), B1 (connected speech), B2 (fluent). Beginners are normal —
 low scores are fine, never harsh.
 
-Return ONLY a JSON object (no markdown, no commentary), exactly:
-{
-  "level": "A0|A1|A2|B1|B2",
-  "scores": {
-    "confidence": <int 0-100>,
-    "pronunciation": <int 0-100>,
-    "listening": <int 0-100>,
-    "vocabulary": <int 0-100>,
-    "grammar": <int 0-100>,
-    "thinking": <int 0-100>
-  },
-  "weak_areas": [<up to 3 of the score keys, weakest first>],
-  "message": "<2-3 warm sentences: acknowledge their level kindly and promise to help them improve step by step. Never say just 'you are a beginner'.>"
-}"""
+Return ONLY this JSON, filling EVERY value (no markdown, no commentary, no reasoning —
+your reply MUST start with { and end with }). Each score is an integer 0-100. level is
+one of A0/A1/A2/B1/B2. weak_areas = up to 3 of the score-key names, weakest first.
+message = 2-3 warm sentences (never just "you are a beginner").
+{"level":"A1","scores":{"confidence":0,"pronunciation":0,"listening":0,"vocabulary":0,"grammar":0,"thinking":0},"weak_areas":[],"message":""}"""
 
 
 LESSON_EVAL_SYSTEM = """You are DuSu, a warm English coach checking one short
