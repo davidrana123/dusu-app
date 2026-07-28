@@ -2530,12 +2530,14 @@ function showReport(d){
 if(!SR){ $("warn").textContent = "Voice input needs Chrome or Edge (Web Speech API)."; }
 
 /* ================= Learning Mode ================= */
+// Hindi lines are written in DEVANAGARI (English words stay in Latin) so the hi-IN
+// TTS voice pronounces them clearly — romanized Hindi gets mispronounced.
 const HINDI = {
-  greet:    "Namaste! Aapke liye kya translate karun? Neeche diye gaye button ko dabakar boliye.",
-  intro:    "English mein aise bolte hain.",
-  repeat:   "Ab mere baad dohraiye.",
-  next:     "Next, aapke liye kya translate karun?",
-  noSpeech: "Mujhe samajh nahi aaya. Kripya dobara boliye."
+  greet:    "नमस्ते! आपके लिए क्या translate करूँ? नीचे दिए गए button को दबाकर बोलिए।",
+  intro:    "English में ऐसे बोलते हैं।",
+  repeat:   "अब मेरे बाद दोहराइए।",
+  next:     "अच्छा, अब आपके लिए क्या translate करूँ?",
+  noSpeech: "मुझे समझ नहीं आया। कृपया दोबारा बोलिए।"
 };
 let lrec = null, lastEnglish = "";
 const HI       = () => ({ lang:"hi-IN", rate:0.95, voice:hindiVoice });
@@ -2761,7 +2763,7 @@ async function handleDailyTurn(hindi, english, reply, tip, nextQ){
     await say(english, ENG_SLOW());   // your sentence, in clear English (said once)
   }
   // 2) then DuSu replies like a close friend — NEVER silent (fallback if reply missing)
-  const dusuReply = (reply && reply.trim()) || (nextQ && nextQ.trim()) || "Achha! Aaj ka sabse accha pal kaunsa tha?";
+  const dusuReply = (reply && reply.trim()) || (nextQ && nextQ.trim()) || "अच्छा! आज का सबसे अच्छा पल कौन-सा था?";
   await say(dusuReply, HI());
   dailyOrb("idle");
   // record this turn (learner's Hindi + DuSu's reply) so we can resume later
@@ -2773,7 +2775,7 @@ async function handleDailyTurn(hindi, english, reply, tip, nextQ){
   if(dailyFrom === "speak"){
     dailyInputs++;   // only THIS session's inputs — not resumed history
     if(dailyInputs % 3 === 0){
-      await sayFace("Waise, jab tum ready ho to niche apni learning aage badha sakte ho — ya yahin baat continue karo.", HI());
+      await sayFace("वैसे, जब तुम ready हो तो नीचे अपनी learning आगे बढ़ा सकते हो — या यहीं बात continue करो।", HI());
       requestAnimationFrame(() => { const d = $("dailyMore"); if(d) d.scrollIntoView({ behavior:"smooth", block:"nearest" }); });
     }
   }
@@ -2874,30 +2876,30 @@ const A_L = {
     ],
   },
   hi: {
-    ready:"Main taiyaar hoon →", skip:"Chhod dein", next:"Aage →", listening:"Sun raha hoon…",
-    notCaught:"Sunayi nahi diya — mic dabakar dobara boliye.",
-    welcomeTitle:"Namaste! Main DuSu hoon.",
-    welcomeSub:"Shuru karne se pehle, main aapka abhi ka English level samajhna chahta hoon. Sirf do minute lagenge.",
-    welcomeSay:"Namaste! Main DuSu hoon. Shuru karne se pehle, main aapka abhi ka English level samajhna chahta hoon. Sirf do minute lagenge. Taiyaar hain?",
-    qGoal:"Aap English kyun seekhna chahte hain?",
-    qComfort:"English bolne mein aap kitne comfortable hain?",
-    qPractice:"Aap rozana kitni der practice kar sakte hain?",
-    evalTitle:"Aapki English dekh raha hoon…", evalSub:"DuSu aapki personal profile bana raha hai.",
-    evalSay:"Bahut badhiya! Ek pal dijiye, main aapke jawab dekhta hoon.",
-    levelCap:"Aapka shuruaati level", done:"Meri journey shuru karein →",
-    errTitle:"Kuch gadbad ho gayi", errSub:"Ek baar phir se koshish karte hain.", retry:"Dobara", skipAll:"Abhi chhod dein",
-    goal:[["Job Interview","Naukri ka interview"],["Office Communication","Office ki baat-cheet"],["College","College"],
-          ["Daily Conversation","Rozmarra ki baat-cheet"],["Travel","Safar / ghumna"],["Business","Business"],
-          ["Study Abroad","Videsh mein padhai"],["Other","Anya"]],
-    comfort:[["I cannot speak at all","Main bilkul nahi bol sakta"],["I understand but cannot speak","Samajh leta hoon par bol nahi pata"],
-             ["I can speak simple sentences","Simple vaakya bol leta hoon"],["I can speak but lack confidence","Bol leta hoon par confidence kam hai"],
-             ["I speak well and want to be fluent","Achha bolta hoon, fluent banna hai"]],
-    practice:[["5 minutes/day","5 minute rozana"],["10 minutes/day","10 minute rozana"],["20 minutes/day","20 minute rozana"],["30+ minutes/day","30+ minute rozana"]],
+    ready:"मैं तैयार हूँ →", skip:"छोड़ दें", next:"आगे →", listening:"सुन रहा हूँ…",
+    notCaught:"सुनाई नहीं दिया — mic दबाकर दोबारा बोलिए।",
+    welcomeTitle:"नमस्ते! मैं DuSu हूँ।",
+    welcomeSub:"शुरू करने से पहले, मैं आपका अभी का English level समझना चाहता हूँ। सिर्फ़ दो मिनट लगेंगे।",
+    welcomeSay:"नमस्ते! मैं DuSu हूँ। शुरू करने से पहले, मैं आपका अभी का English level समझना चाहता हूँ। सिर्फ़ दो मिनट लगेंगे। तैयार हैं?",
+    qGoal:"आप English क्यों सीखना चाहते हैं?",
+    qComfort:"English बोलने में आप कितने comfortable हैं?",
+    qPractice:"आप रोज़ाना कितनी देर practice कर सकते हैं?",
+    evalTitle:"आपकी English देख रहा हूँ…", evalSub:"DuSu आपकी personal profile बना रहा है।",
+    evalSay:"बहुत बढ़िया! एक पल दीजिए, मैं आपके जवाब देखता हूँ।",
+    levelCap:"आपका शुरुआती level", done:"मेरी journey शुरू करें →",
+    errTitle:"कुछ गड़बड़ हो गई", errSub:"एक बार फिर कोशिश करते हैं।", retry:"दोबारा", skipAll:"अभी छोड़ दें",
+    goal:[["Job Interview","नौकरी का इंटरव्यू"],["Office Communication","ऑफिस की बात-चीत"],["College","कॉलेज"],
+          ["Daily Conversation","रोज़मर्रा की बात-चीत"],["Travel","सफ़र / घूमना"],["Business","बिज़नेस"],
+          ["Study Abroad","विदेश में पढ़ाई"],["Other","अन्य"]],
+    comfort:[["I cannot speak at all","मैं बिल्कुल नहीं बोल सकता"],["I understand but cannot speak","समझ लेता हूँ पर बोल नहीं पाता"],
+             ["I can speak simple sentences","सिंपल वाक्य बोल लेता हूँ"],["I can speak but lack confidence","बोल लेता हूँ पर confidence कम है"],
+             ["I speak well and want to be fluent","अच्छा बोलता हूँ, fluent बनना है"]],
+    practice:[["5 minutes/day","5 मिनट रोज़ाना"],["10 minutes/day","10 मिनट रोज़ाना"],["20 minutes/day","20 मिनट रोज़ाना"],["30+ minutes/day","30+ मिनट रोज़ाना"]],
     voice:[
-      { title:"Apne baare mein bataiye", hint:"English mein boliye. Mic dabakar kuch second boliye.", say:"Kripya English mein apna naam aur apne baare mein kuch bataiye." },
-      { title:"Mere baad dohraiye",      hint:"Mic dabakar wahi vaakya boliye jo aapne suna.",         intro:"Mere baad dohraiye." },
-      { title:"Ise English mein boliye", hint:"Is vaakya ko English mein boliye. Mic dabaiye.",        instr:"Is Hindi vaakya ko English mein boliye." },
-      { title:"Aakhri sawaal",           hint:"English mein jawab dijiye. Mic dabakar boliye.",         say:"Apne pasandida khaane ke baare mein English mein bataiye." },
+      { title:"अपने बारे में बताइए", hint:"English में बोलिए। Mic दबाकर कुछ second बोलिए।", say:"कृपया English में अपना नाम और अपने बारे में कुछ बताइए।" },
+      { title:"मेरे बाद दोहराइए",      hint:"Mic दबाकर वही वाक्य बोलिए जो आपने सुना।",         intro:"मेरे बाद दोहराइए।" },
+      { title:"इसे English में बोलिए", hint:"इस वाक्य को English में बोलिए। Mic दबाइए।",        instr:"इस Hindi वाक्य को English में बोलिए।" },
+      { title:"आख़िरी सवाल",           hint:"English में जवाब दीजिए। Mic दबाकर बोलिए।",         say:"अपने पसंदीदा खाने के बारे में English में बताइए।" },
     ],
   },
 };
@@ -2946,7 +2948,7 @@ function aLangPick(){
   $("assessStep").querySelectorAll(".opt").forEach(b => {
     b.onclick = () => { aData.lang = b.dataset.l; b.classList.add("sel"); setTimeout(aWelcome, 160); };
   });
-  say("Aap yah test Hindi mein karna chahte hain ya English mein? Neeche apni bhasha chuniye.", HI());
+  say("आप यह test Hindi में करना चाहते हैं या English में? नीचे अपनी भाषा चुनिए।", HI());
 }
 
 function aWelcome(){

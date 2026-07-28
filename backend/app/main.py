@@ -1007,7 +1007,7 @@ async def interview_ws(ws: WebSocket):
                         session.turns = sum(1 for m in session.transcript if m["role"] == "user")
                     opening = await session.daily_turn("", first=True)
                     q = (opening.get("reply_hindi") or opening.get("next_question_hindi")
-                         or "Aaj aapka din kaisa raha?")
+                         or "आज आपका दिन कैसा रहा?")
                     await _send(ws, type="daily_question", question=q)
                 elif session.mode == "learning":
                     await _send(ws, type="ready")   # client greets in Hindi
