@@ -3598,7 +3598,7 @@ async function completeLesson(level, id, type){
 function celebrate(html){
   const el = document.createElement("div");
   el.style.cssText = "position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(7,10,20,.7);animation:fade .3s both";
-  el.innerHTML = `<div style="background:var(--glass);border:1px solid var(--gold);border-radius:24px;padding:34px 30px;text-align:center;box-shadow:var(--gold-glow);max-width:340px">${html}</div>`;
+  el.innerHTML = `<div style="background:#131826;border:1px solid var(--gold);border-radius:24px;padding:34px 30px;text-align:center;box-shadow:var(--gold-glow),0 20px 60px -12px rgba(0,0,0,.85);max-width:340px;color:var(--ink)">${html}</div>`;
   el.onclick = () => el.remove();
   document.body.appendChild(el);
   if(typeof sparkle === "function") try{ sparkle(el.firstChild); }catch(_){}
