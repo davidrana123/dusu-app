@@ -1754,7 +1754,12 @@ function officeAllowed(){ return !!(userState && (userState.office_allowed || us
 function savedKeys(){ try{ return JSON.parse(localStorage.getItem("dusu_office_keys") || "{}") || {}; }catch(_){ return {}; } }
 function keyCount(){ return Object.values(savedKeys()).filter(v => v && (""+v).trim()).length; }
 function keysVerified(){ return localStorage.getItem("dusu_keys_ok") === "1"; }   // passed /keys/verify
-function hasOwnKeys(){ return keyCount() >= 2 && keysVerified(); }   // ≥2 keys AND verified valid
+function keysOwner(){ return localStorage.getItem("dusu_keys_owner") || ""; }      // which account these keys belong to
+function curEmail(){ return (authUser && authUser.email) || (userState && userState.email) || ""; }
+// ≥2 keys AND verified AND owned by THIS signed-in account. The owner check is the hard
+// gate: keys live in localStorage (per-browser), so without it a NEW user on the same
+// browser would inherit a previous user's verified keys and skip adding their own.
+function hasOwnKeys(){ return keyCount() >= 2 && keysVerified() && !!curEmail() && keysOwner() === curEmail(); }
 // top notification bar (e.g. token/quota limit reached)
 let _notifT = null;
 function showNotif(msg){ const b = $("notifBar"); if(!b) return; $("notifTxt").textContent = msg || ""; b.hidden = false;
@@ -1987,6 +1992,7 @@ if($("verifyKeys")) $("verifyKeys").onclick = async () => {
     useMode = "office"; localStorage.setItem("dusu_usemode","office"); setModeUI();
     if(okCount >= 2){
       localStorage.setItem("dusu_keys_ok", "1");   // verified valid
+      localStorage.setItem("dusu_keys_owner", curEmail());   // tie these keys to THIS account
       $("keysStatus").innerHTML = "✅ Saved — " + okCount + " keys working. Continuing…";
       setTimeout(() => routeAfterLogin(), 900);     // → test if not done, else home
     }
@@ -2418,7 +2424,7 @@ function speak(text){
   const u = new SpeechSynthesisUtterance(speakable(text));
   u.rate = 1.0; u.pitch = 1.0;
   if(pickedVoice) u.voice = pickedVoice;
-  FACE.startTalking(); Assistant.startTalking();
+  u.onstart = () => { FACE.startTalking(); Assistant.startTalking(); };   // mouth starts WITH the voice, not before
   u.onboundary = () => { FACE.boundary(); Assistant.boundary(); };   // sync mouth to each spoken word
   let finished = false;
   const done = () => {
@@ -2542,7 +2548,8 @@ function say(text, opts){
     if(!window.speechSynthesis){ res(); return; }
     const u = new SpeechSynthesisUtterance(speakable(text));
     u.lang = opts.lang || "en-US"; u.rate = opts.rate || 1; if(opts.voice) u.voice = opts.voice;
-    let fin = false; const done = () => { if(fin) return; fin = true; clearTimeout(g); res(); };
+    let fin = false; const done = () => { if(fin) return; fin = true; clearTimeout(g); if(opts.onEnd) try{ opts.onEnd(); }catch(_){} res(); };
+    u.onstart = () => { if(opts.onStart) try{ opts.onStart(); }catch(_){} };   // fire caller's face-start WITH the audio
     u.onend = done; u.onerror = done;
     const g = setTimeout(done, 3500 + text.length * (u.rate < 1 ? 130 : 90));
     window.speechSynthesis.speak(u);
@@ -2643,8 +2650,11 @@ function dailyOrb(state){
   if(state === "speaking"){ DAILYFACE.set("speaking"); DAILYFACE.startTalking(); }
   else { DAILYFACE.stopTalking(); DAILYFACE.set(state === "thinking" ? "thinking" : "idle"); }
 }
-// speak with the face animating (used in Daily Talk)
-async function sayFace(text, opts){ dailyOrb("speaking"); await say(text, opts); dailyOrb("idle"); }
+// speak with the face animating (used in Daily Talk) — mouth starts WITH the audio (onStart), not before
+async function sayFace(text, opts){
+  await say(text, Object.assign({}, opts, { onStart: () => dailyOrb("speaking") }));
+  dailyOrb("idle");
+}
 
 function startDaily(from){
   if(guardKeys()) return;
@@ -4051,10 +4061,11 @@ function speakWelcome(){
     ? `Welcome back, ${first}! Let's keep talking, and get a little better every single day.`
     : `Welcome to DuSu! Let's start speaking, and get a little better every single day.`;
   if(!window.speechSynthesis) return;
-  HOMEFACE.set("speaking"); HOMEFACE.startTalking();
+  HOMEFACE.set("speaking");
   const u = new SpeechSynthesisUtterance(speakable(msg));
   u.rate = 1.0; u.pitch = 1.0;
   if(pickedVoice) u.voice = pickedVoice;
+  u.onstart = () => HOMEFACE.startTalking();   // mouth begins WITH the audio, not before it
   u.onboundary = () => HOMEFACE.boundary();
   const done = () => { HOMEFACE.stopTalking(); HOMEFACE.set("idle"); };
   u.onend = done; u.onerror = done;
@@ -4064,7 +4075,7 @@ function speakWelcome(){
 
 function logout(){
   authToken = ""; authUser = null; aActive = false;
-  localStorage.removeItem("dusu_token"); localStorage.removeItem("dusu_user"); localStorage.removeItem("dusu_state"); localStorage.removeItem("dusu_letter"); localStorage.removeItem("dusu_daily_resume"); localStorage.removeItem("dusu_keys_ok");
+  localStorage.removeItem("dusu_token"); localStorage.removeItem("dusu_user"); localStorage.removeItem("dusu_state"); localStorage.removeItem("dusu_letter"); localStorage.removeItem("dusu_daily_resume"); localStorage.removeItem("dusu_keys_ok"); localStorage.removeItem("dusu_office_keys"); localStorage.removeItem("dusu_keys_owner");
   $("hdrRight").hidden = true; $("tagline").style.display = "";
   try{ ws && ws.close(); }catch(_){}
   if(window.google && google.accounts) google.accounts.id.disableAutoSelect();
@@ -4120,6 +4131,13 @@ function onGoogle(resp){
   }).then(r => r.ok ? r.json() : Promise.reject(r))
     .then(d => {
       authToken = d.token;
+      // Account switch on this browser → drop the previous user's BYOK keys so the new
+      // user is forced through the keys gate (keys are per-browser in localStorage).
+      if((d.user && d.user.email) && localStorage.getItem("dusu_keys_owner") !== d.user.email){
+        localStorage.removeItem("dusu_office_keys");
+        localStorage.removeItem("dusu_keys_ok");
+        localStorage.removeItem("dusu_keys_owner");
+      }
       localStorage.setItem("dusu_token", d.token);
       localStorage.setItem("dusu_user", JSON.stringify(d.user));
       localStorage.setItem("dusu_onboarded", d.onboarded ? "true" : "false");
