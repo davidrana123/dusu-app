@@ -971,6 +971,13 @@
   .mode-opt span{ font-size:11.5px; color:var(--ink-faint) }
   .mode-opt.on{ border-color:var(--gold); color:var(--gold-lt); box-shadow:0 0 0 1px color-mix(in srgb,var(--gold) 40%,transparent) inset }
   .keys-note{ font-size:12.5px; color:var(--ink-dim); margin:4px 0 14px; line-height:1.5 }
+  .help-lbl{ display:block; font-size:13px; color:var(--ink-dim); margin:14px 0 6px; font-weight:600 }
+  .help-sel, .help-ta{ width:100%; background:var(--glass); border:1px solid var(--glass-brd); border-radius:12px;
+    padding:12px 13px; color:var(--ink); font:inherit; font-size:14px; outline:none }
+  .help-sel{ appearance:none; cursor:pointer }
+  .help-ta{ resize:vertical; min-height:96px; line-height:1.5 }
+  .help-count{ font-size:12px; color:var(--ink-faint); text-align:right; margin:6px 2px 4px }
+  .help-count.over{ color:#e08a7a }
   .keyrow{ display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--ink-dim); margin-bottom:10px }
   .keyrow input{ flex:1; background:var(--glass); border:1px solid var(--glass-brd); border-radius:10px; padding:11px 12px; color:var(--ink); font:inherit; font-size:14px }
   .kst{ font-style:normal; width:16px; text-align:center }
@@ -1277,6 +1284,26 @@
         <button class="btn primary" id="verifyKeys" style="width:100%;margin-top:6px">Verify &amp; save</button>
         <div class="keys-status" id="keysStatus"></div>
       </div>
+    </div>
+  </section>
+
+  <!-- ===================== HELP & FEEDBACK ===================== -->
+  <section id="help" class="screen">
+    <div class="sess-head">
+      <button class="back back-home" id="helpBack" title="Home"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>Home</span></button>
+      <div><div class="sess-title">Help &amp; Feedback</div><div class="sess-sub">Tell us anything — we read every message</div></div>
+    </div>
+    <div class="keys-wrap">
+      <label class="help-lbl" for="helpKind">What's this about?</label>
+      <select id="helpKind" class="help-sel">
+        <option value="feedback">💬 Feedback / Suggestion</option>
+        <option value="help">🆘 Need help / Problem</option>
+      </select>
+      <label class="help-lbl" for="helpText">Your message</label>
+      <textarea id="helpText" class="help-ta" rows="4" maxlength="400" placeholder="Type your message (max 50 words)…"></textarea>
+      <div class="help-count"><span id="helpWords">0</span>/50 words</div>
+      <button class="btn primary" id="helpSend" style="width:100%;margin-top:4px">Send</button>
+      <div class="keys-status" id="helpStatus"></div>
     </div>
   </section>
 
@@ -1726,6 +1753,7 @@
   <button class="mrow" data-more="profile"><span class="mi">👤</span><span><span class="mt">Profile</span><br><span class="msub">Streaks, badges, memories</span></span></button>
   <button class="mrow" data-more="keys"><span class="mi">🔑</span><span><span class="mt">DuSu keys / Mode</span><br><span class="msub">Personal or Office (own keys)</span></span></button>
   <button class="mrow" data-more="leveltest"><span class="mi">🧪</span><span><span class="mt">Level check</span><br><span class="msub">Re-check your English level</span></span></button>
+  <button class="mrow" data-more="help"><span class="mi">💌</span><span><span class="mt">Help &amp; Feedback</span><br><span class="msub">Reach out — feedback or a problem</span></span></button>
   <button class="mrow" data-more="signout"><span class="mi">🚪</span><span><span class="mt">Sign out</span><br><span class="msub">See you soon 👋</span></span></button>
 </div>
 <nav class="bnav hide" id="bnav">
@@ -1925,7 +1953,7 @@ function show(id){
 // ---- Bottom navigation: which tab lights up per screen; nav hidden only on login/onboarding ----
 const NAV_TAB = { home:"home", journey:"journey", daily:"daily", practice:"practice",
   learning:"practice", session:"practice", setup:"practice", lesson:"practice", report:"practice",
-  leaderboard:"leaderboard", profile:"more", keys:"more", admin:"more" };
+  leaderboard:"leaderboard", profile:"more", keys:"more", admin:"more", help:"more" };
 function syncNav(id){
   const nav = $("bnav"); if(nav) nav.classList.toggle("hide", id === "login" || id === "assessment");
   const t = NAV_TAB[id];
@@ -1957,8 +1985,47 @@ document.querySelectorAll(".mrow").forEach(r => r.onclick = () => {
   else if(a === "leveltest") startAssessment();
   else if(a === "keys"){ show("keys"); loadKeysUI(); }
   else if(a === "admin") openAdmin();
+  else if(a === "help") openHelp();
   else if(a === "signout") logout();
 });
+
+// ---- Help & Feedback ----
+function openHelp(){
+  show("help");
+  const ta = $("helpText"), st = $("helpStatus"), send = $("helpSend");
+  if(ta){ ta.value = ""; }
+  if(st){ st.textContent = ""; }
+  if(send){ send.disabled = false; send.textContent = "Send"; }
+  updateHelpCount();
+  setTimeout(() => { if($("helpText")) $("helpText").focus(); }, 80);
+}
+function helpWords(){ const v = ($("helpText").value || "").trim(); return v ? v.split(/\s+/).length : 0; }
+function updateHelpCount(){
+  const n = helpWords(), el = $("helpWords"), box = el && el.parentElement;
+  if(el) el.textContent = n;
+  if(box) box.classList.toggle("over", n > 50);
+}
+if($("helpText")) $("helpText").addEventListener("input", updateHelpCount);
+if($("helpBack")) $("helpBack").onclick = () => show("home");
+if($("helpSend")) $("helpSend").onclick = async () => {
+  const ta = $("helpText"), st = $("helpStatus"), send = $("helpSend");
+  const text = (ta.value || "").trim();
+  if(!text){ st.textContent = "Please type your message first."; return; }
+  if(helpWords() > 50){ st.textContent = "Please keep it under 50 words."; return; }
+  send.disabled = true; send.textContent = "Sending…"; st.textContent = "";
+  try{
+    const r = await fetch("/feedback", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ token: authToken, kind: $("helpKind").value, text }) });
+    if(!r.ok) throw new Error("send failed");
+    ta.value = ""; updateHelpCount();
+    showNotif("✅ Sent — thank you! We'll read it.");
+    show("home");
+  }catch(_){
+    st.textContent = "Couldn't send — please try again.";
+  } finally {
+    send.disabled = false; send.textContent = "Send";
+  }
+};
 if($("msheetBg")) $("msheetBg").onclick = () => { toggleSheet(false); syncNav($("home").classList.contains("on") ? "home" : "practice"); };
 if($("notifX")) $("notifX").onclick = () => { const b = $("notifBar"); if(b) b.hidden = true; };
 
@@ -2047,6 +2114,14 @@ async function openAdmin(){
     h += `<div class="admin-head">Free access (our keys)</div>
       <div class="offAdd"><input id="offEmail" type="email" placeholder="person@email.com"/><button class="uBtn ok" id="offAddBtn">Add</button></div>
       <div id="offList">` + (oe.length ? oe.map(e=>`<div class="admin-row">${esc(e)}<button class="uBtn bad" data-off="${esc(e)}" style="margin-left:auto">Remove</button></div>`).join("") : '<p class="keys-note">No extra free emails.</p>') + `</div>`;
+    // Feedback / help messages from users
+    const fb = d.feedback || [];
+    h += `<div class="admin-head">Feedback &amp; help (${fb.length})</div>`;
+    h += fb.length
+      ? fb.map(f=>`<div class="admin-row" style="flex-direction:column;align-items:flex-start;gap:4px">
+          <div style="font-size:11px;color:var(--ink-faint)">${f.kind==='help'?'🆘 Help':'💬 Feedback'} · ${esc(f.email||'')} · ${(f.at||'').slice(0,10)}</div>
+          <div style="font-size:13px;color:var(--ink)">${esc(f.text||'')}</div></div>`).join("")
+      : '<p class="keys-note">No messages yet.</p>';
     h += `<div class="admin-head">Users</div>`;
     if(!users.length){ el.innerHTML = h + '<p class="keys-note" style="text-align:center">No users yet.</p>';
       wireOffice(); return; }

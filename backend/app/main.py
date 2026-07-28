@@ -336,6 +336,39 @@ async def keys_get(inp: KeysGetIn, authorization: str | None = Header(None)):
     return {"keys": keys, "verified": verified}
 
 
+class FeedbackIn(BaseModel):
+    token: str = ""
+    kind: str = "feedback"     # feedback | help
+    text: str = ""
+
+
+@app.post("/feedback")
+async def feedback(inp: FeedbackIn, authorization: str | None = Header(None)):
+    """Store a Help/Feedback message from the signed-in user (+ optional owner webhook)."""
+    claims = auth.read_session(_bearer(authorization, inp.token))
+    if not claims:
+        raise HTTPException(401, "Not signed in")
+    text = (inp.text or "").strip()
+    if not text:
+        raise HTTPException(400, "empty")
+    kind = "help" if inp.kind == "help" else "feedback"
+    if db.db_enabled and claims.get("sub"):
+        try:
+            await db.login(claims)   # ensure user row exists (FK)
+            await db.add_feedback(claims["sub"], claims.get("email", ""), kind, text)
+        except Exception as e:
+            print(f"[feedback] save failed: {type(e).__name__}: {e}")
+    wh = os.getenv("FEEDBACK_WEBHOOK")   # optional: instant owner ping (e.g. Discord/Slack)
+    if wh:
+        try:
+            import httpx
+            async with httpx.AsyncClient(timeout=5) as c:
+                await c.post(wh, json={"content": f"[DuSu {kind}] {claims.get('email','')}: {text[:500]}"})
+        except Exception as e:
+            print(f"[feedback] webhook failed: {type(e).__name__}: {e}")
+    return {"ok": True}
+
+
 def _require_owner(token: str, authorization: str | None):
     claims = auth.read_session(_bearer(authorization, token))
     if not claims:
@@ -364,6 +397,7 @@ async def admin_overview(token: str = "", authorization: str | None = Header(Non
                 "office": sum(1 for u in users if u["mode"] == "office"),
             }
             out["office_emails"] = await db.office_list()
+            out["feedback"] = await db.list_feedback(50)
         except Exception as e:
             print(f"[admin] list failed: {type(e).__name__}: {e}")
     out["require_own_keys"] = await require_own_keys_on()

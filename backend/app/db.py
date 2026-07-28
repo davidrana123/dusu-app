@@ -166,6 +166,17 @@ class UserKey(Base):
     updated_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=_now)
 
 
+class Feedback(Base):
+    """User-submitted feedback / help request from the Help screen."""
+    __tablename__ = "feedback"
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), index=True)
+    email: Mapped[str] = mapped_column(String(255), default="")
+    kind: Mapped[str] = mapped_column(String(20), default="feedback")   # feedback | help
+    text: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
 class Conversation(Base):
     """One row per finished conversation/interview/free-practice session — a
     short LLM summary DuSu can recall later ('last time we talked about...')."""
@@ -870,6 +881,27 @@ async def set_next_hook(user_id: str, hook: str) -> None:
         await s.commit()
 
 
+async def add_feedback(user_id: str, email: str, kind: str, text: str) -> None:
+    """Store a Help/Feedback message from a user."""
+    text = (text or "").strip()[:600]
+    if not text:
+        return
+    kind = "help" if kind == "help" else "feedback"
+    async with _Session() as s:               # type: ignore[misc]
+        s.add(Feedback(user_id=user_id, email=email or "", kind=kind, text=text))
+        await s.commit()
+
+
+async def list_feedback(limit: int = 100) -> list[dict]:
+    """Recent feedback for the owner dashboard (newest first)."""
+    async with _Session() as s:               # type: ignore[misc]
+        rows = (await s.execute(
+            select(Feedback).order_by(desc(Feedback.created_at)).limit(limit)
+        )).scalars().all()
+        return [{"email": r.email, "kind": r.kind, "text": r.text,
+                 "at": r.created_at.isoformat() if r.created_at else ""} for r in rows]
+
+
 async def save_user_keys(user_id: str, keys: dict, verified: bool) -> None:
     """Persist the user's BYOK provider keys (sealed). Only non-empty values kept."""
     clean = {k: str(v).strip() for k, v in (keys or {}).items() if v and str(v).strip()}
@@ -1251,7 +1283,7 @@ async def admin_wipe_users(keep_emails: set[str]) -> int:
         del_ids = [u.id for u in users if (u.email or "").strip().lower() not in keep]
         if not del_ids:
             return 0
-        for tbl in (Conversation, Memory, Progress, Profile, UserKey):
+        for tbl in (Conversation, Memory, Progress, Profile, UserKey, Feedback):
             await s.execute(delete(tbl).where(tbl.user_id.in_(del_ids)))
         await s.execute(delete(User).where(User.id.in_(del_ids)))
         await s.commit()
@@ -1263,7 +1295,7 @@ async def delete_user(user_id: str) -> bool:
     if not db_enabled:
         return False
     async with _Session() as s:               # type: ignore[misc]
-        for tbl in (Conversation, Memory, Progress, Profile, UserKey):
+        for tbl in (Conversation, Memory, Progress, Profile, UserKey, Feedback):
             await s.execute(delete(tbl).where(tbl.user_id == user_id))
         u = await s.get(User, user_id)
         if u:
