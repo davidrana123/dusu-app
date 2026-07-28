@@ -1027,7 +1027,8 @@
     color:var(--ink-faint);font-size:10.5px;font-weight:600;border:none;background:none;font-family:inherit}
   .btab svg{width:23px;height:23px;stroke:currentColor;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
   .btab.active{color:var(--gold-lt)}
-  .btab-hero{ color:var(--gold-lt); }   /* Daily Talk — accented but aligned with the others */
+  /* Daily uses the SAME states as every other tab — muted by default, gold only when
+     its screen is active. (No permanent accent — that made it look always-selected.) */
   .btab.center{position:relative}
   .btab.center .fab{position:absolute;top:-22px;width:56px;height:56px;border-radius:50%;background:var(--grad);display:grid;place-items:center;box-shadow:0 10px 26px -6px rgba(111,140,255,.7)}
   .btab.center .fab svg{width:26px;height:26px;stroke:#12141b}
