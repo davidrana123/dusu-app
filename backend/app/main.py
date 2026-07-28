@@ -567,10 +567,13 @@ async def checkin(inp: CheckinIn):
 @app.post("/greeting")
 async def greeting(inp: TokenIn):
     """The Companion Moment — DuSu's AI-generated Hinglish greeting from memory."""
-    set_active_keys(inp.keys)
     claims = auth.read_session(inp.token)
     if not claims:
         raise HTTPException(401, "Not signed in")
+    ok, eff, _r = await resolve_keys(claims.get("email", ""), inp.keys)
+    if not ok:
+        raise HTTPException(402, "keys_required")
+    set_active_keys(eff)
     if not db.db_enabled:
         return {"text": ""}
     try:
@@ -615,10 +618,13 @@ async def futureme(inp: FutureMeIn):
 async def letter(inp: TokenIn):
     """Return this week's personal note from DuSu (generates one if stale)."""
     import datetime as _dt
-    set_active_keys(inp.keys)
     claims = auth.read_session(inp.token)
     if not claims:
         raise HTTPException(401, "Not signed in")
+    ok, eff, _r = await resolve_keys(claims.get("email", ""), inp.keys)
+    if not ok:
+        raise HTTPException(402, "keys_required")
+    set_active_keys(eff)
     if not db.db_enabled:
         return {"letter": None}
     try:
@@ -677,9 +683,13 @@ class LessonDoneIn(BaseModel):
 @app.post("/lesson/evaluate")
 async def lesson_evaluate(inp: LessonEvalIn):
     """Score one spoken lesson answer, return warm feedback (no DB write)."""
-    set_active_keys(inp.keys)
-    if not auth.read_session(inp.token):
+    claims = auth.read_session(inp.token)
+    if not claims:
         raise HTTPException(401, "Not signed in")
+    ok, eff, _r = await resolve_keys(claims.get("email", ""), inp.keys)
+    if not ok:
+        raise HTTPException(402, "keys_required")
+    set_active_keys(eff)
     payload = (
         f"lang: {inp.lang}\ntype: {inp.type}\n"
         f"prompt: {inp.prompt}\ntarget: {inp.target or '(open answer)'}\n"
@@ -726,10 +736,13 @@ class LevelTestIn(BaseModel):
 async def level_test_submit(inp: LevelTestIn):
     """Score a whole Level Test in one LLM call, persist the attempt, and
     unlock the next level if the learner passed (>=70)."""
-    set_active_keys(inp.keys)
     claims = auth.read_session(inp.token)
     if not claims:
         raise HTTPException(401, "Not signed in")
+    ok, eff, _r = await resolve_keys(claims.get("email", ""), inp.keys)
+    if not ok:
+        raise HTTPException(402, "keys_required")
+    set_active_keys(eff)
     lines = "\n\n".join(
         f"Item {i+1}:\n  prompt: {it.prompt}\n  target: {it.target or '(open answer)'}\n  learner said: {it.said or '(no answer)'}"
         for i, it in enumerate(inp.items)

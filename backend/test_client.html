@@ -2270,6 +2270,7 @@ document.querySelectorAll(".foot-col a[data-mode]").forEach(a => a.onclick = () 
 $("toTop").onclick = () => window.scrollTo({ top:0, behavior:"smooth" });
 
 function startSession(mode){
+  if(guardKeys()) return;   // no verified own keys → keys screen (covers direct callers, not just chooseMode)
   if(!SR){ $("warn").textContent = "Voice input needs Chrome or Edge (Web Speech API)."; return; }
   if(overLimit()){
     $("warn").textContent = `You've reached today's limit of ${MAX_SESSIONS} sessions. Come back tomorrow 🙂`;
@@ -2561,6 +2562,7 @@ function micEnable(b){ $("micBtn").disabled = !b; }
 function micActive(b){ $("micBtn").classList.toggle("listening", b); }
 
 function startLearning(){
+  if(guardKeys()) return;   // no verified own keys → keys screen (covers direct callers, not just chooseMode)
   if(!SR){ $("warn").textContent = "Voice needs Chrome or Edge."; return; }
   if(overLimit()){
     $("warn").textContent = `You've reached today's limit of ${MAX_SESSIONS} sessions. Come back tomorrow 🙂`; return;
