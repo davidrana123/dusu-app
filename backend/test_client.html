@@ -4042,17 +4042,26 @@ function logout(){
 $("logoutBtn").onclick = logout;
 
 // Deterministic login gate — decides the screen after /me: keys → test → home.
-function routeAfterLogin(){
-  // 1) non-free user must have their own VERIFIED keys
+// fromRefresh=true means this is the BACKGROUND /me re-confirm (not a boot/login/gesture).
+// In that case, once the gates pass we must NOT yank the user off whatever screen they
+// navigated to while /me was in flight — only refresh Home if they're already on it.
+function routeAfterLogin(fromRefresh){
+  // 1) non-free user must have their own VERIFIED keys (hard gate — always enforce)
   if(needsKeys() && !hasOwnKeys()){
     if(useMode !== "office"){ useMode = "office"; localStorage.setItem("dusu_usemode","office"); }
     show("keys"); loadKeysUI();
     if($("keysStatus")) $("keysStatus").innerHTML = "🔒 Add your own free API keys (at least 2) to start.";
     return;
   }
-  // 2) test (level check) not done yet
-  if(userState && userState.onboarded === false){ startAssessment(); return; }
-  // 3) all good → home
+  // 2) test (level check) not done yet (guarded against double-start)
+  if(userState && userState.onboarded === false){ if(!aActive) startAssessment(); return; }
+  // 3) all good
+  if(fromRefresh){
+    // background re-confirm: don't navigate the user; just freshen Home if that's where they are
+    const cur = currentScreen();
+    if(cur === "home"){ try{ setWelcome(); renderHomeJourney(); }catch(_){} }
+    return;
+  }
   show("home"); try{ setWelcome(); renderHomeJourney(); }catch(_){}
 }
 
@@ -4066,7 +4075,7 @@ function refreshMe(){
       localStorage.setItem("dusu_onboarded", st.onboarded ? "true" : "false");
       // cache the whole state so the next boot paints mood/note/Continue instantly (no /me wait)
       try{ localStorage.setItem("dusu_state", JSON.stringify(st)); }catch(_){}
-      try{ routeAfterLogin(); }catch(_){}   // one deterministic gate: keys → test → home
+      try{ routeAfterLogin(true); }catch(_){}   // background re-confirm — never yanks the user off their screen
       return st;
     })
     .catch(() => null);   // offline/slow → keep the cached home, don't strand the user
