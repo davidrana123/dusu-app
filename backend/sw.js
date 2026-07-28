@@ -2,7 +2,7 @@
    Network-first for navigations (always try fresh HTML so deploys show up),
    falling back to cache when offline. WebSocket + API calls are never cached. */
 
-const CACHE = "dusu-v5";   // bumped: new DuSu logo/icon + never cache-first live paths
+const CACHE = "dusu-v6";   // bumped: force fresh app JS (keys-gate/routing fixes) + purge stale cache
 const SHELL = ["/", "/logo.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {

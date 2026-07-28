@@ -2920,8 +2920,8 @@ function listenOnce(lang){
 }
 
 function startAssessment(){
+  if(guardKeys()) return;            // HARD gate first — never enter the test without verified own keys
   if(aActive) return;                // already running — ignore the 2nd boot call (Bug: repeating speech)
-  if(guardKeys()) return;
   if(!SR){ show("home"); return; }   // voice assessment needs Web Speech; skip if unavailable
   aActive = true;
   aData = { lang:"en", about:{ interests:{} }, goal:"", comfort:"", practice_time:"", intro:"", repeat_said:"", think_said:"", open_said:"",
@@ -3022,6 +3022,7 @@ function aInterests(){
 // ONE dynamic fetch up front → fresh MCQs + voice tasks, so the whole test is
 // model-generated and never memorizable. Falls back to the built-in questions on failure.
 async function aLoadTest(){
+  if(guardKeys()) return;   // defense-in-depth: bail to keys if this account still lacks verified keys
   aBar(15);
   aRender(`<div class="assess-face">🧠</div><h2>${AL2("Getting your test ready…","Aapka test taiyaar ho raha hai…")}</h2><div class="spin" style="margin:18px auto"></div>`);
   try{
