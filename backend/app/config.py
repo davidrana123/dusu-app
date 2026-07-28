@@ -62,8 +62,9 @@ class Settings(BaseSettings):
                 "key": self.openrouter_api_key,
                 "models": [
                     "openai/gpt-oss-20b:free",
-                    "nvidia/nemotron-3-super-120b-a12b:free",
-                ],  # dropped meta-llama/llama-3.3-70b-instruct:free → now paid-only (404)
+                    "openai/gpt-oss-120b:free",
+                ],  # English-reliable free models only. Dropped nvidia/nemotron (multilingual
+                    # → drifted to non-English) and meta-llama/llama-3.3 (now paid, 404).
                 "headers": {"HTTP-Referer": "https://dusu-app-1.onrender.com", "X-Title": "DuSu"},
                 "extra": {"reasoning": {"exclude": True, "effort": "low"}},
             })
@@ -96,7 +97,7 @@ class Settings(BaseSettings):
         if k.get("openrouter"):
             chain.append({"name": "openrouter", "base_url": "https://openrouter.ai/api/v1",
                 "key": k["openrouter"],
-                "models": ["openai/gpt-oss-20b:free", "nvidia/nemotron-3-super-120b-a12b:free"],
+                "models": ["openai/gpt-oss-20b:free", "openai/gpt-oss-120b:free"],  # English-reliable only
                 "headers": {"HTTP-Referer": "https://dusu-app-1.onrender.com", "X-Title": "DuSu"},
                 "extra": {"reasoning": {"exclude": True, "effort": "low"}}})
         if k.get("github"):
