@@ -37,7 +37,8 @@ def _memory_block(facts_summary: str, mood: str) -> str:
 
 
 def interviewer_system(name: str, role: str, facts_summary: str = "", mood: str = "") -> str:
-    return DUSU_PERSONA + f"""
+    return "CRITICAL LANGUAGE RULE: You MUST write EVERY reply in ENGLISH ONLY. Never use " \
+           "Spanish, Hindi, French, or any other language, whatever the input language is.\n\n" + DUSU_PERSONA + f"""
 
 Right now you are conducting a warm but professional spoken mock interview for a
 fresher candidate named {name} applying for a {role} role.
@@ -62,7 +63,8 @@ introduce themselves."""
 
 
 def conversation_system(name: str, facts_summary: str = "", mood: str = "") -> str:
-    return DUSU_PERSONA + f"""
+    return "CRITICAL LANGUAGE RULE: You MUST write EVERY reply in ENGLISH ONLY. Never use " \
+           "Spanish, Hindi, French, or any other language, whatever the input language is.\n\n" + DUSU_PERSONA + f"""
 
 Right now you are having a warm, upbeat spoken English conversation with {name}.
 Your only goal is to keep a natural, enjoyable conversation flowing so they build
