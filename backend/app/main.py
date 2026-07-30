@@ -45,46 +45,75 @@ def role_for(email: str) -> str:
     if e in {x.lower() for x in UNLIMITED_EMAILS}: return "unlimited"
     return "user"
 
-async def free_access(email: str) -> bool:
-    """Who may use OUR default keys (normal mode): owner, unlimited allowlist,
-    or an owner-added free-access email (e.g. Surendri). Everyone else must BYOK
-    while the require_own_keys switch is ON."""
-    if role_for(email) in ("owner", "unlimited"):
-        return True
+# v2 access model:
+#   owner / unlimited  → our keys, no quota
+#   office-approved    → BYOK (their own keys), no quota
+#   everyone else FREE → our keys, capped at PLAN_LIMITS[plan] requests/day
+PLAN_LIMITS = {"free": 5, "starter": 50, "plus": 150, "pro": None}   # None = unlimited
+FREE_LIMIT = 5         # free plan = 5 model requests per day
+FREE_TRIAL_DAYS = 20   # free tier = a 20-day trial (5 requests/day); after that → subscribe
+
+
+async def trial_left(uid: str | None) -> int:
+    """Days left in the free 20-day trial (0 = expired)."""
+    if not (uid and db.db_enabled):
+        return FREE_TRIAL_DAYS
+    try:
+        return max(0, FREE_TRIAL_DAYS - await db.signup_day_count(uid))
+    except Exception:
+        return FREE_TRIAL_DAYS
+
+
+async def is_office(email: str) -> bool:
+    """Owner-approved for OFFICE = brings own keys (BYOK) + sees the Keys option."""
     try:
         return await db.office_has(email)
     except Exception:
         return False
 
-# backwards-compat alias (Office visibility == free vs must-bring-own)
-office_allowed = free_access
 
-async def require_own_keys_on() -> bool:
-    """Global switch (owner-controlled). ON = non-free users MUST use their own keys."""
-    try:
-        return (await db.get_setting("require_own_keys", "1")) == "1"
-    except Exception:
-        return True
+async def is_unlimited(email: str) -> bool:
+    """No daily quota: owner, unlimited allowlist, or office-approved (they pay via own keys)."""
+    return role_for(email) in ("owner", "unlimited") or await is_office(email)
+
 
 async def resolve_keys(email: str, keys: dict, uid: str | None = None):
-    """Decide the effective key chain for a request.
-    Returns (ok, effective_keys_or_None, reason). effective None = use our default chain.
-    Non-free users: use client-sent keys if present, else load their stored (DB) keys —
-    so a returning user on any device works without re-entering keys."""
-    ro = await require_own_keys_on()
-    free = await free_access(email)
-    if not ro or free:
-        return True, None, ""                 # normal mode → our default keys
-    if keys and any((str(v).strip() for v in (keys or {}).values())):
-        return True, keys, ""                 # BYOK → client-sent keys
-    if uid and db.db_enabled:
-        try:
-            stored = await db.get_user_keys(uid)
-            if stored and any(str(v).strip() for v in stored.values()):
-                return True, stored, ""       # BYOK → their saved keys
-        except Exception as e:
-            print(f"[keys] load stored failed: {type(e).__name__}: {e}")
-    return False, None, "keys_required"       # must add own keys first
+    """Effective key chain. (ok, keys_or_None, reason). None = our default chain.
+    FREE + owner/unlimited use OUR keys; OFFICE-approved must BYOK (client or stored)."""
+    if role_for(email) in ("owner", "unlimited"):
+        return True, None, ""                 # our keys
+    if await is_office(email):                # BYOK required for office accounts
+        if keys and any((str(v).strip() for v in (keys or {}).values())):
+            return True, keys, ""
+        if uid and db.db_enabled:
+            try:
+                stored = await db.get_user_keys(uid)
+                if stored and any(str(v).strip() for v in stored.values()):
+                    return True, stored, ""
+            except Exception as e:
+                print(f"[keys] load stored failed: {type(e).__name__}: {e}")
+        return False, None, "keys_required"
+    return True, None, ""                     # FREE tier → our keys (quota enforced separately)
+
+
+async def charge_request(email: str, uid: str | None, day: str) -> dict:
+    """Count one model request against the FREE daily quota. Unlimited users bypass.
+    Returns {allowed, left, limit, unlimited}."""
+    if await is_unlimited(email) or not (uid and db.db_enabled):
+        return {"allowed": True, "left": None, "limit": None, "unlimited": True}
+    plan = "free"
+    try:
+        plan = await db.get_plan(uid)
+    except Exception:
+        pass
+    limit = PLAN_LIMITS.get(plan, FREE_LIMIT)
+    if limit is None:                         # paid unlimited (pro)
+        return {"allowed": True, "left": None, "limit": None, "unlimited": True}
+    if plan == "free" and await trial_left(uid) <= 0:   # free trial expired → must subscribe
+        return {"allowed": False, "left": 0, "limit": limit, "unlimited": False, "trial_over": True}
+    r = await db.incr_request(uid, day, limit)
+    return {"allowed": r["allowed"], "left": r["left"], "limit": limit, "unlimited": False,
+            "trial_over": False}
 
 def _is_quota(e) -> bool:
     """Does this error look like the user's keys hit their limit / all exhausted?"""
@@ -211,36 +240,64 @@ def _bearer(header: str | None, token: str) -> str:
     return token
 
 
+def _utc_day() -> str:
+    import datetime as _d
+    return _d.datetime.now(_d.timezone.utc).date().isoformat()
+
+
+# Quota day is SERVER-authoritative in fixed IST (UTC+5:30). Client-sent day is IGNORED
+# (was spoofable + caused day-bucket mismatch → false "instant reset"). Resets at IST
+# midnight, i.e. right after 11:59 pm each day — one bucket per user per calendar day.
+_IST = None
+def _quota_day() -> str:
+    import datetime as _d
+    global _IST
+    if _IST is None:
+        _IST = _d.timezone(_d.timedelta(hours=5, minutes=30))
+    return _d.datetime.now(_IST).date().isoformat()
+
+
 @app.get("/me")
-async def me(token: str = "", authorization: str | None = Header(None)):
-    """Return the signed-in user's saved state (for reload / routing)."""
+async def me(token: str = "", day: str = "", authorization: str | None = Header(None)):
+    """Return the signed-in user's saved state (for reload / routing) + access + quota."""
     claims = auth.read_session(_bearer(authorization, token))
     if not claims:
         raise HTTPException(401, "Not signed in")
-    _role = role_for(claims.get("email", ""))
-    _free = await free_access(claims.get("email", ""))
-    _ro = await require_own_keys_on()
-    # has_keys = this account already has verified keys stored server-side (free users
-    # implicitly "have keys" = our chain) → the client can skip the keys gate on return.
-    _has_keys = _free
-    if not _free and db.db_enabled and claims.get("sub"):
+    email = claims.get("email", "")
+    uid = claims.get("sub")
+    _role = role_for(email)
+    _office = await is_office(email)          # BYOK + Keys visibility
+    _unlim = await is_unlimited(email)        # no quota
+    plan, req_left, req_limit, trial_days, trial_over = "free", None, None, None, False
+    if not _unlim and db.db_enabled and uid:
         try:
-            _has_keys = await db.has_user_keys(claims["sub"])
+            plan = await db.get_plan(uid)
+            req_limit = PLAN_LIMITS.get(plan, FREE_LIMIT)
+            if req_limit is not None:
+                used = await db.usage_today(uid, _quota_day())   # server IST day (ignore client `day`)
+                req_left = max(0, req_limit - used)
+            if plan == "free":
+                trial_days = await trial_left(uid)
+                trial_over = trial_days <= 0
+        except Exception:
+            pass
+    # has_keys: office accounts must BYOK; everyone else rides our keys.
+    _has_keys = True
+    if _office and db.db_enabled and uid:
+        try:
+            _has_keys = await db.has_user_keys(uid)
         except Exception:
             _has_keys = False
+    common = {"role": _role, "email": email, "office": _office, "office_allowed": _office,
+              "unlimited": _unlim, "plan": plan, "requests_left": req_left,
+              "request_limit": req_limit, "trial_days_left": trial_days, "trial_over": trial_over,
+              "has_keys": _has_keys}
     if not db.db_enabled:
-        return {"onboarded": None, "role": _role, "email": claims.get("email", ""),
-                "office_allowed": _free, "free_access": _free, "require_own_keys": _ro,
-                "has_keys": _has_keys}
+        return {"onboarded": None, **common}
     try:
-        state = await db.login(claims)   # upsert row + return state (handles cached-token logins)
+        state = await db.login(claims)   # upsert row + bump last_seen + return state
         if isinstance(state, dict):
-            state["role"] = _role
-            state["email"] = claims.get("email", "")
-            state["office_allowed"] = _free
-            state["free_access"] = _free
-            state["require_own_keys"] = _ro
-            state["has_keys"] = _has_keys
+            state.update(common)
         if isinstance(state, dict) and state.get("onboarded"):
             try:
                 uid_ = claims["sub"]
@@ -369,6 +426,117 @@ async def feedback(inp: FeedbackIn, authorization: str | None = Header(None)):
     return {"ok": True}
 
 
+# --- Super Admin portal (separate static-cred gate, server-side) ---
+import hmac as _hmac
+import hashlib as _hashlib
+_SA_USER = os.getenv("SUPERADMIN_USER", "DuSuRuralAppAdmin")
+_SA_PASS = os.getenv("SUPERADMIN_PASS", "Sup$#307Admin")
+
+
+def _sa_make(ttl: int = 8 * 3600) -> str:
+    """Signed super-admin session token (HMAC over expiry with the app secret)."""
+    exp = int(time.time()) + ttl
+    sig = _hmac.new(settings.session_secret.encode(), f"sa:{exp}".encode(), _hashlib.sha256).hexdigest()
+    return f"{exp}.{sig}"
+
+
+def _sa_check(token: str) -> bool:
+    try:
+        exp_s, sig = (token or "").split(".", 1)
+        exp = int(exp_s)
+        if exp < int(time.time()):
+            return False
+        good = _hmac.new(settings.session_secret.encode(), f"sa:{exp}".encode(), _hashlib.sha256).hexdigest()
+        return _hmac.compare_digest(sig, good)
+    except Exception:
+        return False
+
+
+def _require_sa(token: str):
+    if not _sa_check(token):
+        raise HTTPException(401, "Super admin session required")
+
+
+class SuperAdminIn(BaseModel):
+    username: str = ""
+    password: str = ""
+
+
+class SaTokenIn(BaseModel):
+    token: str = ""
+
+
+class SaApproveIn(BaseModel):
+    token: str = ""
+    email: str = ""
+    on: bool = True
+
+
+class SaActionIn(BaseModel):
+    token: str = ""
+    user_id: str = ""
+    action: str = ""     # block | unblock | delete
+
+
+@app.post("/superadmin/auth")
+async def superadmin_auth(inp: SuperAdminIn):
+    """Verify the static super-admin credentials SERVER-SIDE (constant-time) → issue a
+    signed super-admin session token used by every /superadmin/* data endpoint."""
+    ok = (_hmac.compare_digest(inp.username or "", _SA_USER)
+          and _hmac.compare_digest(inp.password or "", _SA_PASS))
+    if not ok:
+        raise HTTPException(401, "Invalid credentials")
+    return {"ok": True, "token": _sa_make()}
+
+
+@app.post("/superadmin/overview")
+async def superadmin_overview(inp: SaTokenIn):
+    """All users + analytics (super-admin only)."""
+    _require_sa(inp.token)
+    if not db.db_enabled:
+        return {"db": False, "users": [], "counts": {}}
+    users = await db.admin_list_users()
+    for u in users:
+        u["role"] = role_for(u.get("email", ""))
+    counts = {
+        "total": len(users),
+        "online": sum(1 for u in users if u.get("online")),
+        "office": sum(1 for u in users if u.get("office")),
+        "blocked": sum(1 for u in users if u.get("status") == "blocked"),
+        "paid": sum(1 for u in users if (u.get("plan") or "free") != "free"),
+    }
+    return {"db": True, "users": users, "counts": counts, "office_emails": await db.office_list()}
+
+
+@app.post("/superadmin/approve")
+async def superadmin_approve(inp: SaApproveIn):
+    """Approve (or revoke) an email for OFFICE use → grants BYOK + the Keys option."""
+    _require_sa(inp.token)
+    email = (inp.email or "").strip().lower()
+    if not email:
+        raise HTTPException(400, "email required")
+    if inp.on:
+        await db.office_add(email)
+    else:
+        await db.office_remove(email)
+    return {"ok": True, "email": email, "office": inp.on}
+
+
+@app.post("/superadmin/action")
+async def superadmin_action(inp: SaActionIn):
+    """Block / unblock / delete a user (super-admin only)."""
+    _require_sa(inp.token)
+    if inp.action == "delete":
+        await db.delete_user(inp.user_id)
+    elif inp.action == "block":
+        await db.set_user_status(inp.user_id, "blocked")
+    elif inp.action == "unblock":
+        await db.set_user_status(inp.user_id, "active")
+    else:
+        raise HTTPException(400, "bad action")
+    return {"ok": True}
+
+
 def _require_owner(token: str, authorization: str | None):
     claims = auth.read_session(_bearer(authorization, token))
     if not claims:
@@ -400,7 +568,6 @@ async def admin_overview(token: str = "", authorization: str | None = Header(Non
             out["feedback"] = await db.list_feedback(50)
         except Exception as e:
             print(f"[admin] list failed: {type(e).__name__}: {e}")
-    out["require_own_keys"] = await require_own_keys_on()
     return out
 
 
@@ -970,6 +1137,8 @@ async def interview_ws(ws: WebSocket):
     uid: str | None = None
     started_at = time.monotonic()
     persisted = False
+    _email = ""
+    quota_day = _quota_day()   # server IST day → deterministic reset at 11:59pm (client day ignored)
 
     async def _persist_session():
         """One combined LLM pass at session end → memory + courage badges."""
@@ -1065,6 +1234,7 @@ async def interview_ws(ws: WebSocket):
                 persisted = False
                 # time-of-day from the client's local hour (0-23)
                 hour = data.get("hour")
+                quota_day = _quota_day()   # server IST day for the request quota (client `day` ignored)
                 tod = ""
                 if isinstance(hour, (int, float)):
                     tod = "morning" if hour < 12 else "afternoon" if hour < 17 else "evening"
@@ -1112,6 +1282,16 @@ async def interview_ws(ws: WebSocket):
                 text = (data.get("text") or "").strip()
                 if not text:
                     continue
+                # FREE-tier request quota (owner/unlimited/office bypass inside charge_request).
+                # One request = one model-generating user turn, across all modes.
+                q = await charge_request(_email, uid, quota_day)
+                if not q["allowed"]:
+                    await _send(ws, type="quota_exceeded", left=0, limit=q.get("limit"),
+                                trial_over=q.get("trial_over", False))
+                    continue
+                if not q.get("unlimited") and q.get("limit") is not None:
+                    # live header update: tell the client the new remaining count for today
+                    await _send(ws, type="quota_update", left=q["left"], limit=q["limit"])
                 if session.mode == "learning":
                     await _send(ws, type="status", msg="translating")
                     try:
@@ -1179,3 +1359,14 @@ async def interview_ws(ws: WebSocket):
             pass
     finally:
         await _persist_session()   # also persist if the socket just dropped
+
+
+# SPA fallback — MUST be the last route. Serves the app shell for client-side routes
+# (/daily-talk, /face-to-face, /interview, /learning-journey, /practice, /leaderboard, /more)
+# so deep-links and page refreshes work. Specific API/asset routes above are matched first;
+# paths that look like a file (contain a dot) get a real 404 instead of the HTML shell.
+@app.get("/{full_path:path}", include_in_schema=False)
+async def spa_fallback(full_path: str):
+    if "." in full_path.rsplit("/", 1)[-1]:
+        raise HTTPException(404, "Not found")
+    return await index()

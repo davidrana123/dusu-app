@@ -333,11 +333,11 @@
     box-shadow:0 0 8px var(--accent); }
 
   .mode-card h3 { font-family:var(--font-d); font-size:17px; font-weight:600; margin:0; flex:0 1 auto; white-space:nowrap; color:#f3f4f8; }
-  .mode-card p, .mc-chips, .mc-badge, .mc-wm { display:none; }   /* compact button — label + icon + arrow only */
-
-  .mc-chips { display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; }
+  /* compact button — label + icon + arrow only. NOTE: this must be the LAST rule that
+     touches .mc-chips or the old display:flex below would win the cascade and re-show them. */
   .mc-chips span { font-size:11px; color:#b7bcc9; padding:4px 9px; border-radius:999px;
     background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); white-space:nowrap; }
+  .mode-card p, .mc-chips, .mc-badge, .mc-wm { display:none !important; }
 
   .mc-cta { margin:0; padding:0; display:flex; align-items:center; flex:none; font-size:0; }   /* hide label text, keep arrow */
   .mc-cta b { display:inline-grid; place-items:center; width:24px; height:24px; border-radius:50%;
@@ -978,6 +978,19 @@
   .help-ta{ resize:vertical; min-height:96px; line-height:1.5 }
   .help-count{ font-size:12px; color:var(--ink-faint); text-align:right; margin:6px 2px 4px }
   .help-count.over{ color:#e08a7a }
+  /* subscription plans */
+  .plan-list{ display:flex; flex-direction:column; gap:12px; margin:6px 0 16px }
+  .plan{ text-align:left; cursor:pointer; background:var(--glass); border:1.5px solid var(--glass-brd);
+    border-radius:16px; padding:15px 16px; color:var(--ink); font:inherit; transition:transform .16s, border-color .2s, background .2s }
+  .plan:hover{ transform:translateY(-2px) }
+  .plan.sel{ border-color:var(--gold); background:color-mix(in srgb,var(--gold) 10%, var(--glass)); box-shadow:var(--gold-glow) }
+  .plan-top{ display:flex; align-items:center; gap:10px }
+  .plan-top b{ font-family:var(--font-d); font-size:18px; font-weight:700 }
+  .plan-price{ margin-left:auto; font-family:var(--font-d); font-size:20px; font-weight:700; color:var(--gold-lt) }
+  .plan-price i{ font-size:12px; font-style:normal; color:var(--ink-faint); font-weight:600 }
+  .plan-badge{ font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:#0b1020;
+    background:linear-gradient(90deg,var(--gold-lt),var(--gold)); padding:2px 8px; border-radius:999px }
+  .plan-feat{ font-size:12.5px; color:var(--ink-dim); line-height:1.5; margin-top:6px }
   .keyrow{ display:flex; align-items:center; gap:10px; font-size:12.5px; color:var(--ink-dim); margin-bottom:10px }
   .keyrow input{ flex:1; background:var(--glass); border:1px solid var(--glass-brd); border-radius:10px; padding:11px 12px; color:var(--ink); font:inherit; font-size:14px }
   .kst{ font-style:normal; width:16px; text-align:center }
@@ -985,7 +998,9 @@
   .admin-head{ font-family:var(--font-d); font-size:15px; color:var(--ink-dim); margin:16px 0 10px; text-align:center }
   .admin-row{ display:flex; align-items:center; flex-wrap:wrap; gap:8px 12px; padding:11px 14px; border-radius:12px; background:var(--glass); border:1px solid var(--glass-brd); margin-bottom:8px; font-size:14px; overflow-wrap:anywhere; word-break:break-word; min-width:0 }
   .admin-row .xp{ margin-left:auto; color:var(--gold-lt); font-size:13px }
-  .admin-stats{ display:flex; gap:8px; margin:6px 0 14px }
+  .admin-stats{ display:flex; flex-wrap:wrap; gap:8px; margin:6px 0 14px }
+  .sa-dot{ font-size:11px; color:var(--ink-faint); margin-left:auto }
+  .sa-dot.on{ color:#4fd6a0 }
   .admin-stats > div{ flex:1; text-align:center; background:var(--glass); border:1px solid var(--glass-brd); border-radius:12px; padding:10px 4px }
   .admin-stats b{ font-family:var(--font-d); font-size:22px; display:block }
   .admin-stats span{ font-size:10px; color:var(--ink-faint); text-transform:uppercase; letter-spacing:.05em }
@@ -1088,7 +1103,8 @@
     <div class="brand" id="homeBtn" title="Home" role="button">DuSu</div>
     <div class="tag" id="tagline">Speak with confidence</div>
     <div class="hdr-right" id="hdrRight" hidden>
-      <span class="usage-chip" id="usageChip" title="Sessions used today"></span>
+      <span class="usage-chip" id="reqChip" title="Free requests left today" hidden></span>
+      <span class="usage-chip" id="usageChip" title="Free trial days left" hidden></span>
       <div class="voicebar" title="DuSu's voice">
         <button class="vbtn on" data-voice="female" title="Female voice">♀</button>
         <button class="vbtn" data-voice="male" title="Male voice" style="display:none">♂</button>
@@ -1304,6 +1320,53 @@
       <div class="help-count"><span id="helpWords">0</span>/50 words</div>
       <button class="btn primary" id="helpSend" style="width:100%;margin-top:4px">Send</button>
       <div class="keys-status" id="helpStatus"></div>
+    </div>
+  </section>
+
+  <!-- ===================== SUPER ADMIN (static-cred gate) ===================== -->
+  <section id="superadmin" class="screen">
+    <div class="sess-head">
+      <button class="back back-home" id="saBack" title="Home"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>Home</span></button>
+      <div><div class="sess-title">Super Admin</div><div class="sess-sub">Owner control panel</div></div>
+    </div>
+    <div class="keys-wrap" id="saLogin">
+      <p class="keys-note">🔒 Restricted. Enter the super-admin credentials.</p>
+      <label class="help-lbl" for="saUser">Username</label>
+      <input id="saUser" class="atext" type="text" autocomplete="off" placeholder="username" />
+      <label class="help-lbl" for="saPass">Password</label>
+      <input id="saPass" class="atext" type="password" autocomplete="off" placeholder="password" />
+      <button class="btn primary" id="saEnter" style="width:100%;margin-top:12px">Enter</button>
+      <div class="keys-status" id="saStatus"></div>
+    </div>
+    <div class="keys-wrap" id="saPortal" hidden>
+      <p class="keys-note" style="font-size:14px;color:var(--ink)">✅ Authenticated as super admin.</p>
+      <p class="keys-note">The full portal — every user, live status, usage analytics, per-mode breakdown, approve for office, block/delete — is being built in the next phase. For now use the owner Dashboard (More → Dashboard).</p>
+    </div>
+  </section>
+
+  <!-- ===================== SUBSCRIBE (plans) ===================== -->
+  <section id="subscribe" class="screen">
+    <div class="sess-head">
+      <button class="back back-home" id="subBack" title="Home"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>Home</span></button>
+      <div><div class="sess-title">Choose your plan</div><div class="sess-sub">Unlock more practice with DuSu</div></div>
+    </div>
+    <div class="keys-wrap">
+      <div class="plan-list">
+        <button class="plan" data-plan="starter">
+          <div class="plan-top"><b>Starter</b><span class="plan-price">₹299<i>/mo</i></span></div>
+          <div class="plan-feat">Daily Talk · Learning Journey · Face-to-Face — higher daily limit</div>
+        </button>
+        <button class="plan" data-plan="plus">
+          <div class="plan-top"><b>Plus</b><span class="plan-price">₹599<i>/mo</i></span></div>
+          <div class="plan-feat">Everything in Starter + Interview practice, more requests/day</div>
+        </button>
+        <button class="plan" data-plan="pro">
+          <div class="plan-top"><b>Pro</b><span class="plan-badge">Best value</span><span class="plan-price">₹899<i>/mo</i></span></div>
+          <div class="plan-feat">All modes — Daily · Face-to-Face · Interview · Journey — unlimited use</div>
+        </button>
+      </div>
+      <button class="btn primary" id="subProceed" style="width:100%;margin-top:6px" disabled>Proceed</button>
+      <div class="keys-status" id="subStatus"></div>
     </div>
   </section>
 
@@ -1778,7 +1841,11 @@ function officeKeys(){
   try{ return JSON.parse(localStorage.getItem("dusu_office_keys") || "{}") || {}; }catch(_){ return {}; }
 }
 // Free access = uses OUR keys (owner / unlimited / owner-added). Others must BYOK while the switch is ON.
-function officeAllowed(){ return !!(userState && (userState.office_allowed || userState.free_access || userState.role === "owner" || userState.role === "unlimited")); }
+// Office-approved (BYOK + Keys visibility). owner/unlimited also ride our keys but may add.
+function officeAllowed(){ return !!(userState && (userState.office || userState.office_allowed || userState.role === "owner" || userState.role === "unlimited")); }
+// No daily quota (office/owner/unlimited/paid-unlimited).
+function isUnlimited(){ return !!(userState && userState.unlimited); }
+function localDay(){ try{ return new Date().toLocaleDateString("en-CA"); }catch(_){ return ""; } }  // YYYY-MM-DD local
 function savedKeys(){ try{ return JSON.parse(localStorage.getItem("dusu_office_keys") || "{}") || {}; }catch(_){ return {}; } }
 function keyCount(){ return Object.values(savedKeys()).filter(v => v && (""+v).trim()).length; }
 function keysVerified(){ return localStorage.getItem("dusu_keys_ok") === "1"; }   // passed /keys/verify
@@ -1812,7 +1879,8 @@ let _notifT = null;
 function showNotif(msg){ const b = $("notifBar"); if(!b) return; $("notifTxt").textContent = msg || ""; b.hidden = false;
   clearTimeout(_notifT); _notifT = setTimeout(() => { b.hidden = true; }, 10000); }
 // Must this user add their own keys? (global switch ON + not free-access)
-function needsKeys(){ return !!(userState && userState.require_own_keys && !officeAllowed()); }
+// Only OFFICE-approved accounts must bring their own keys; free users ride our keys.
+function needsKeys(){ return !!(userState && userState.office && !hasOwnKeys()); }
 function mustAddKeys(){ return needsKeys() && !hasOwnKeys(); }
 // Block a session start until keys are added; returns true if blocked.
 function guardKeys(){
@@ -1923,10 +1991,16 @@ const Assistant = (function(){
 
 // Screens that run a live voice loop (speak ↔ listen ↔ reply). Leaving one MUST tear it down.
 const VOICE_SCREENS = new Set(["session","daily","learning"]);
+// Speech "epoch": every teardown bumps it. A chained speaker (say A → say B → …) captures
+// the epoch at start and aborts the moment it changes — so cancel() during a chain doesn't
+// let the NEXT line speak. Fixes "Finish / switch tab but DuSu keeps talking".
+let speakEpoch = 0;
+function killSpeech(){ speakEpoch++; try{ if(window.speechSynthesis) window.speechSynthesis.cancel(); }catch(_){} }
 function currentScreen(){ const el = document.querySelector(".screen.on"); return el ? el.id : ""; }
 // Kill BOTH voice loops (conversation + daily): stop mic, cancel speech, drop the socket.
 function stopAllVoice(){
   running = false; aiSpeaking = false;
+  speakEpoch++;                                                       // abort any in-flight speak chain
   try{ stopListening(); }catch(_){}                                   // conversation STT (recog)
   try{ if(typeof drec !== "undefined" && drec){ drec.onend = null; drec.stop(); drec = null; } }catch(_){}  // daily STT
   try{ if(window.speechSynthesis) window.speechSynthesis.cancel(); }catch(_){}
@@ -1949,6 +2023,7 @@ function show(id){
     try{ renderHomeExtras2(); }catch(_){}   // paint chips + Today's-goal instantly from cached state
   }
   try{ syncNav(id); }catch(_){}
+  try{ syncUrl(id); }catch(_){}   // keep the browser URL mirroring the visible screen
 }
 // ---- Bottom navigation: which tab lights up per screen; nav hidden only on login/onboarding ----
 const NAV_TAB = { home:"home", journey:"journey", daily:"daily", practice:"practice",
@@ -1964,30 +2039,107 @@ document.addEventListener("visibilitychange", () => {
   if(document.hidden && (running || VOICE_SCREENS.has(currentScreen()))){ try{ stopAllVoice(); }catch(_){} }
 });
 function toggleSheet(o){ const s=$("msheet"), bg=$("msheetBg"); if(s) s.classList.toggle("on",o); if(bg) bg.classList.toggle("on",o); }
-// wire the bottom tabs
+// wire the bottom tabs → go through the router so the URL + Back button work
+const TAB_PATH = { home:"/", journey:"/learning-journey", daily:"/daily-talk",
+  practice:"/practice", leaderboard:"/leaderboard", more:"/more" };
 document.querySelectorAll(".btab").forEach(b => b.onclick = () => {
   const t = b.dataset.tab;
   if(t !== "more") toggleSheet(false);
-  if(t === "home") goHome();
-  else if(t === "journey") openJourney();
-  else if(t === "daily") startDaily("speak");
-  else if(t === "practice") show("practice");
-  else if(t === "leaderboard") openLeaderboard();
-  else if(t === "more"){ document.querySelectorAll(".btab").forEach(x=>x.classList.remove("active")); b.classList.add("active");
-    const ad = $("mrowAdmin"); if(ad) ad.hidden = !(userState && userState.role === "owner");
-    toggleSheet(true); }
+  navTo(TAB_PATH[t] || "/");
 });
-// More sheet rows
+// Open the "More" sheet (overlay — not a full screen swap).
+function openMore(){
+  document.querySelectorAll(".btab").forEach(x=>x.classList.remove("active"));
+  const b = document.querySelector('.btab[data-tab="more"]'); if(b) b.classList.add("active");
+  const ad = $("mrowAdmin"); if(ad) ad.hidden = !(userState && userState.role === "owner");
+  // Keys row is visible only to office-approved users (or users who must BYOK).
+  const kr = document.querySelector('.mrow[data-more="keys"]'); if(kr) kr.hidden = !(officeAllowed() || needsKeys());
+  toggleSheet(true);
+}
+// More sheet rows → route through navTo where a URL/guard exists.
 document.querySelectorAll(".mrow").forEach(r => r.onclick = () => {
   const a = r.dataset.more; toggleSheet(false);
-  if(a === "leaderboard") openLeaderboard();
-  else if(a === "profile") openJourney();      // reuse Journey/dashboard as Profile for now
-  else if(a === "leveltest") startAssessment();
-  else if(a === "keys"){ show("keys"); loadKeysUI(); }
+  if(a === "leaderboard") navTo("/leaderboard");
+  else if(a === "profile") navTo("/learning-journey");   // reuse Journey/dashboard as Profile for now
+  else if(a === "leveltest") navTo("/test");
+  else if(a === "keys") navTo("/keys");                   // gOffice guard applies
   else if(a === "admin") openAdmin();
   else if(a === "help") openHelp();
   else if(a === "signout") logout();
 });
+
+// ================= Client-side URL routing (History API over the vanilla screens) =================
+// Clean URLs + guards without a framework. The FastAPI SPA-fallback serves the shell for these
+// paths, so deep-links and refresh work. Each route delegates to the existing screen/enter fns,
+// which already run their own key/onboarding guards (guardKeys / routeAfterLogin).
+// ---- Route guards: each returns null (allow) or a fallback fn to run instead ----
+function gAuth(){ return (AUTH_ENABLED && !authToken) ? () => show("login") : null; }
+// office/key routes: only owner-approved (office) users, or users who must BYOK, may open /keys
+function gOffice(){
+  return (officeAllowed() || needsKeys()) ? null
+       : () => { try{ showNotif("Keys are only for approved office accounts."); }catch(_){} goHome(); };
+}
+// request-quota guard for FREE users. Server also enforces (WS quota_exceeded); this stops
+// them entering a mode when today's requests are already used up.
+function gQuota(){
+  if(isUnlimited() || officeAllowed()) return null;     // office/owner/unlimited → no quota
+  if(userState && userState.trial_over){ return () => openSubscribe(); }   // 20-day trial ended
+  if(userState && typeof userState.requests_left === "number" && userState.requests_left <= 0){
+    return () => openSubscribe();
+  }
+  return null;
+}
+// Quota exhausted → send free users to the subscription page.
+function openSubscribe(){ navTo("/subscribe"); }
+
+// Each route: { enter, guards:[...], noAuth }. gAuth runs first unless noAuth.
+const ROUTES = {
+  "/":                 { enter: () => goHome() },
+  "/practice":         { enter: () => show("practice") },
+  "/daily-talk":       { enter: () => startDaily("speak"),            guards:[gQuota] },
+  "/face-to-face":     { enter: () => startSession("conversation"),   guards:[gQuota] },
+  "/interview":        { enter: () => chooseMode("interview"),        guards:[gQuota] },
+  "/learn":            { enter: () => startLearning(),                guards:[gQuota] },
+  "/learning-journey": { enter: () => openJourney() },
+  "/leaderboard":      { enter: () => openLeaderboard() },
+  "/more":             { enter: () => openMore() },
+  "/test":             { enter: () => startAssessment() },
+  "/keys":             { enter: () => { show("keys"); loadKeysUI(); }, guards:[gOffice] },
+  "/subscribe":        { enter: () => openSubscribePage() },
+  "/superadmin":       { enter: () => openSuperadmin(), noAuth:true },   // its own cred gate
+};
+function runGuards(route){
+  if(!route.noAuth){ const a = gAuth(); if(a) return a; }   // auth gate first (except /superadmin)
+  for(const g of (route.guards || [])){ const r = g(); if(r) return r; }
+  return null;
+}
+// visible screen → canonical path (session is shared by conversation + interview)
+function pathForScreen(id){
+  if(id === "session") return currentMode === "interview" ? "/interview" : "/face-to-face";
+  return ({ home:"/", practice:"/practice", daily:"/daily-talk", setup:"/interview",
+    learning:"/learn", journey:"/learning-journey", lesson:"/learning-journey", report:"/interview",
+    leaderboard:"/leaderboard", keys:"/keys", admin:"/more", help:"/more", profile:"/learning-journey",
+    superadmin:"/superadmin", subscribe:"/subscribe", login:"/", assessment:"/test" })[id] || null;
+}
+function syncUrl(id){
+  try{ const p = pathForScreen(id); if(p && location.pathname !== p) history.replaceState(history.state || {}, "", p); }catch(_){}
+}
+// User navigation → run guards, push a history entry, then enter (Back/Forward work).
+function navTo(path){
+  const route = ROUTES[path] || ROUTES["/"];
+  const p = ROUTES[path] ? path : "/";
+  if(p !== "/more"){ try{ toggleSheet(false); }catch(_){} }   // close the More sheet on any real nav
+  const blocked = runGuards(route);
+  try{ if(location.pathname !== p) history.pushState({}, "", p); }catch(_){}
+  try{ (blocked || route.enter)(); }catch(_){ try{ goHome(); }catch(__){} }
+}
+// Enter the screen for a path WITHOUT pushing (used on load + Back/Forward).
+function renderPath(path){
+  const route = ROUTES[path] || ROUTES["/"];
+  const blocked = runGuards(route);
+  try{ (blocked || route.enter)(); }catch(_){ try{ goHome(); }catch(__){} }
+}
+window.addEventListener("popstate", () => { try{ renderPath(location.pathname); }catch(_){} });
 
 // ---- Help & Feedback ----
 function openHelp(){
@@ -2006,6 +2158,103 @@ function updateHelpCount(){
   if(box) box.classList.toggle("over", n > 50);
 }
 if($("helpText")) $("helpText").addEventListener("input", updateHelpCount);
+
+// ---- Super Admin (static-cred, verified server-side) ----
+function openSuperadmin(){
+  show("superadmin");
+  if($("saLogin")) $("saLogin").hidden = false;
+  if($("saPortal")) $("saPortal").hidden = true;
+  if($("saUser")) $("saUser").value = "";
+  if($("saPass")) $("saPass").value = "";
+  if($("saStatus")) $("saStatus").textContent = "";
+}
+let _saToken = "";
+if($("saBack")) $("saBack").onclick = () => navTo("/");
+if($("saEnter")) $("saEnter").onclick = async () => {
+  const st = $("saStatus"), btn = $("saEnter");
+  btn.disabled = true; btn.textContent = "Checking…"; st.textContent = "";
+  try{
+    const r = await fetch("/superadmin/auth", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ username: ($("saUser").value||""), password: ($("saPass").value||"") }) });
+    if(!r.ok) throw new Error("bad creds");
+    const d = await r.json(); _saToken = d.token || "";
+    if($("saLogin")) $("saLogin").hidden = true;
+    if($("saPortal")) $("saPortal").hidden = false;
+    renderSaPortal();
+  }catch(_){ st.textContent = "Invalid credentials."; }
+  finally{ btn.disabled = false; btn.textContent = "Enter"; }
+};
+async function saCall(path, body){
+  const r = await fetch(path, { method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify(Object.assign({ token:_saToken }, body||{})) });
+  if(!r.ok) throw new Error("sa " + r.status);
+  return r.json();
+}
+async function renderSaPortal(){
+  const el = $("saPortal"); if(!el) return;
+  el.innerHTML = '<div class="spin" style="margin:24px auto"></div>';
+  let d;
+  try{ d = await saCall("/superadmin/overview"); }
+  catch(_){ el.innerHTML = '<p class="keys-note" style="text-align:center">Session expired — re-enter credentials.</p>'; return; }
+  if(!d.db){ el.innerHTML = '<p class="keys-note" style="text-align:center">Database is off locally — the full list shows on the deployed app.</p>'; return; }
+  const c = d.counts||{}, users = d.users||[];
+  let h = `<div class="admin-stats">
+    <div><b>${c.total||0}</b><span>Users</span></div>
+    <div><b>${c.online||0}</b><span>Online</span></div>
+    <div><b>${c.office||0}</b><span>Office</span></div>
+    <div><b>${c.paid||0}</b><span>Paid</span></div>
+    <div><b>${c.blocked||0}</b><span>Blocked</span></div></div>`;
+  h += `<div class="admin-head">Users (${users.length})</div>`;
+  h += users.map(u => {
+    const mo = u.modes||{};
+    const modeStr = `🗣️${mo.daily||0} · 💬${mo.conversation||0} · 🎯${mo.interview||0} · 🎓${mo.learning||0}`;
+    return `<div class="uCard">
+      <div class="uTop"><b>${esc(u.name||u.email||'user')}</b>
+        <span class="uRole ${u.role}">${u.role}</span>
+        <span class="sa-dot ${u.online?'on':''}">${u.online?'🟢 online':'⚪ offline'}</span>
+        <span class="uSt">${u.status==='blocked'?'🚫 blocked':''}</span></div>
+      <div class="uMail">${esc(u.email||'')}</div>
+      <div class="uMeta">Plan <b>${esc(u.plan||'free')}</b>${u.office?' · 🏢 office(BYOK)':''} · Lvl ${esc(u.level||'-')} · ${u.xp} XP · ${u.streak_days}🔥</div>
+      <div class="uMeta">Requests: ${u.requests_today} today · ${u.requests_total} total · ${u.total_sessions} sessions · ${u.total_minutes} min</div>
+      <div class="uMeta uDays">Modes → ${modeStr}</div>
+      <div class="uActs">
+        <button class="uBtn ${u.office?'':'ok'}" data-sa="office" data-id="${u.id}" data-email="${esc(u.email||'')}" data-on="${u.office?'0':'1'}">${u.office?'Revoke office':'Approve office'}</button>
+        ${u.status!=='blocked'?`<button class="uBtn bad" data-sa="block" data-id="${u.id}">Block</button>`:`<button class="uBtn" data-sa="unblock" data-id="${u.id}">Unblock</button>`}
+        <button class="uBtn bad" data-sa="delete" data-id="${u.id}">Delete</button>
+      </div></div>`;
+  }).join("") || '<p class="keys-note">No users yet.</p>';
+  el.innerHTML = h;
+  el.querySelectorAll("[data-sa]").forEach(b => b.onclick = () => saDo(b));
+}
+async function saDo(b){
+  const act = b.dataset.sa; b.disabled = true;
+  try{
+    if(act === "office"){ await saCall("/superadmin/approve", { email:b.dataset.email, on:b.dataset.on==="1" }); }
+    else if(act === "delete"){ if(!confirm("Delete this user + all their data? Cannot be undone.")){ b.disabled=false; return; } await saCall("/superadmin/action", { user_id:b.dataset.id, action:"delete" }); }
+    else { await saCall("/superadmin/action", { user_id:b.dataset.id, action:act }); }
+    renderSaPortal();
+  }catch(_){ b.disabled = false; showNotif("Action failed — try again."); }
+}
+
+// ---- Subscribe (plans) ----
+let _plan = "";
+function openSubscribePage(){
+  show("subscribe");
+  _plan = "";
+  document.querySelectorAll(".plan").forEach(p => p.classList.remove("sel"));
+  if($("subProceed")) $("subProceed").disabled = true;
+  if($("subStatus")) $("subStatus").textContent = "";
+}
+document.querySelectorAll(".plan").forEach(p => p.onclick = () => {
+  document.querySelectorAll(".plan").forEach(x => x.classList.remove("sel"));
+  p.classList.add("sel"); _plan = p.dataset.plan;
+  if($("subProceed")) $("subProceed").disabled = false;
+});
+if($("subBack")) $("subBack").onclick = () => navTo("/");
+if($("subProceed")) $("subProceed").onclick = () => {
+  if(!_plan) return;
+  if($("subStatus")) $("subStatus").textContent = "Selected: " + _plan + " — payment coming soon (work in progress).";
+};
 if($("helpBack")) $("helpBack").onclick = () => show("home");
 if($("helpSend")) $("helpSend").onclick = async () => {
   const ta = $("helpText"), st = $("helpStatus"), send = $("helpSend");
@@ -2384,7 +2633,7 @@ function startSession(mode){
   ws.onopen = () => {
     running = true; srFails = 0;
     usageInc(); refreshUsage();   // count the session now that it actually started
-    ws.send(JSON.stringify({ type:"start", mode, name:$("name").value, role:$("role").value, token:authToken, mood:todayMood, seed:_convSeed, keys:officeKeys() }));
+    ws.send(JSON.stringify({ type:"start", mode, name:$("name").value, role:$("role").value, token:authToken, mood:todayMood, hour:new Date().getHours(), day:localDay(), seed:_convSeed, keys:officeKeys() }));
     _convSeed = "";   // one-shot: the Companion Moment's spoken answer seeds turn 1
     orb("connecting", "DuSu is getting ready to talk…", "warming up");
   };
@@ -2451,6 +2700,17 @@ function onMessage(ev){
     case "ended": leave(); break;
     case "limit": running=false; stopListening(); addSys("⏸ " + m.msg); orb("idle","Session limit", m.msg); break;
     case "quota": running=false; try{stopListening();}catch(_){}; showNotif(m.msg || "Your API keys hit their limit — add or replace a key in Settings."); break;
+    case "quota_update":   // live: server sends remaining requests after each turn
+      if(userState){ userState.requests_left = m.left; if(m.limit!=null) userState.request_limit = m.limit; }
+      try{ updateReqChip(); }catch(_){}
+      break;
+    case "quota_exceeded":   // free daily limit (or trial) reached → subscription
+      running=false; try{stopListening();}catch(_){}
+      if(userState){ userState.requests_left = 0; if(m.trial_over) userState.trial_over = true; }
+      try{ stopAllVoice(); }catch(_){}
+      showNotif(m.trial_over ? "Your 20-day free trial has ended. Please subscribe to keep going."
+                             : `Your daily free limit (${(userState&&userState.request_limit)||5}) is over. Please subscribe.`);
+      openSubscribe(); break;
     case "keys_required": running=false; try{ws.close();}catch(_){};
       if(useMode!=="office"){ useMode="office"; localStorage.setItem("dusu_usemode","office"); }
       show("keys"); loadKeysUI(); if($("keysStatus")) $("keysStatus").innerHTML = "🔒 " + (m.msg||"Add your own API keys to use DuSu."); break;
@@ -2669,13 +2929,15 @@ function startLearning(){
   show("learning");
   ws = new WebSocket(WS_URL);
   ws.onopen = () => { running = true; usageInc(); refreshUsage();
-    ws.send(JSON.stringify({ type:"start", mode:"learning", token:authToken, keys:officeKeys() })); };
+    ws.send(JSON.stringify({ type:"start", mode:"learning", token:authToken, hour:new Date().getHours(), day:localDay(), keys:officeKeys() })); };
   ws.onmessage = onMessage;
   ws.onclose = () => { running = false; stopLearn(); };
   ws.onerror = () => learnState("Connection error. Is the server running?");
 }
 async function greetLearn(){
+  const ep = ++speakEpoch;
   await say(HINDI.greet, HI());
+  if(ep !== speakEpoch) return;
   learnState("Tap the mic and speak in Hindi.");
   micEnable(true);
 }
@@ -2698,15 +2960,19 @@ function startHindiListen(){
   try{ lrec.start(); }catch(_){}
 }
 async function handleTranslation(hindi, english){
+  const ep = ++speakEpoch;   // Finish/tab-switch bumps epoch → bail out of the chain
   lastEnglish = english;
   $("tcHindi").textContent = hindi; $("tcEng").textContent = english;
   $("transCard").hidden = false; $("replayBtn").disabled = true; learnState("");
   await say(HINDI.intro, HI());          // "English mein aise bolte hain."
+  if(ep !== speakEpoch) return;
   await say(english, ENG_SLOW());        // then the English, said ONCE (no "repeat after me")
+  if(ep !== speakEpoch) return;
   learnState("Ab aap boliye — 🔊 dobara sunne ke liye, ya mic naye vaakya ke liye.");
   $("replayBtn").disabled = false; micEnable(true);
 }
 function stopLearn(){
+  speakEpoch++;                                                       // abort any in-flight speak chain
   try{ if(lrec){ lrec.onend = null; lrec.stop(); lrec = null; } }catch(_){}
   if(window.speechSynthesis) window.speechSynthesis.cancel();
   micActive(false);
@@ -2777,7 +3043,7 @@ function startDaily(from){
   ws.onopen = () => { running = true; usageInc(); refreshUsage();
     dailyTurns = loadDailyResume();   // continue the recent chat if there is one
     ws.send(JSON.stringify({ type:"start", mode:"daily", token:authToken, mood:todayMood,
-      hour:new Date().getHours(), resume: dailyTurns, keys:officeKeys() })); };
+      hour:new Date().getHours(), day:localDay(), resume: dailyTurns, keys:officeKeys() })); };
   ws.onmessage = onMessage;
   ws.onclose = () => { running = false; stopDaily(); };
   ws.onerror = () => { if($("dailyLoader")) $("dailyLoader").hidden = true; dState("Connection error. Is the server running?"); };
@@ -2821,17 +3087,19 @@ function pickDailyRec(action){
 }
 
 async function greetDaily(question){
+  const ep = ++speakEpoch;
   if($("dailyLoader")) $("dailyLoader").hidden = true;   // connected → hide loader
   dLastNext = question;
   dailyTurns.push({ role:"assistant", content: question });
   saveDailyResume();
   $("dailyQ").textContent = question;
   await sayFace(question, HI());
+  if(ep !== speakEpoch) return;   // finished/left during the greeting → don't enable mic
   dState("Tap the mic and answer in Hindi."); dMic(true);
 }
 function startDailyListen(){
   if(!running) return;
-  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  killSpeech();   // stop any lingering reply chain before we listen
   dMic(false); dMicActive(true); dailyOrb("listening"); dState("Listening…");
   drec = new SR(); drec.lang = "hi-IN"; drec.interimResults = false; drec.maxAlternatives = 1;
   let got = false;
@@ -2846,30 +3114,35 @@ function startDailyListen(){
   try{ drec.start(); }catch(_){}
 }
 async function handleDailyTurn(hindi, english, reply, tip, nextQ){
+  const ep = ++speakEpoch;   // this turn owns the speaker; a Finish/tab-switch bumps it → we bail
   dLastEng = english || ""; dLastNext = nextQ || "";
   $("dcHindi").textContent = hindi; $("dcEng").textContent = english || "—";
   setDailyTip(tip);
   $("dailyCard").hidden = false; $("dcReplay").disabled = !english; dState("");
+  // record this turn up-front (learner's Hindi + DuSu's reply) so resume works even if speech is cut
+  const dusuReply = (reply && reply.trim()) || (nextQ && nextQ.trim()) || "अच्छा! आज का सबसे अच्छा पल कौन-सा था?";
+  dailyTurns.push({ role:"user", content: hindi });
+  dailyTurns.push({ role:"assistant", content: dusuReply });
+  saveDailyResume();
   dailyOrb("speaking");
   // 1) hear YOUR line in English FIRST (learn how to say it)
   if(english){
     await say(HINDI.intro, HI());     // "English mein aise bolte hain."
+    if(ep !== speakEpoch) return;     // stopped mid-chain → don't speak the next line
     await say(english, ENG_SLOW());   // your sentence, in clear English (said once)
+    if(ep !== speakEpoch) return;
   }
   // 2) then DuSu replies like a close friend — NEVER silent (fallback if reply missing)
-  const dusuReply = (reply && reply.trim()) || (nextQ && nextQ.trim()) || "अच्छा! आज का सबसे अच्छा पल कौन-सा था?";
   await say(dusuReply, HI());
+  if(ep !== speakEpoch) return;
   dailyOrb("idle");
-  // record this turn (learner's Hindi + DuSu's reply) so we can resume later
-  dailyTurns.push({ role:"user", content: hindi });
-  dailyTurns.push({ role:"assistant", content: dusuReply });
-  saveDailyResume();
   // Start Speaking path only: options are already visible; after EVERY 3 inputs DuSu
   // SPEAKS a short Hindi reminder about them (never forced — Reply keeps the chat going).
   if(dailyFrom === "speak"){
     dailyInputs++;   // only THIS session's inputs — not resumed history
     if(dailyInputs % 3 === 0){
       await sayFace("वैसे, जब तुम ready हो तो नीचे अपनी learning आगे बढ़ा सकते हो — या यहीं बात continue करो।", HI());
+      if(ep !== speakEpoch) return;
       requestAnimationFrame(() => { const d = $("dailyMore"); if(d) d.scrollIntoView({ behavior:"smooth", block:"nearest" }); });
     }
   }
@@ -2881,13 +3154,14 @@ function setDailyTip(tip){
   else { el.hidden = true; el.textContent = ""; }
 }
 function stopDaily(){
+  speakEpoch++;                                                       // abort any in-flight speak chain
   try{ if(drec){ drec.onend = null; drec.stop(); drec = null; } }catch(_){}
   if(window.speechSynthesis) window.speechSynthesis.cancel();
   dMicActive(false); dailyOrb("idle");
 }
 async function dailyContinue(){
   // DuSu just asked her question inside the reply — so replying is one tap, no re-ask.
-  if(window.speechSynthesis) window.speechSynthesis.cancel();
+  killSpeech();
   $("dailyCard").hidden = true; $("dcHindi").textContent = ""; $("dcEng").textContent = ""; setDailyTip("");
   startDailyListen();
 }
@@ -4009,12 +4283,32 @@ function usageGet(){
   return u;
 }
 function usageInc(){ if(isUnlimited()) return usageGet(); const u = usageGet(); u.n++; localStorage.setItem("dusu_usage", JSON.stringify(u)); return u; }
+const FREE_TRIAL_DAYS = 20;
 function refreshUsage(){
-  const el = $("usageChip");
-  if(isUnlimited()){ el.textContent = "Unlimited ∞"; el.classList.remove("low"); return; }
-  const u = usageGet(), left = Math.max(0, MAX_SESSIONS - u.n);
-  el.textContent = `${left}/${MAX_SESSIONS} left today`;
-  el.classList.toggle("low", left <= 3);
+  updateReqChip();
+  updateTrialChip();
+}
+// Header: free daily REQUEST counter (from /me), 5/day. Free accounts only.
+function updateReqChip(){
+  const el = $("reqChip"); if(!el) return;
+  const ok = userState && !isUnlimited() && !officeAllowed()
+             && typeof userState.requests_left === "number" && userState.request_limit;
+  if(!ok){ el.hidden = true; return; }
+  el.hidden = false;
+  el.textContent = `${userState.requests_left}/${userState.request_limit} requests`;
+  el.classList.toggle("low", userState.requests_left <= 2);
+  el.title = "Free daily requests — resets at midnight";
+}
+// Header: 20-day free-trial day counter (server-driven from account created date). Free only.
+function updateTrialChip(){
+  const el = $("usageChip"); if(!el) return;
+  const td = userState && userState.trial_days_left;
+  const isFree = userState && !isUnlimited() && !officeAllowed() && typeof td === "number";
+  if(!isFree){ el.hidden = true; return; }
+  el.hidden = false;
+  el.textContent = `${td}/${FREE_TRIAL_DAYS} days`;
+  el.title = `Free trial: ${td} of ${FREE_TRIAL_DAYS} days left`;
+  el.classList.toggle("low", td <= 3);
 }
 
 // Curiosity headlines — one is chosen per day so the hero changes daily.
@@ -4203,22 +4497,27 @@ function routeAfterLogin(fromRefresh){
     if(cur === "home"){ try{ setWelcome(); renderHomeJourney(); }catch(_){} }
     return;
   }
-  show("home"); try{ setWelcome(); renderHomeJourney(); }catch(_){}
+  // Honor the URL (deep-link / refresh) — land on that route, not always Home.
+  try{ setWelcome(); }catch(_){}
+  const path = (location && location.pathname) || "/";
+  if(ROUTES[path] && path !== "/"){ renderPath(path); }
+  else { show("home"); try{ renderHomeJourney(); }catch(_){} }
 }
 
 // Background state refresh (also handles real logout on 401). Never blocks the UI.
 function refreshMe(){
-  return fetch("/me", { cache:"no-store", headers:{ Authorization:"Bearer " + authToken } })
+  return fetch("/me?day=" + encodeURIComponent(localDay()), { cache:"no-store", headers:{ Authorization:"Bearer " + authToken } })
     .then(r => { if(r.status === 401){ logout(); return null; } return r.ok ? r.json() : null; })
     .then(st => {
       if(!st) return null;
-      userState = st;   // full state incl. today / growth / opening / recommendations
+      userState = st;   // full state incl. today / growth / opening / recommendations + access/quota
       localStorage.setItem("dusu_onboarded", st.onboarded ? "true" : "false");
       // cache the whole state so the next boot paints mood/note/Continue instantly (no /me wait)
       try{ localStorage.setItem("dusu_state", JSON.stringify(st)); }catch(_){}
-      // Returning account whose keys are saved server-side but not on THIS browser →
+      try{ refreshUsage(); }catch(_){}   // update the header request counter
+      // OFFICE account whose BYOK keys are saved server-side but not on THIS browser →
       // fetch them (with a loader) before routing, so the session reuses them silently.
-      if(!officeAllowed() && st.has_keys && !(keyCount() >= 2 && keysVerified() && keysOwner() === curEmail())){
+      if(st.office && st.has_keys && !(keyCount() >= 2 && keysVerified() && keysOwner() === curEmail())){
         showNotif("🔑 Fetching your keys…");
         loadStoredKeys().then(() => { try{ routeAfterLogin(true); }catch(_){} });
       } else {

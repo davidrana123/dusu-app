@@ -105,6 +105,12 @@ def _now() -> dt.datetime:
     return dt.datetime.now(dt.timezone.utc)
 
 
+_IST_TZ = dt.timezone(dt.timedelta(hours=5, minutes=30))
+def _ist_day() -> str:
+    """Server-authoritative quota day in fixed IST (matches main._quota_day)."""
+    return dt.datetime.now(_IST_TZ).date().isoformat()
+
+
 class Base(DeclarativeBase):
     pass
 
@@ -119,6 +125,16 @@ class User(Base):
     last_seen: Mapped[dt.datetime] = mapped_column(DateTime(timezone=True), default=_now)
     status: Mapped[str] = mapped_column(String(16), default="active")     # active | pending | blocked
     mode: Mapped[str] = mapped_column(String(16), default="personal")    # personal | office
+    plan: Mapped[str] = mapped_column(String(16), default="free")        # free | starter | plus | pro
+    plan_since: Mapped[dt.date | None] = mapped_column(Date, nullable=True)
+
+
+class UsageDaily(Base):
+    """Request-quota counter — one row per user per LOCAL day."""
+    __tablename__ = "usage_daily"
+    user_id: Mapped[str] = mapped_column(ForeignKey("users.id"), primary_key=True)
+    day: Mapped[str] = mapped_column(String(10), primary_key=True)   # local YYYY-MM-DD
+    requests: Mapped[int] = mapped_column(Integer, default=0)
 
 
 class Profile(Base):
@@ -199,6 +215,8 @@ async def init_db() -> None:
         # add new columns to an already-existing users table (create_all won't ALTER)
         await conn.execute(_text("ALTER TABLE users ADD COLUMN IF NOT EXISTS status varchar(16) DEFAULT 'active'"))
         await conn.execute(_text("ALTER TABLE users ADD COLUMN IF NOT EXISTS mode varchar(16) DEFAULT 'personal'"))
+        await conn.execute(_text("ALTER TABLE users ADD COLUMN IF NOT EXISTS plan varchar(16) DEFAULT 'free'"))
+        await conn.execute(_text("ALTER TABLE users ADD COLUMN IF NOT EXISTS plan_since date"))
 
 
 def _state(user: User, prof: Profile, prog: Progress, mem: "Memory | None" = None) -> dict:
@@ -937,6 +955,76 @@ async def has_user_keys(user_id: str) -> bool:
     return sum(1 for v in d.values() if str(v).strip()) >= 2
 
 
+# ---- Request quota (free-tier daily limit) + plan + per-mode analytics ----
+async def incr_request(user_id: str, day: str, limit: int | None) -> dict:
+    """Count ONE model request for the user's local day. limit=None → unlimited.
+    Returns {allowed, used, left, limit}; when over the limit, does NOT increment."""
+    async with _Session() as s:               # type: ignore[misc]
+        row = await s.get(UsageDaily, (user_id, day))
+        used = row.requests if row else 0
+        if limit is not None and used >= limit:
+            return {"allowed": False, "used": used, "left": 0, "limit": limit}
+        if row:
+            row.requests = used + 1
+        else:
+            s.add(UsageDaily(user_id=user_id, day=day, requests=1))
+        await s.commit()
+        used2 = used + 1
+        return {"allowed": True, "used": used2,
+                "left": (None if limit is None else max(0, limit - used2)), "limit": limit}
+
+
+async def usage_today(user_id: str, day: str) -> int:
+    async with _Session() as s:               # type: ignore[misc]
+        row = await s.get(UsageDaily, (user_id, day))
+        return row.requests if row else 0
+
+
+async def usage_total(user_id: str) -> int:
+    async with _Session() as s:               # type: ignore[misc]
+        return int((await s.execute(select(func.coalesce(func.sum(UsageDaily.requests), 0))
+                                    .where(UsageDaily.user_id == user_id))).scalar() or 0)
+
+
+async def signup_day_count(user_id: str) -> int:
+    """Whole 24-hour periods elapsed since the account was created (free-trial clock).
+    24h-based (not calendar-date diff) so signing up at 11pm doesn't burn a day at midnight."""
+    async with _Session() as s:               # type: ignore[misc]
+        u = await s.get(User, user_id)
+        if not u or not u.created_at:
+            return 0
+        created = u.created_at
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=dt.timezone.utc)
+        return max(0, int((_now() - created).total_seconds() // 86400))
+
+
+async def get_plan(user_id: str) -> str:
+    async with _Session() as s:               # type: ignore[misc]
+        u = await s.get(User, user_id)
+        return (u.plan if u else "free") or "free"
+
+
+async def set_plan(user_id: str, plan: str) -> bool:
+    async with _Session() as s:               # type: ignore[misc]
+        u = await s.get(User, user_id)
+        if not u:
+            return False
+        u.plan = plan
+        u.plan_since = _now().date()
+        await s.commit()
+        return True
+
+
+async def mode_counts(user_id: str) -> dict:
+    """Per-mode conversation counts: daily / conversation / interview / learning."""
+    async with _Session() as s:               # type: ignore[misc]
+        rows = (await s.execute(select(Conversation.mode, func.count())
+                                .where(Conversation.user_id == user_id)
+                                .group_by(Conversation.mode))).all()
+        return {(m or ""): int(c) for m, c in rows}
+
+
 async def save_recent_turns(user_id: str, turns: list) -> None:
     """Store the tail of the last conversation (raw turns, any mode) so DuSu can
     pick up the exact thread next time — even across modes (Daily/Talk/Interview)."""
@@ -1139,9 +1227,26 @@ async def admin_list_users() -> list[dict]:
             f = (mem.facts if mem else {}) or {}
             convos = (await s.execute(
                 select(func.count()).select_from(Conversation).where(Conversation.user_id == u.id))).scalar() or 0
+            # per-mode conversation counts (daily/conversation/interview/learning)
+            mrows = (await s.execute(select(Conversation.mode, func.count())
+                                     .where(Conversation.user_id == u.id)
+                                     .group_by(Conversation.mode))).all()
+            modes = {(m or ""): int(c) for m, c in mrows}
+            _day = _ist_day()   # match the IST quota bucket used to charge requests
+            _ut = await s.get(UsageDaily, (u.id, _day))
+            req_today = _ut.requests if _ut else 0
+            req_total = int((await s.execute(select(func.coalesce(func.sum(UsageDaily.requests), 0))
+                                             .where(UsageDaily.user_id == u.id))).scalar() or 0)
+            online = bool(u.last_seen and (_now() - u.last_seen).total_seconds() < 300)
             out.append({
                 "id": u.id,
                 "email": u.email or "",
+                "plan": getattr(u, "plan", "free") or "free",
+                "office": await office_has(u.email or ""),
+                "online": online,
+                "requests_today": int(req_today),
+                "requests_total": req_total,
+                "modes": modes,
                 "name": u.name or f.get("nickname", "") or "",
                 "picture": u.picture or "",
                 "status": getattr(u, "status", "active") or "active",
@@ -1283,7 +1388,7 @@ async def admin_wipe_users(keep_emails: set[str]) -> int:
         del_ids = [u.id for u in users if (u.email or "").strip().lower() not in keep]
         if not del_ids:
             return 0
-        for tbl in (Conversation, Memory, Progress, Profile, UserKey, Feedback):
+        for tbl in (Conversation, Memory, Progress, Profile, UserKey, Feedback, UsageDaily):
             await s.execute(delete(tbl).where(tbl.user_id.in_(del_ids)))
         await s.execute(delete(User).where(User.id.in_(del_ids)))
         await s.commit()
@@ -1295,7 +1400,7 @@ async def delete_user(user_id: str) -> bool:
     if not db_enabled:
         return False
     async with _Session() as s:               # type: ignore[misc]
-        for tbl in (Conversation, Memory, Progress, Profile, UserKey, Feedback):
+        for tbl in (Conversation, Memory, Progress, Profile, UserKey, Feedback, UsageDaily):
             await s.execute(delete(tbl).where(tbl.user_id == user_id))
         u = await s.get(User, user_id)
         if u:
