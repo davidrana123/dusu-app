@@ -2,7 +2,7 @@
    Network-first for navigations (always try fresh HTML so deploys show up),
    falling back to cache when offline. WebSocket + API calls are never cached. */
 
-const CACHE = "dusu-v9";   // bumped: Subscribe row in More sheet
+const CACHE = "dusu-v10";   // bumped: /superadmin reachable without Google sign-in (own cred gate)
 const SHELL = ["/", "/logo.png", "/manifest.webmanifest"];
 
 self.addEventListener("install", (event) => {

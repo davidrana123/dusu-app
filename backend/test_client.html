@@ -4635,6 +4635,8 @@ function onGoogle(resp){
 }
 
 function initAuth(){
+  // Super-admin portal has its OWN static-cred gate — never require Google sign-in for it.
+  if(location.pathname === "/superadmin"){ try{ openSuperadmin(); }catch(_){ show("login"); } return; }
   if(!AUTH_ENABLED){                 // dev fallback: no Google config → skip login
     $("userChip").hidden = true;
     show("home");
