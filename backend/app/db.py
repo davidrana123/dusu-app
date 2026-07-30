@@ -1195,6 +1195,22 @@ async def award_badges(user_id: str, ids: list[str]) -> list[str]:
         return new
 
 
+async def set_nickname(user_id: str, nickname: str) -> dict:
+    """What DuSu calls the learner. Editable from the Profile screen."""
+    nickname = (nickname or "").strip()[:40]
+    async with _Session() as s:               # type: ignore[misc]
+        mem = await _get_or_make_memory(s, user_id)
+        f = dict(mem.facts or {})
+        if nickname:
+            f["nickname"] = nickname
+        else:
+            f.pop("nickname", None)
+        mem.facts = f
+        flag_modified(mem, "facts")
+        await s.commit()
+        return f
+
+
 async def save_future_me(user_id: str, text: str) -> dict:
     async with _Session() as s:               # type: ignore[misc]
         mem = await _get_or_make_memory(s, user_id)

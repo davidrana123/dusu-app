@@ -971,6 +971,20 @@
   .mode-opt span{ font-size:11.5px; color:var(--ink-faint) }
   .mode-opt.on{ border-color:var(--gold); color:var(--gold-lt); box-shadow:0 0 0 1px color-mix(in srgb,var(--gold) 40%,transparent) inset }
   .keys-note{ font-size:12.5px; color:var(--ink-dim); margin:4px 0 14px; line-height:1.5 }
+  /* Profile screen */
+  .pf-id{ display:flex; align-items:center; gap:14px; padding:16px; margin-bottom:8px;
+    background:var(--glass); border:1px solid var(--glass-brd); border-radius:16px }
+  .pf-av{ width:52px; height:52px; border-radius:50%; flex:0 0 auto; background:linear-gradient(135deg,#5b6cf0,#8f97e0);
+    display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:20px;
+    background-size:cover; background-position:center }
+  .pf-name{ font-size:16px; font-weight:700; color:var(--ink) }
+  .pf-email{ font-size:12.5px; color:var(--ink-dim); margin-top:2px; word-break:break-all }
+  .pf-field{ margin-top:6px }
+  .pf-lbl{ display:block; font-size:14px; font-weight:700; color:var(--ink); margin-bottom:4px }
+  .pf-hint{ font-size:12.5px; color:var(--ink-dim); margin:0 0 10px; line-height:1.5 }
+  .pf-input{ width:100%; background:var(--glass); border:1px solid var(--glass-brd); border-radius:12px;
+    padding:13px 14px; color:var(--ink); font:inherit; font-size:15px; outline:none }
+  .pf-input:focus{ border-color:#7d8bff }
   .help-lbl{ display:block; font-size:13px; color:var(--ink-dim); margin:14px 0 6px; font-weight:600 }
   .help-sel, .help-ta{ width:100%; background:var(--glass); border:1px solid var(--glass-brd); border-radius:12px;
     padding:12px 13px; color:var(--ink); font:inherit; font-size:14px; outline:none }
@@ -1320,6 +1334,27 @@
       <div class="help-count"><span id="helpWords">0</span>/50 words</div>
       <button class="btn primary" id="helpSend" style="width:100%;margin-top:4px">Send</button>
       <div class="keys-status" id="helpStatus"></div>
+    </div>
+  </section>
+
+  <!-- ===================== PROFILE ===================== -->
+  <section id="profile" class="screen">
+    <div class="sess-head">
+      <button class="back back-home" id="profileBack" title="Home"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg><span>Home</span></button>
+      <div><div class="sess-title">Your profile</div><div class="sess-sub">How DuSu knows you</div></div>
+    </div>
+    <div class="keys-wrap">
+      <div class="pf-id">
+        <div class="pf-av" id="pfAvatar"></div>
+        <div class="pf-meta"><div class="pf-name" id="pfName">—</div><div class="pf-email" id="pfEmail">—</div></div>
+      </div>
+      <div class="pf-field">
+        <label class="pf-lbl" for="pfNick">What should I call you?</label>
+        <p class="pf-hint">The name DuSu uses when you talk. Leave blank to use your first name.</p>
+        <input id="pfNick" class="pf-input" type="text" maxlength="40" autocomplete="off" placeholder="e.g. Vibhu, Sir, Champ…">
+        <button class="btn primary" id="pfSave" style="width:100%;margin-top:12px">Save</button>
+        <div class="keys-status" id="pfStatus"></div>
+      </div>
     </div>
   </section>
 
@@ -2011,7 +2046,7 @@ function stopAllVoice(){
   ws = null;
 }
 
-function show(id){
+function show(id, pathOverride){
   // Leaving a live voice screen → stop the AI immediately (no talking on other tabs/sections).
   const cur = currentScreen();
   if(VOICE_SCREENS.has(cur) && cur !== id){ try{ stopAllVoice(); }catch(_){} }
@@ -2022,16 +2057,17 @@ function show(id){
     try{ renderHomeJourney(); }catch(_){}
     try{ renderHomeExtras2(); }catch(_){}   // paint chips + Today's-goal instantly from cached state
   }
-  try{ syncNav(id); }catch(_){}
-  try{ syncUrl(id); }catch(_){}   // keep the browser URL mirroring the visible screen
+  try{ syncNav(id, pathOverride); }catch(_){}
+  try{ syncUrl(id, pathOverride); }catch(_){}   // keep the browser URL mirroring the visible screen (override for shared screens)
 }
 // ---- Bottom navigation: which tab lights up per screen; nav hidden only on login/onboarding ----
 const NAV_TAB = { home:"home", journey:"journey", daily:"daily", practice:"practice",
   learning:"practice", session:"practice", setup:"practice", lesson:"practice", report:"practice",
   leaderboard:"leaderboard", profile:"more", keys:"more", admin:"more", help:"more" };
-function syncNav(id){
+const PATH_TAB = { "/profile":"more", "/keys":"more", "/more":"more" };
+function syncNav(id, pathOverride){
   const nav = $("bnav"); if(nav) nav.classList.toggle("hide", id === "login" || id === "assessment");
-  const t = NAV_TAB[id];
+  const t = (pathOverride && PATH_TAB[pathOverride]) || NAV_TAB[id];
   document.querySelectorAll(".btab").forEach(b => b.classList.toggle("active", !!t && b.dataset.tab === t));
 }
 // Switching browser tab / minimizing → stop the AI (don't keep talking + looping in the background).
@@ -2060,7 +2096,7 @@ function openMore(){
 document.querySelectorAll(".mrow").forEach(r => r.onclick = () => {
   const a = r.dataset.more; toggleSheet(false);
   if(a === "leaderboard") navTo("/leaderboard");
-  else if(a === "profile") navTo("/learning-journey");   // reuse Journey/dashboard as Profile for now
+  else if(a === "profile") navTo("/profile");   // Profile view (shares the Journey/dashboard screen, own URL)
   else if(a === "leveltest") navTo("/test");
   else if(a === "keys") navTo("/keys");                   // gOffice guard applies
   else if(a === "admin") openAdmin();
@@ -2101,6 +2137,7 @@ const ROUTES = {
   "/interview":        { enter: () => chooseMode("interview"),        guards:[gQuota] },
   "/learn":            { enter: () => startLearning(),                guards:[gQuota] },
   "/learning-journey": { enter: () => openJourney() },
+  "/profile":          { enter: () => openProfile() },
   "/leaderboard":      { enter: () => openLeaderboard() },
   "/more":             { enter: () => openMore() },
   "/test":             { enter: () => startAssessment() },
@@ -2118,11 +2155,11 @@ function pathForScreen(id){
   if(id === "session") return currentMode === "interview" ? "/interview" : "/face-to-face";
   return ({ home:"/", practice:"/practice", daily:"/daily-talk", setup:"/interview",
     learning:"/learn", journey:"/learning-journey", lesson:"/learning-journey", report:"/interview",
-    leaderboard:"/leaderboard", keys:"/keys", admin:"/more", help:"/more", profile:"/learning-journey",
+    leaderboard:"/leaderboard", keys:"/keys", admin:"/more", help:"/more", profile:"/profile",
     superadmin:"/superadmin", subscribe:"/subscribe", login:"/", assessment:"/test" })[id] || null;
 }
-function syncUrl(id){
-  try{ const p = pathForScreen(id); if(p && location.pathname !== p) history.replaceState(history.state || {}, "", p); }catch(_){}
+function syncUrl(id, pathOverride){
+  try{ const p = pathOverride || pathForScreen(id); if(p && location.pathname !== p) history.replaceState(history.state || {}, "", p); }catch(_){}
 }
 // User navigation → run guards, push a history entry, then enter (Back/Forward work).
 function navTo(path){
@@ -3843,6 +3880,40 @@ function showLetterCard(letter){
 }
 
 function openJourney(){ show("journey"); renderJourney(); }
+// Dedicated Profile screen — "how DuSu knows you" (editable nickname for now).
+function openProfile(){ show("profile"); renderProfile(); }
+function renderProfile(){
+  const name = (authUser && (authUser.name || authUser.email)) || "You";
+  const email = (authUser && authUser.email) || "";
+  const av = $("pfAvatar");
+  if(av){
+    if(authUser && authUser.picture){ av.style.backgroundImage = `url("${authUser.picture}")`; av.textContent = ""; }
+    else { av.style.backgroundImage = ""; av.textContent = (name.trim()[0] || "U").toUpperCase(); }
+  }
+  if($("pfName")) $("pfName").textContent = name;
+  if($("pfEmail")) $("pfEmail").textContent = email;
+  const nick = (userState && userState.memory && userState.memory.nickname) || "";
+  if($("pfNick")) $("pfNick").value = nick;
+  if($("pfStatus")) $("pfStatus").textContent = "";
+}
+async function saveProfile(){
+  const btn = $("pfSave"), st = $("pfStatus");
+  const nick = ($("pfNick").value || "").trim();
+  btn.disabled = true; btn.textContent = "Saving…"; if(st) st.textContent = "";
+  try{
+    const r = await fetch("/profile/update", { method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ token: authToken, nickname: nick }) });
+    const d = await r.json();
+    if(!r.ok || d.ok === false) throw new Error("save failed");
+    // reflect locally so greetings use it right away
+    if(userState){ userState.memory = userState.memory || {}; userState.memory.nickname = d.nickname || ""; }
+    try{ localStorage.setItem("dusu_state", JSON.stringify(userState)); }catch(_){}
+    if(st){ st.textContent = "Saved ✓"; st.style.color = "var(--gold)"; }
+  }catch(_){ if(st){ st.textContent = "Couldn't save — try again."; st.style.color = "#e08585"; } }
+  finally{ btn.disabled = false; btn.textContent = "Save"; }
+}
+if($("pfSave")) $("pfSave").onclick = saveProfile;
+if($("profileBack")) $("profileBack").onclick = () => goHome();
 $("journeyBack").onclick = () => { show("home"); };
 
 function renderJourney(){

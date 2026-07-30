@@ -858,6 +858,27 @@ async def greeting(inp: TokenIn):
         return {"text": ""}
 
 
+class ProfileUpdateIn(BaseModel):
+    token: str
+    nickname: str = ""
+
+
+@app.post("/profile/update")
+async def profile_update(inp: ProfileUpdateIn):
+    """Update editable profile fields (currently: nickname — what DuSu calls the user)."""
+    claims = auth.read_session(inp.token)
+    if not claims:
+        raise HTTPException(401, "Not signed in")
+    if not db.db_enabled:
+        return {"ok": True, "nickname": (inp.nickname or "").strip()[:40]}
+    try:
+        facts = await db.set_nickname(claims["sub"], inp.nickname)
+        return {"ok": True, "nickname": facts.get("nickname", ""), "memory": facts}
+    except Exception as e:
+        print(f"[profile] update failed: {type(e).__name__}: {e}")
+        return {"ok": False}
+
+
 @app.post("/futureme")
 async def futureme(inp: FutureMeIn):
     claims = auth.read_session(inp.token)
