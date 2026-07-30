@@ -1852,6 +1852,7 @@
   <button class="mrow" data-more="keys"><span class="mi">🔑</span><span><span class="mt">DuSu keys / Mode</span><br><span class="msub">Personal or Office (own keys)</span></span></button>
   <button class="mrow" data-more="leveltest"><span class="mi">🧪</span><span><span class="mt">Level check</span><br><span class="msub">Re-check your English level</span></span></button>
   <button class="mrow" data-more="help"><span class="mi">💌</span><span><span class="mt">Help &amp; Feedback</span><br><span class="msub">Reach out — feedback or a problem</span></span></button>
+  <button class="mrow" data-more="subscribe"><span class="mi">⭐</span><span><span class="mt">Subscribe</span><br><span class="msub">Unlock more — pick a plan</span></span></button>
   <button class="mrow" data-more="signout"><span class="mi">🚪</span><span><span class="mt">Sign out</span><br><span class="msub">See you soon 👋</span></span></button>
 </div>
 <nav class="bnav hide" id="bnav">
@@ -2101,6 +2102,7 @@ document.querySelectorAll(".mrow").forEach(r => r.onclick = () => {
   else if(a === "keys") navTo("/keys");                   // gOffice guard applies
   else if(a === "admin") openAdmin();
   else if(a === "help") openHelp();
+  else if(a === "subscribe") navTo("/subscribe");
   else if(a === "signout") logout();
 });
 
